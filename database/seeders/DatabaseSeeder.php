@@ -18,7 +18,7 @@ class DatabaseSeeder extends Seeder
         // User::factory(10)->create();
 
         User::factory()->create([
-            'id'       => 'USR00001',
+            'id'       => (string) \Illuminate\Support\Str::uuid(),
             'username' => 'testuser',
             'name'     => 'Test User',
             'email'    => 'test@example.com',

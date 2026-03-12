@@ -3,6 +3,7 @@
 namespace App\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
+use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
@@ -11,7 +12,7 @@ use Illuminate\Support\Str;
 class User extends Authenticatable
 {
     /** @use HasFactory<\Database\Factories\UserFactory> */
-    use HasFactory, Notifiable;
+    use HasFactory, Notifiable, HasUuids;
 
     /**
      * The primary key for the model.
@@ -20,30 +21,23 @@ class User extends Authenticatable
     protected $primaryKey = 'id';
 
     /**
-     * The primary key type.
-     * @var string
+     * Get the value indicating whether the IDs are incrementing.
+     *
+     * @return bool
      */
-    protected $keyType = 'string';
-
-    /**
-     * Indicates if the primary key is auto-incrementing.
-     * @var bool
-     */
-    public $incrementing = false;
-
-    /**
-     * Auto-generate a unique user_id string on creation.
-     */
-    protected static function boot(): void
+    public function getIncrementing()
     {
-        parent::boot();
-        static::creating(function ($model) {
-            if (empty($model->user_id)) {
-                $latest = static::orderBy('id', 'desc')->first();
-                $nextNumber = $latest ? (intval(substr($latest->user_id, 3)) + 1) : 1;
-                $model->user_id = 'USR' . str_pad($nextNumber, 5, '0', STR_PAD_LEFT);
-            }
-        });
+        return false;
+    }
+
+    /**
+     * Get the auto-incrementing key type.
+     *
+     * @return string
+     */
+    public function getKeyType()
+    {
+        return 'string';
     }
 
     /**
