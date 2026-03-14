@@ -4,7 +4,13 @@ use Illuminate\Database\Eloquent\Model;
 
 class TicketType extends Model {
     protected $table = 'tickets_types';
-    protected $fillable = ['name', 'price', 'quota', 'available_stock', 'event_id'
+
+    protected $fillable = [
+        'name', 
+        'price', 
+        'quota', 
+        'available_stock', 
+        'event_id'
     ];
 
     public function event() {

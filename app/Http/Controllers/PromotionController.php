@@ -13,6 +13,7 @@ class PromotionController extends Controller {
             'end_date' => 'required|date',
             'event_id' => 'required|exists:events,id'
         ]);
+
         return response()->json(Promotion::create($data), 201);
     }
 
@@ -24,6 +25,7 @@ class PromotionController extends Controller {
             'end_date' => 'date'
         ]);
         $promo->update($data);
+
         return response()->json($promo);
     }
 
@@ -31,6 +33,7 @@ class PromotionController extends Controller {
         $promo = Promotion::findOrFail($id);
         $promo->quota = 0;
         $promo->save();
+        
         return response()->json($promo);
     }
 }

@@ -14,6 +14,7 @@ class EventCategoryController extends Controller {
             'description' => 'nullable|string|max:100'
         ]);
         $data['status'] = 'Active';
+
         return response()->json(EventCategory::create($data), 201);
     }
 
@@ -24,6 +25,7 @@ class EventCategoryController extends Controller {
             'description' => 'nullable|string|max:100'
         ]);
         $category->update($data);
+
         return response()->json($category);
     }
 
@@ -31,6 +33,7 @@ class EventCategoryController extends Controller {
         $category = EventCategory::findOrFail($id);
         $category->status = ($category->status == 'Active') ? 'Inactive' : 'Active';
         $category->save();
+        
         return response()->json($category);
     }
 }

@@ -17,6 +17,7 @@ class OrganizerController extends Controller {
             'user_id' => 'required|exists:users,id'
         ]);
         $data['status'] = 'Active';
+
         return response()->json(Organizer::create($data), 201);
     }
 
@@ -28,6 +29,7 @@ class OrganizerController extends Controller {
             'bank_account' => 'string|max:45'
         ]);
         $organizer->update($data);
+
         return response()->json($organizer);
     }
 
@@ -35,6 +37,7 @@ class OrganizerController extends Controller {
         $organizer = Organizer::findOrFail($id);
         $organizer->status = ($organizer->status == 'Active') ? 'Inactive' : 'Active';
         $organizer->save();
+        
         return response()->json($organizer);
     }
 }

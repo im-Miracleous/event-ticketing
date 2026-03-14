@@ -16,6 +16,7 @@ class TransactionDetailController extends Controller {
             'ticket_type_id' => 'required|exists:tickets_types,id'
         ]);
         $data['status'] = 'Active';
+
         return response()->json(TransactionDetail::create($data), 201);
     }
 
@@ -26,6 +27,7 @@ class TransactionDetailController extends Controller {
             'quantity' => 'integer'
         ]);
         $detail->update($data);
+
         return response()->json($detail);
     }
 
@@ -33,6 +35,7 @@ class TransactionDetailController extends Controller {
         $detail = TransactionDetail::findOrFail($id);
         $detail->status = ($detail->status == 'Active') ? 'Cancelled' : 'Active';
         $detail->save();
+        
         return response()->json($detail);
     }
 }

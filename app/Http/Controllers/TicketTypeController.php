@@ -16,6 +16,7 @@ class TicketTypeController extends Controller {
             'available_stock' => 'required|integer',
             'event_id' => 'required|exists:events,id'
         ]);
+
         return response()->json(TicketType::create($data), 201);
     }
 
@@ -28,6 +29,7 @@ class TicketTypeController extends Controller {
             'available_stock' => 'integer'
         ]);
         $type->update($data);
+
         return response()->json($type);
     }
 
@@ -35,6 +37,7 @@ class TicketTypeController extends Controller {
         $type = TicketType::findOrFail($id);
         $type->available_stock = 0;
         $type->save();
+        
         return response()->json($type);
     }
 }

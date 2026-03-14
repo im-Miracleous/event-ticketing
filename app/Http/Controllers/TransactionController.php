@@ -18,6 +18,7 @@ class TransactionController extends Controller {
             'event_id' => 'required|exists:events,id',
             'promotion_id' => 'nullable|exists:promotions,id'
         ]);
+
         return response()->json(Transaction::create($data), 201);
     }
 
@@ -27,6 +28,7 @@ class TransactionController extends Controller {
             'transaction_status' => 'required|in:Pending,Success,Failed,Cancelled'
         ]);
         $transaction->update($data);
+
         return response()->json($transaction);
     }
 
@@ -34,6 +36,7 @@ class TransactionController extends Controller {
         $transaction = Transaction::findOrFail($id);
         $transaction->transaction_status = 'Cancelled';
         $transaction->save();
+        
         return response()->json($transaction);
     }
 }

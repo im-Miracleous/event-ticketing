@@ -12,6 +12,7 @@ class AttendeeController extends Controller {
             'identity_number' => 'nullable|string|max:20',
             'ticket_id' => 'required|exists:tickets,id'
         ]);
+        
         return response()->json(Attendee::create($data), 201);
     }
 }

@@ -17,6 +17,7 @@ class TicketController extends Controller {
             'transaction_detail_id' => 'required|exists:transaction_details,id',
             'ticket_type_id' => 'required|exists:tickets_types,id'
         ]);
+
         return response()->json(Ticket::create($data), 201);
     }
 
@@ -27,6 +28,7 @@ class TicketController extends Controller {
             'validated_at' => 'nullable|date'
         ]);
         $ticket->update($data);
+
         return response()->json($ticket);
     }
 
@@ -34,6 +36,7 @@ class TicketController extends Controller {
         $ticket = Ticket::findOrFail($id);
         $ticket->ticket_status = ($ticket->ticket_status == 'Active') ? 'Cancelled' : 'Active';
         $ticket->save();
+        
         return response()->json($ticket);
     }
 }

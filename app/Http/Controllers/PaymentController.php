@@ -14,6 +14,7 @@ class PaymentController extends Controller {
             'payment_status' => 'required|in:Pending,Paid,Failed,Cancelled',
             'transaction_time' => 'required|date'
         ]);
+
         return response()->json(Payment::create($data), 201);
     }
 
@@ -21,6 +22,7 @@ class PaymentController extends Controller {
         $payment = Payment::findOrFail($id);
         $payment->payment_status = 'Cancelled';
         $payment->save();
+        
         return response()->json($payment);
     }
 }

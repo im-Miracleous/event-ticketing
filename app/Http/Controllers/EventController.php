@@ -29,6 +29,7 @@ class EventController extends Controller {
         }
 
         $data['status'] = 'Active';
+
         return response()->json(Event::create($data), 201);
     }
 
@@ -53,6 +54,7 @@ class EventController extends Controller {
         }
 
         $event->update($data);
+
         return response()->json($event);
     }
 
@@ -60,6 +62,7 @@ class EventController extends Controller {
         $event = Event::findOrFail($id);
         $event->status = ($event->status == 'Active') ? 'Inactive' : 'Active';
         $event->save();
+        
         return response()->json($event);
     }
 }

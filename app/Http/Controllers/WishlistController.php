@@ -14,6 +14,7 @@ class WishlistController extends Controller {
             'event_id' => 'required|exists:events,id'
         ]);
         $data['status'] = 'Active';
+
         return response()->json(Wishlist::create($data), 201);
     }
 
@@ -23,6 +24,7 @@ class WishlistController extends Controller {
             'status' => 'required|in:Active,Inactive'
         ]);
         $wishlist->update($data);
+
         return response()->json($wishlist);
     }
 
@@ -30,6 +32,7 @@ class WishlistController extends Controller {
         $wishlist = Wishlist::where('user_id', $user_id)->where('event_id', $event_id)->firstOrFail();
         $wishlist->status = ($wishlist->status == 'Active') ? 'Inactive' : 'Active';
         $wishlist->save();
+        
         return response()->json($wishlist);
     }
 }

@@ -11,6 +11,7 @@ class WaitingListController extends Controller {
             'ticket_type_id' => 'required|exists:tickets_types,id',
             'user_id' => 'required|exists:users,id'
         ]);
+
         return response()->json(WaitingList::create($data), 201);
     }
 
@@ -20,6 +21,7 @@ class WaitingListController extends Controller {
             'status' => 'required|in:Waiting,Confirmed,Cancelled'
         ]);
         $list->update($data);
+
         return response()->json($list);
     }
 
@@ -27,6 +29,7 @@ class WaitingListController extends Controller {
         $list = WaitingList::findOrFail($id);
         $list->status = 'Cancelled';
         $list->save();
+        
         return response()->json($list);
     }
 }

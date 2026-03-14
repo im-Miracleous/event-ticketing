@@ -14,6 +14,7 @@ class ValidationLogController extends Controller {
             'result' => 'required|in:Valid,Invalid,Expired,Already Used',
             'ticket_id' => 'required|exists:tickets,id'
         ]);
+
         return response()->json(ValidationLog::create($data), 201);
     }
 
@@ -23,6 +24,7 @@ class ValidationLogController extends Controller {
             'result' => 'required|in:Valid,Invalid,Expired,Already Used'
         ]);
         $log->update($data);
+
         return response()->json($log);
     }
 
@@ -30,6 +32,7 @@ class ValidationLogController extends Controller {
         $log = ValidationLog::findOrFail($id);
         $log->result = ($log->result == 'Valid') ? 'Invalid' : 'Valid';
         $log->save();
+        
         return response()->json($log);
     }
 }
