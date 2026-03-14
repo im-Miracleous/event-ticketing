@@ -1,34 +1,32 @@
 <?php
 namespace App\Http\Controllers;
-
 use App\Models\WaitingList;
 use Illuminate\Http\Request;
 
 class WaitingListController extends Controller {
-    public function index() {
-        return response()->json(WaitingList::with(['event', 'ticketType'])->get());
-    }
-
     public function store(Request $request) {
         $data = $request->validate([
-            'waitinglist_id' => 'required|string|unique:waiting_list',
-            'waitinglist_status' => 'required|in:Waiting,Confirmed,Cancelled',
-            'events_event_id' => 'required',
-            'events_event_category_eventcategory_id' => 'required',
-            'tickets_types_tickettype_id' => 'required'
+            'status' => 'required|in:Waiting,Confirmed,Cancelled',
+            'event_id' => 'required|exists:events,id',
+            'ticket_type_id' => 'required|exists:tickets_types,id',
+            'user_id' => 'required|exists:users,id'
         ]);
-
-        $waitingList = WaitingList::create($data);
-        return response()->json($waitingList, 201);
+        return response()->json(WaitingList::create($data), 201);
     }
 
     public function update(Request $request, $id) {
-        $waitingList = WaitingList::findOrFail($id);
+        $list = WaitingList::findOrFail($id);
         $data = $request->validate([
-            'waitinglist_status' => 'required|in:Waiting,Confirmed,Cancelled'
+            'status' => 'required|in:Waiting,Confirmed,Cancelled'
         ]);
+        $list->update($data);
+        return response()->json($list);
+    }
 
-        $waitingList->update($data);
-        return response()->json($waitingList);
+    public function toggleStatus($id) {
+        $list = WaitingList::findOrFail($id);
+        $list->status = 'Cancelled';
+        $list->save();
+        return response()->json($list);
     }
 }

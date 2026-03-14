@@ -1,26 +1,26 @@
 <?php
 namespace App\Http\Controllers;
-
 use App\Models\Event;
 use Illuminate\Http\Request;
 
 class EventController extends Controller {
     public function index() {
-        return response()->json(Event::with('category')->get());
+        return response()->json(Event::with(['category', 'organizer'])->get());
     }
 
     public function store(Request $request) {
         $data = $request->validate([
-            'event_id' => 'required|string|unique:events',
+            'id' => 'required|string|max:36|unique:events',
             'title' => 'required|string|max:45',
             'description' => 'required|string|max:200',
             'banner_image' => 'required|image|mimes:jpeg,png,jpg|max:2048',
             'event_date' => 'required|date',
             'total_quota' => 'required|integer',
-            'start_time' => 'required',
-            'end_time' => 'required',
+            'start_time' => 'required|date_format:Y-m-d H:i:s',
+            'end_time' => 'required|date_format:Y-m-d H:i:s',
             'location' => 'required|string|max:45',
-            'event_category_eventcategory_id' => 'required|exists:event_category,eventcategory_id'
+            'event_category_id' => 'required|exists:event_category,id',
+            'organizer_id' => 'required|exists:organizers,id'
         ]);
 
         if ($request->hasFile('banner_image')) {
@@ -29,22 +29,21 @@ class EventController extends Controller {
         }
 
         $data['status'] = 'Active';
-
-        $event = Event::create($data);
-        return response()->json($event, 201);
+        return response()->json(Event::create($data), 201);
     }
 
     public function update(Request $request, $id) {
         $event = Event::findOrFail($id);
         $data = $request->validate([
-            'title' => 'required|string|max:45',
-            'description' => 'required|string|max:200',
-            'event_date' => 'required|date',
-            'total_quota' => 'required|integer',
-            'start_time' => 'required',
-            'end_time' => 'required',
-            'location' => 'required|string|max:45',
-            'event_category_eventcategory_id' => 'required|exists:event_category,eventcategory_id'
+            'title' => 'string|max:45',
+            'description' => 'string|max:200',
+            'event_date' => 'date',
+            'total_quota' => 'integer',
+            'start_time' => 'date_format:Y-m-d H:i:s',
+            'end_time' => 'date_format:Y-m-d H:i:s',
+            'location' => 'string|max:45',
+            'event_category_id' => 'exists:event_category,id',
+            'organizer_id' => 'exists:organizers,id'
         ]);
 
         if ($request->hasFile('banner_image')) {
@@ -58,7 +57,7 @@ class EventController extends Controller {
     }
 
     public function toggleStatus($id) {
-        $event = Event::where('event_id', $id)->firstOrFail();
+        $event = Event::findOrFail($id);
         $event->status = ($event->status == 'Active') ? 'Inactive' : 'Active';
         $event->save();
         return response()->json($event);

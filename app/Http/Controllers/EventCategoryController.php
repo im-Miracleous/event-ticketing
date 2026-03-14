@@ -1,6 +1,5 @@
 <?php
 namespace App\Http\Controllers;
-
 use App\Models\EventCategory;
 use Illuminate\Http\Request;
 
@@ -11,13 +10,11 @@ class EventCategoryController extends Controller {
 
     public function store(Request $request) {
         $data = $request->validate([
-            'eventcategory_id' => 'required|string|unique:event_category',
             'name' => 'required|string|max:45',
             'description' => 'nullable|string|max:100'
         ]);
-
-        $category = EventCategory::create($data);
-        return response()->json($category, 201);
+        $data['status'] = 'Active';
+        return response()->json(EventCategory::create($data), 201);
     }
 
     public function update(Request $request, $id) {
@@ -26,8 +23,14 @@ class EventCategoryController extends Controller {
             'name' => 'required|string|max:45',
             'description' => 'nullable|string|max:100'
         ]);
-
         $category->update($data);
+        return response()->json($category);
+    }
+
+    public function toggleStatus($id) {
+        $category = EventCategory::findOrFail($id);
+        $category->status = ($category->status == 'Active') ? 'Inactive' : 'Active';
+        $category->save();
         return response()->json($category);
     }
 }

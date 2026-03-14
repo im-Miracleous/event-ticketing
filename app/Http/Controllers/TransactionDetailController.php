@@ -1,6 +1,5 @@
 <?php
 namespace App\Http\Controllers;
-
 use App\Models\TransactionDetail;
 use Illuminate\Http\Request;
 
@@ -11,25 +10,29 @@ class TransactionDetailController extends Controller {
 
     public function store(Request $request) {
         $data = $request->validate([
-            'transactiondetail_id' => 'required|string|unique:transaction_details',
             'subtotal' => 'required|numeric',
             'quantity' => 'required|integer',
-            'transactions_transaction_id' => 'required',
-            'tickets_types_tickettype_id' => 'required'
+            'transaction_id' => 'required|exists:transactions,id',
+            'ticket_type_id' => 'required|exists:tickets_types,id'
         ]);
-
-        $detail = TransactionDetail::create($data);
-        return response()->json($detail, 201);
+        $data['status'] = 'Active';
+        return response()->json(TransactionDetail::create($data), 201);
     }
 
     public function update(Request $request, $id) {
         $detail = TransactionDetail::findOrFail($id);
         $data = $request->validate([
-            'subtotal' => 'required|numeric',
-            'quantity' => 'required|integer'
+            'subtotal' => 'numeric',
+            'quantity' => 'integer'
         ]);
-
         $detail->update($data);
+        return response()->json($detail);
+    }
+
+    public function toggleStatus($id) {
+        $detail = TransactionDetail::findOrFail($id);
+        $detail->status = ($detail->status == 'Active') ? 'Cancelled' : 'Active';
+        $detail->save();
         return response()->json($detail);
     }
 }

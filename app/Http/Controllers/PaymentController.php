@@ -1,6 +1,5 @@
 <?php
 namespace App\Http\Controllers;
-
 use App\Models\Payment;
 use Illuminate\Http\Request;
 
@@ -11,23 +10,17 @@ class PaymentController extends Controller {
 
     public function store(Request $request) {
         $data = $request->validate([
-            'payment_id' => 'required|string|unique:payments',
             'payment_method' => 'required|in:Cash,Transfer,E-Wallet,Credit Card',
             'payment_status' => 'required|in:Pending,Paid,Failed,Cancelled',
             'transaction_time' => 'required|date'
         ]);
-
-        $payment = Payment::create($data);
-        return response()->json($payment, 201);
+        return response()->json(Payment::create($data), 201);
     }
 
-    public function update(Request $request, $id) {
+    public function toggleStatus($id) {
         $payment = Payment::findOrFail($id);
-        $data = $request->validate([
-            'payment_status' => 'required|in:Pending,Paid,Failed,Cancelled'
-        ]);
-
-        $payment->update($data);
+        $payment->payment_status = 'Cancelled';
+        $payment->save();
         return response()->json($payment);
     }
 }

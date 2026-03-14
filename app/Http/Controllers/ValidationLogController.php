@@ -1,6 +1,5 @@
 <?php
 namespace App\Http\Controllers;
-
 use App\Models\ValidationLog;
 use Illuminate\Http\Request;
 
@@ -11,14 +10,11 @@ class ValidationLogController extends Controller {
 
     public function store(Request $request) {
         $data = $request->validate([
-            'validationlog_id' => 'required|string|unique:validation_logs',
-            'validation_time' => 'required|date',
+            'validation_time' => 'required|date_format:Y-m-d H:i:s',
             'result' => 'required|in:Valid,Invalid,Expired,Already Used',
-            'tickets_ticket_id' => 'required'
+            'ticket_id' => 'required|exists:tickets,id'
         ]);
-
-        $log = ValidationLog::create($data);
-        return response()->json($log, 201);
+        return response()->json(ValidationLog::create($data), 201);
     }
 
     public function update(Request $request, $id) {
@@ -26,8 +22,14 @@ class ValidationLogController extends Controller {
         $data = $request->validate([
             'result' => 'required|in:Valid,Invalid,Expired,Already Used'
         ]);
-
         $log->update($data);
+        return response()->json($log);
+    }
+
+    public function toggleStatus($id) {
+        $log = ValidationLog::findOrFail($id);
+        $log->result = ($log->result == 'Valid') ? 'Invalid' : 'Valid';
+        $log->save();
         return response()->json($log);
     }
 }

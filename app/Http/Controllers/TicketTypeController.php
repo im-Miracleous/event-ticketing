@@ -1,39 +1,40 @@
 <?php
 namespace App\Http\Controllers;
-
 use App\Models\TicketType;
 use Illuminate\Http\Request;
 
 class TicketTypeController extends Controller {
     public function index() {
-        return response()->json(TicketType::with('event')->get());
+        return response()->json(TicketType::all());
     }
 
     public function store(Request $request) {
         $data = $request->validate([
-            'tickettype_id' => 'required|string|unique:tickets_types',
             'name' => 'required|string|max:45',
             'price' => 'required|numeric',
             'quota' => 'required|integer',
             'available_stock' => 'required|integer',
-            'events_event_id' => 'required|exists:events,event_id',
-            'events_event_category_eventcategory_id' => 'required'
+            'event_id' => 'required|exists:events,id'
         ]);
-
-        $ticketType = TicketType::create($data);
-        return response()->json($ticketType, 201);
+        return response()->json(TicketType::create($data), 201);
     }
 
     public function update(Request $request, $id) {
-        $ticketType = TicketType::findOrFail($id);
+        $type = TicketType::findOrFail($id);
         $data = $request->validate([
-            'name' => 'required|string|max:45',
-            'price' => 'required|numeric',
-            'quota' => 'required|integer',
-            'available_stock' => 'required|integer'
+            'name' => 'string|max:45',
+            'price' => 'numeric',
+            'quota' => 'integer',
+            'available_stock' => 'integer'
         ]);
+        $type->update($data);
+        return response()->json($type);
+    }
 
-        $ticketType->update($data);
-        return response()->json($ticketType);
+    public function toggleStatus($id) {
+        $type = TicketType::findOrFail($id);
+        $type->available_stock = 0;
+        $type->save();
+        return response()->json($type);
     }
 }
