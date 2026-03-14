@@ -11,13 +11,11 @@ class TicketTypeController extends Controller {
 
     public function store(Request $request) {
         $data = $request->validate([
-            'tickettype_id' => 'required|string|unique:tickets_types',
             'name' => 'required|string|max:45',
             'price' => 'required|numeric',
             'quota' => 'required|integer',
             'available_stock' => 'required|integer',
-            'events_event_id' => 'required|exists:events,event_id',
-            'events_event_category_eventcategory_id' => 'required'
+            'event_id' => 'required|string|exists:events,id'
         ]);
 
         $ticketType = TicketType::create($data);

@@ -11,11 +11,10 @@ class TransactionDetailController extends Controller {
 
     public function store(Request $request) {
         $data = $request->validate([
-            'transactiondetail_id' => 'required|string|unique:transaction_details',
             'subtotal' => 'required|numeric',
             'quantity' => 'required|integer',
-            'transactions_transaction_id' => 'required',
-            'tickets_types_tickettype_id' => 'required'
+            'transaction_id' => 'required',
+            'ticket_type_id' => 'required'
         ]);
 
         $detail = TransactionDetail::create($data);

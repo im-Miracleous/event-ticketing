@@ -11,7 +11,6 @@ class PaymentController extends Controller {
 
     public function store(Request $request) {
         $data = $request->validate([
-            'payment_id' => 'required|string|unique:payments',
             'payment_method' => 'required|in:Cash,Transfer,E-Wallet,Credit Card',
             'payment_status' => 'required|in:Pending,Paid,Failed,Cancelled',
             'transaction_time' => 'required|date'

@@ -11,7 +11,6 @@ class EventCategoryController extends Controller {
 
     public function store(Request $request) {
         $data = $request->validate([
-            'eventcategory_id' => 'required|string|unique:event_category',
             'name' => 'required|string|max:45',
             'description' => 'nullable|string|max:100'
         ]);

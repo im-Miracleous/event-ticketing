@@ -11,7 +11,7 @@ class EventController extends Controller {
 
     public function store(Request $request) {
         $data = $request->validate([
-            'event_id' => 'required|string|unique:events',
+            'id' => 'required|string|max:36|unique:events',
             'title' => 'required|string|max:45',
             'description' => 'required|string|max:200',
             'banner_image' => 'required|image|mimes:jpeg,png,jpg|max:2048',
@@ -20,7 +20,7 @@ class EventController extends Controller {
             'start_time' => 'required',
             'end_time' => 'required',
             'location' => 'required|string|max:45',
-            'event_category_eventcategory_id' => 'required|exists:event_category,eventcategory_id'
+            'event_category_id' => 'required|integer|exists:event_category,id'
         ]);
 
         if ($request->hasFile('banner_image')) {
@@ -44,7 +44,7 @@ class EventController extends Controller {
             'start_time' => 'required',
             'end_time' => 'required',
             'location' => 'required|string|max:45',
-            'event_category_eventcategory_id' => 'required|exists:event_category,eventcategory_id'
+            'event_category_id' => 'required|integer|exists:event_category,id'
         ]);
 
         if ($request->hasFile('banner_image')) {
@@ -58,7 +58,7 @@ class EventController extends Controller {
     }
 
     public function toggleStatus($id) {
-        $event = Event::where('event_id', $id)->firstOrFail();
+        $event = Event::findOrFail($id);
         $event->status = ($event->status == 'Active') ? 'Inactive' : 'Active';
         $event->save();
         return response()->json($event);

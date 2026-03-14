@@ -11,10 +11,9 @@ class ValidationLogController extends Controller {
 
     public function store(Request $request) {
         $data = $request->validate([
-            'validationlog_id' => 'required|string|unique:validation_logs',
             'validation_time' => 'required|date',
             'result' => 'required|in:Valid,Invalid,Expired,Already Used',
-            'tickets_ticket_id' => 'required'
+            'ticket_id' => 'required'
         ]);
 
         $log = ValidationLog::create($data);

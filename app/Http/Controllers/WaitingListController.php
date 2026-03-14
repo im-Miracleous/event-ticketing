@@ -11,11 +11,10 @@ class WaitingListController extends Controller {
 
     public function store(Request $request) {
         $data = $request->validate([
-            'waitinglist_id' => 'required|string|unique:waiting_list',
-            'waitinglist_status' => 'required|in:Waiting,Confirmed,Cancelled',
-            'events_event_id' => 'required',
-            'events_event_category_eventcategory_id' => 'required',
-            'tickets_types_tickettype_id' => 'required'
+            'status' => 'required|in:Waiting,Confirmed,Cancelled',
+            'event_id' => 'required',
+            'ticket_type_id' => 'required',
+            'user_id' => 'required'
         ]);
 
         $waitingList = WaitingList::create($data);
@@ -25,7 +24,7 @@ class WaitingListController extends Controller {
     public function update(Request $request, $id) {
         $waitingList = WaitingList::findOrFail($id);
         $data = $request->validate([
-            'waitinglist_status' => 'required|in:Waiting,Confirmed,Cancelled'
+            'status' => 'required|in:Waiting,Confirmed,Cancelled'
         ]);
 
         $waitingList->update($data);

@@ -25,13 +25,12 @@ class TicketController extends Controller {
                 $qrString = "VALIDATE-" . $ticket_id;
 
                 $ticket = Ticket::create([
-                    'ticket_id' => $ticket_id,
+                    'id' => $ticket_id,
                     'qr_code' => $qrString,
                     'ticket_status' => 'Active',
                     'issued_at' => now(),
-                    'transaction_details_transactiondetail_id' => $detail->transactiondetail_id,
-                    'transaction_details_transactions_transaction_id' => $transaction->transaction_id,
-                    'tickets_types_tickettype_id' => $detail->tickets_types_tickettype_id
+                    'transaction_detail_id' => $detail->id,
+                    'ticket_type_id' => $detail->ticket_type_id
                 ]);
 
                 $generatedTickets[] = $ticket;

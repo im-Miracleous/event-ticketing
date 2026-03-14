@@ -2,6 +2,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Transaction;
+use App\Models\TransactionDetail;
 use App\Models\TicketType;
 use App\Models\Payment;
 use Illuminate\Http\Request;
@@ -14,26 +15,24 @@ class TransactionController extends Controller {
 
     public function store(Request $request) {
         $request->validate([
-            'transaction_id' => 'required|string|unique:transactions',
-            'users_user_id' => 'required',
-            'events_event_id' => 'required',
-            'tickets_types_tickettype_id' => 'required',
+            'id' => 'required|string|unique:transactions',
+            'user_id' => 'required',
+            'event_id' => 'required',
+            'ticket_type_id' => 'required',
             'quantity' => 'required|integer|min:1',
             'payment_method' => 'required|in:Cash,Transfer,E-Wallet,Credit Card'
         ]);
 
         DB::beginTransaction();
         try {
-            $ticketType = TicketType::findOrFail($request->tickets_types_tickettype_id);
+            $ticketType = TicketType::findOrFail($request->ticket_type_id);
 
             if ($ticketType->available_stock < $request->quantity) {
                 return response()->json(['error' => 'Stok tiket tidak mencukupi'], 400);
             }
             $ticketType->decrement('available_stock', $request->quantity);
 
-            $payment_id = 'PAY-' . rand(1000, 9999);
             $payment = Payment::create([
-                'payment_id' => $payment_id,
                 'payment_method' => $request->payment_method,
                 'payment_status' => 'Pending',
                 'transaction_time' => now()
@@ -41,12 +40,19 @@ class TransactionController extends Controller {
 
             $total_amount = $ticketType->price * $request->quantity;
             $transaction = Transaction::create([
-                'transaction_id' => $request->transaction_id,
+                'id' => $request->id,
                 'total_amount' => $total_amount,
                 'transaction_status' => 'Pending',
-                'users_user_id' => $request->users_user_id,
-                'payments_payment_id' => $payment_id,
-                'events_event_id' => $request->events_event_id
+                'user_id' => $request->user_id,
+                'payment_id' => $payment->id,
+                'event_id' => $request->event_id
+            ]);
+
+            TransactionDetail::create([
+                'subtotal' => $total_amount,
+                'quantity' => $request->quantity,
+                'transaction_id' => $transaction->id,
+                'ticket_type_id' => $ticketType->id
             ]);
 
             DB::commit();
