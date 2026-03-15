@@ -76,4 +76,16 @@ class User extends Authenticatable
             'password' => 'hashed',
         ];
     }
+
+    public function transactions() {
+        return $this->hasMany(Transaction::class, 'users_user_id', 'user_id');
+    }
+
+    public function events() {
+        return $this->belongsToMany(Event::class, 'Register', 'users_user_id', 'events_event_id');
+    }
+
+    public function waitingLists() {
+        return $this->belongsToMany(WaitingList::class, 'Register Waiting_List', 'users_user_id', 'waiting_list_waitinglist_id');
+    }
 }
