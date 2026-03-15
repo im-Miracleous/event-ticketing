@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
+use App\Models\User;
 use Illuminate\Auth\Events\PasswordReset;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -40,7 +41,7 @@ class NewPasswordController extends Controller
     {
         $request->validate([
             'email' => 'required|email',
-            'password' => ['required', 'confirmed', \Illuminate\Validation\Rules\Password::defaults()],
+            'password' => ['required', 'confirmed', Rules\Password::defaults()],
         ]);
 
         $sessionEmail = $request->session()->get('otp_password_email');
@@ -50,18 +51,18 @@ class NewPasswordController extends Controller
             return redirect()->route('password.request')->withErrors(['email' => 'Session expired or invalid.']);
         }
 
-        $user = \App\Models\User::where('email', $request->email)->first();
+        $user = User::where('email', $request->email)->first();
 
         if (!$user) {
             return back()->withErrors(['email' => 'User not found.']);
         }
 
         $user->forceFill([
-            'password' => \Illuminate\Support\Facades\Hash::make($request->password),
-            'remember_token' => \Illuminate\Support\Str::random(60),
+            'password' => Hash::make($request->password),
+            'remember_token' => Str::random(60),
         ])->save();
 
-        event(new \Illuminate\Auth\Events\PasswordReset($user));
+        event(new PasswordReset($user));
 
         // Clear session
         $request->session()->forget(['otp_password_verified', 'otp_password_email']);

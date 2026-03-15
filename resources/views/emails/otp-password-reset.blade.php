@@ -1,54 +1,99 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <meta charset="utf-8">
-    <title>Reset Your Password - EventHive</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Reset your EventHive password</title>
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700;800&display=swap');
-        body { font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background-color: #fff1f2; padding: 40px 20px; margin: 0; }
-        .wrapper { max-width: 600px; margin: 0 auto; }
-        .card { background: #ffffff; padding: 48px; border-radius: 24px; box-shadow: 0 20px 25px -5px rgba(225, 29, 72, 0.05), 0 10px 10px -5px rgba(225, 29, 72, 0.02); border: 1px solid #ffe4e6; }
-        .logo-container { text-align: center; margin-bottom: 32px; }
-        .logo { font-size: 28px; font-weight: 900; color: #0f172a; letter-spacing: -0.05em; font-style: italic; text-transform: uppercase; }
-        .logo span { color: #e11d48; }
-        .header { text-align: center; margin-bottom: 32px; }
-        .header h1 { font-size: 24px; font-weight: 800; color: #1e293b; margin: 0; text-transform: uppercase; letter-spacing: -0.02em; }
-        .header p { color: #64748b; font-size: 16px; margin-top: 8px; }
-        .otp-box { background: #fff1f2; padding: 32px; border-radius: 20px; text-align: center; margin: 32px 0; border: 1px solid #fecaca; }
-        .otp-code { font-size: 42px; font-weight: 800; color: #e11d48; letter-spacing: 12px; margin: 0; }
-        .divider { height: 1px; background: #f1f5f9; margin: 32px 0; }
-        .footer { text-align: center; color: #94a3b8; font-size: 13px; font-weight: 500; }
-        .security-note { color: #991b1b; font-size: 14px; line-height: 1.5; text-align: center; font-weight: 500; }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #F3F4F6; }
+        .wrapper { max-width: 560px; margin: 40px auto; padding: 20px; }
+        .card { background: #ffffff; border-radius: 20px; overflow: hidden; box-shadow: 0 4px 24px rgba(0,0,0,0.08); }
+        .header { background: linear-gradient(135deg, #991B1B 0%, #EF4444 100%); padding: 40px 40px 32px; text-align: center; }
+        .logo { display: inline-flex; align-items: center; gap: 10px; margin-bottom: 20px; }
+        .logo-icon { width: 40px; height: 40px; background: rgba(255,255,255,0.2); border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 20px; }
+        .logo-text { font-size: 22px; font-weight: 800; color: #fff; letter-spacing: -0.5px; }
+        .logo-accent { color: #FCA5A5; }
+        .header h1 { color: #fff; font-size: 24px; font-weight: 700; margin-bottom: 8px; }
+        .header p { color: rgba(255,255,255,0.82); font-size: 14px; line-height: 1.6; }
+        .body { padding: 36px 40px; }
+        .greeting { font-size: 16px; color: #374151; margin-bottom: 8px; }
+        .desc { font-size: 14px; color: #6B7280; line-height: 1.7; margin-bottom: 28px; }
+        .otp-wrapper { text-align: center; margin: 0 0 28px; }
+        .otp-label { font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; color: #9CA3AF; margin-bottom: 12px; }
+        .otp-code { display: inline-flex; gap: 8px; }
+        .otp-digit { width: 52px; height: 60px; background: #FEF2F2; border: 2px solid #FECACA; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 28px; font-weight: 800; color: #DC2626; }
+        .otp-divider { align-self: center; font-size: 24px; color: #D1D5DB; padding: 0 4px; }
+        .expiry-notice { text-align: center; background: #FFF7ED; border: 1px solid #FED7AA; border-radius: 10px; padding: 12px 16px; margin-bottom: 28px; }
+        .expiry-notice p { font-size: 13px; color: #92400E; }
+        .expiry-notice strong { color: #B45309; }
+        .warning-box { background: #FEF2F2; border: 1px solid #FECACA; border-radius: 10px; padding: 12px 16px; margin-bottom: 20px; }
+        .warning-box p { font-size: 13px; color: #991B1B; }
+        .divider { border: none; border-top: 1px solid #F3F4F6; margin: 28px 0; }
+        .footer { padding: 20px 40px 32px; text-align: center; background: #FAFAFA; }
+        .footer p { font-size: 12px; color: #9CA3AF; line-height: 1.6; }
+        .footer a { color: #EF4444; text-decoration: none; font-weight: 500; }
+        @media (max-width: 600px) {
+            .wrapper { padding: 10px; }
+            .header, .body { padding-left: 24px; padding-right: 24px; }
+            .otp-digit { width: 44px; height: 52px; font-size: 22px; }
+        }
     </style>
 </head>
 <body>
-    <div class="wrapper">
-        <div class="card">
-            <div class="logo-container">
-                <div class="logo">EVENT<span>HIVE</span></div>
+<div class="wrapper">
+    <div class="card">
+        <!-- Header -->
+        <div class="header">
+            <div class="logo">
+                <div class="logo-icon">🔐</div>
+                <span class="logo-text">Event<span class="logo-accent">Hive</span></span>
             </div>
-            
-            <div class="header">
-                <h1>Password Reset</h1>
-                <p>A request was made to help you regain access.</p>
+            <h1>Reset your password</h1>
+            <p>Use the code below to reset your EventHive account password</p>
+        </div>
+
+        <!-- Body -->
+        <div class="body">
+            <p class="greeting">Hi, <strong>{{ $user->name }}</strong> 👋</p>
+            <p class="desc">
+                We received a request to reset the password for your EventHive account. Enter the code below to proceed.
+            </p>
+
+            <!-- OTP Code -->
+            <div class="otp-wrapper">
+                <p class="otp-label">Your password reset code</p>
+                <div class="otp-code">
+                    @foreach(str_split($otp->code) as $i => $digit)
+                        @if($i === 3)
+                            <span class="otp-divider">–</span>
+                        @endif
+                        <div class="otp-digit">{{ $digit }}</div>
+                    @endforeach
+                </div>
             </div>
 
-            <div class="otp-box">
-                <p style="text-transform: uppercase; font-size: 12px; font-weight: 800; color: #94a3b8; letter-spacing: 0.1em; margin-bottom: 16px;">Security Verification Code</p>
-                <div class="otp-code">{{ $otpCode->code }}</div>
+            <!-- Expiry -->
+            <div class="expiry-notice">
+                <p>⏱ This code expires in <strong>10 minutes</strong> ({{ $otp->expires_at->format('H:i') }} WIB)</p>
             </div>
 
-            <div class="security-note">
-                Security Alert: This code expires in 10 minutes.<br>
-                Never share this code with anyone, including EventHive staff.
-            </div>
-
-            <div class="divider"></div>
-
-            <div class="footer">
-                &copy; {{ date('Y') }} EventHive Platform. All rights reserved.
+            <!-- Security warning -->
+            <div class="warning-box">
+                <p>🔒 If you did <strong>not</strong> request a password reset, please ignore this email. Your account is still secure.</p>
             </div>
         </div>
+
+        <hr class="divider">
+
+        <!-- Footer -->
+        <div class="footer">
+            <p>
+                &copy; {{ date('Y') }} EventHive. All rights reserved.<br>
+                <a href="#">Privacy Policy</a> &nbsp;·&nbsp; <a href="#">Terms of Service</a>
+            </p>
+        </div>
     </div>
+</div>
 </body>
 </html>

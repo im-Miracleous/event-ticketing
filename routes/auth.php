@@ -9,6 +9,8 @@ use App\Http\Controllers\Auth\PasswordController;
 use App\Http\Controllers\Auth\PasswordResetLinkController;
 use App\Http\Controllers\Auth\RegisteredUserController;
 use App\Http\Controllers\Auth\VerifyEmailController;
+use App\Http\Controllers\Auth\OtpVerificationController;
+use App\Http\Controllers\Auth\OtpPasswordResetController;
 use Illuminate\Support\Facades\Route;
 
 Route::middleware('guest')->group(function () {
@@ -29,13 +31,13 @@ Route::middleware('guest')->group(function () {
         ->name('password.email');
 
     // OTP Password Reset
-    Route::get('otp-password', [\App\Http\Controllers\Auth\OtpPasswordResetController::class, 'show'])
+    Route::get('otp-password', [OtpPasswordResetController::class, 'show'])
         ->name('otp.password');
-    Route::post('otp-password', [\App\Http\Controllers\Auth\OtpPasswordResetController::class, 'verify']);
-    Route::post('otp-password/resend', [\App\Http\Controllers\Auth\OtpPasswordResetController::class, 'resend'])
+    Route::post('otp-password', [OtpPasswordResetController::class, 'verify']);
+    Route::post('otp-password/resend', [OtpPasswordResetController::class, 'resend'])
         ->name('otp.password.resend');
 
-    Route::get('reset-password', [NewPasswordController::class, 'create'])
+    Route::get('reset-password/{token}', [NewPasswordController::class, 'create'])
         ->name('password.reset');
 
     Route::post('reset-password', [NewPasswordController::class, 'store'])
@@ -44,10 +46,10 @@ Route::middleware('guest')->group(function () {
 
 Route::middleware('auth')->group(function () {
     // OTP Registration Verification
-    Route::get('otp-verify', [\App\Http\Controllers\Auth\OtpVerificationController::class, 'show'])
+    Route::get('otp-verify', [OtpVerificationController::class, 'show'])
         ->name('otp.verify');
-    Route::post('otp-verify', [\App\Http\Controllers\Auth\OtpVerificationController::class, 'verify']);
-    Route::post('otp-verify/resend', [\App\Http\Controllers\Auth\OtpVerificationController::class, 'resend'])
+    Route::post('otp-verify', [OtpVerificationController::class, 'verify']);
+    Route::post('otp-verify/resend', [OtpVerificationController::class, 'resend'])
         ->name('otp.verify.resend');
 
     Route::get('verify-email', EmailVerificationPromptController::class)

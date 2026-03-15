@@ -3,9 +3,12 @@
 namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
+use App\Mail\OtpPasswordResetMail;
+use App\Models\OtpCode;
+use App\Models\User;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Password;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -15,6 +18,7 @@ class PasswordResetLinkController extends Controller
     /**
      * Display the password reset link request view.
      */
+<<<<<<< HEAD
     public function create(): Response
     {
         return Inertia::render('Auth/ForgotPassword', [
@@ -24,26 +28,35 @@ class PasswordResetLinkController extends Controller
 
     /**
      * Handle an incoming password reset link request.
+=======
+    public function create(): View
+    {
+        return view('auth.forgot-password');
+    }
+
+    /**
+     * Generate an OTP and email it to the user (replaces link-based reset).
+>>>>>>> master
      *
      * @throws ValidationException
      */
     public function store(Request $request): RedirectResponse
     {
         $request->validate([
+        $request->validate([
             'email' => 'required|email',
         ]);
 
-        $user = \App\Models\User::where('email', $request->email)->first();
+        $user = User::where('email', $request->email)->first();
 
-        // For security, if user doesn't exist, we still redirect or show success
-        // but here we just process if user exists
         if ($user) {
-            $otp = \App\Models\OtpCode::generateFor($user, 'password_reset');
-            \Illuminate\Support\Facades\Mail::to($user->email)->send(new \App\Mail\OtpPasswordResetMail($user, $otp));
+            $otp = OtpCode::generateFor($user, 'password_reset');
+            Mail::to($user->email)->send(new OtpPasswordResetMail($user, $otp));
             
+            // Store the email in session to retrieve on OTP page
             $request->session()->put('otp_password_email', $request->email);
         } else {
-            // Even if user not found, we redirect to show entry page to avoid email discovery
+            // Even if user not found, we still redirect to show entry page to avoid email discovery
             $request->session()->put('otp_password_email', $request->email);
         }
 

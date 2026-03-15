@@ -17,7 +17,7 @@ class OtpCode extends Model
 
     protected $casts = [
         'expires_at' => 'datetime',
-        'used_at' => 'datetime',
+        'used_at'    => 'datetime',
     ];
 
     public function user(): BelongsTo
@@ -26,7 +26,7 @@ class OtpCode extends Model
     }
 
     /**
-     * Check if OTP is still valid.
+     * Check if this OTP is still valid (not expired, not used).
      */
     public function isValid(): bool
     {
@@ -34,7 +34,7 @@ class OtpCode extends Model
     }
 
     /**
-     * Mark OTP as used.
+     * Mark the OTP as used.
      */
     public function markAsUsed(): void
     {
@@ -42,20 +42,20 @@ class OtpCode extends Model
     }
 
     /**
-     * Generate new OTP for user.
+     * Generate a random 6-digit OTP code for a user.
      */
-    public static function generateFor(User $user, string $type): self
+    public static function generateFor(User $user, string $type = 'email_verification'): self
     {
-        // Invalidate previous ones
+        // Invalidate all previous OTPs of the same type for this user
         self::where('user_id', $user->id)
             ->where('type', $type)
             ->whereNull('used_at')
             ->update(['used_at' => now()]);
 
         return self::create([
-            'user_id' => $user->id,
-            'code' => sprintf('%06d', mt_rand(0, 999999)),
-            'type' => $type,
+            'user_id'    => $user->id,
+            'code'       => str_pad(random_int(0, 999999), 6, '0', STR_PAD_LEFT),
+            'type'       => $type,
             'expires_at' => now()->addMinutes(10),
         ]);
     }

@@ -19,7 +19,7 @@ class OtpPasswordResetMail extends Mailable
      */
     public function __construct(
         public User $user,
-        public OtpCode $otpCode
+        public OtpCode $otp
     ) {}
 
     /**
@@ -28,7 +28,7 @@ class OtpPasswordResetMail extends Mailable
     public function envelope(): Envelope
     {
         return new Envelope(
-            subject: 'Password Reset OTP Code',
+            subject: 'EventHive Password Reset Code – ' . $this->otp->code,
         );
     }
 

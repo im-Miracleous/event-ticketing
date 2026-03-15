@@ -19,7 +19,7 @@ class OtpVerificationMail extends Mailable
      */
     public function __construct(
         public User $user,
-        public OtpCode $otpCode
+        public OtpCode $otp
     ) {}
 
     /**
@@ -28,7 +28,7 @@ class OtpVerificationMail extends Mailable
     public function envelope(): Envelope
     {
         return new Envelope(
-            subject: 'Email Verification OTP Code',
+            subject: 'Your EventHive Verification Code – ' . $this->otp->code,
         );
     }
 

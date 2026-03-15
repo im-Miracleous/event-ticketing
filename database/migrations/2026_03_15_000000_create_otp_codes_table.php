@@ -6,25 +6,21 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
-    /**
-     * Run the migrations.
-     */
     public function up(): void
     {
-        Schema::create('otp_codes', function (Blueprint $col) {
-            $col->id();
-            $col->foreignId('user_id')->constrained()->onDelete('cascade');
-            $col->string('code', 6);
-            $col->string('type'); // email_verification, password_reset
-            $col->timestamp('expires_at');
-            $col->timestamp('used_at')->nullable();
-            $col->timestamps();
+        Schema::create('otp_codes', function (Blueprint $table) {
+            $table->id();
+            $table->foreignId('user_id')->constrained()->cascadeOnDelete();
+            $table->string('code', 6);
+            $table->enum('type', ['email_verification', 'password_reset'])->default('email_verification');
+            $table->timestamp('expires_at');
+            $table->timestamp('used_at')->nullable();
+            $table->timestamps();
+
+            $table->index(['user_id', 'type']);
         });
     }
 
-    /**
-     * Reverse the migrations.
-     */
     public function down(): void
     {
         Schema::dropIfExists('otp_codes');

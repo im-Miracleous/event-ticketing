@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Auth;
 use App\Http\Controllers\Controller;
 use App\Mail\OtpVerificationMail;
 use App\Models\OtpCode;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Mail;
@@ -16,52 +17,76 @@ class OtpVerificationController extends Controller
     /**
      * Display the OTP entry form.
      */
-    public function show(Request $request): Response
+    public function show(Request $request): RedirectResponse|Response
     {
+        // If already verified, skip
+        if ($request->user()->hasVerifiedEmail()) {
+            return redirect()->intended(route('dashboard', absolute: false));
+        }
+
         return Inertia::render('Auth/OtpVerify', [
             'email' => $request->user()->email,
         ]);
     }
 
     /**
-     * Verify the OTP code.
+     * Verify the submitted OTP code.
      */
-    public function verify(Request $request)
+    public function verify(Request $request): RedirectResponse
     {
         $request->validate([
-            'code' => 'required|string|size:6',
+            'code' => ['required', 'string', 'size:6', 'regex:/^\d{6}$/'],
+        ], [
+            'code.required' => 'Please enter the OTP code.',
+            'code.size'     => 'The OTP must be exactly 6 digits.',
+            'code.regex'    => 'The OTP must contain only numbers.',
         ]);
 
-        $otp = OtpCode::where('user_id', $request->user()->id)
-            ->where('code', $request->code)
-            ->where('type', 'email_verification')
-            ->first();
-
-        if (!$otp || !$otp->isValid()) {
-            return back()->withErrors(['code' => 'The provided code is invalid or has expired.']);
-        }
-
-        $otp->markAsUsed();
-        $request->user()->markEmailAsVerified();
-
-        return redirect()->intended(route('dashboard', absolute: false));
-    }
-
-    /**
-     * Resend the OTP code.
-     */
-    public function resend(Request $request)
-    {
         $user = $request->user();
-        
-        // Simple throttle check
-        $lastOtp = OtpCode::where('user_id', $user->id)
+
+        $otp = OtpCode::where('user_id', $user->id)
             ->where('type', 'email_verification')
+            ->where('code', $request->code)
+            ->whereNull('used_at')
             ->latest()
             ->first();
 
-        if ($lastOtp && $lastOtp->created_at->addMinute()->isFuture()) {
-            return back()->withErrors(['resend' => 'Please wait 60 seconds before requesting a new code.']);
+        if (! $otp) {
+            return back()->withErrors(['code' => 'The provided code is invalid.']);
+        }
+
+        if ($otp->expires_at->isPast()) {
+            $otp->markAsUsed();
+            return back()->withErrors(['code' => 'The provided code has expired.']);
+        }
+
+        // Mark OTP as used and verify email
+        $otp->markAsUsed();
+        $user->markEmailAsVerified();
+
+        return redirect()->intended(route('dashboard', absolute: false))
+            ->with('status', 'email-verified');
+    }
+
+    /**
+     * Resend a fresh OTP code.
+     */
+    public function resend(Request $request): RedirectResponse
+    {
+        $user = $request->user();
+
+        if ($user->hasVerifiedEmail()) {
+            return redirect()->route('dashboard');
+        }
+
+        // Throttle: max 1 resend per 60 seconds
+        $recent = OtpCode::where('user_id', $user->id)
+            ->where('type', 'email_verification')
+            ->where('created_at', '>=', now()->subSeconds(60))
+            ->exists();
+
+        if ($recent) {
+            return back()->withErrors(['code' => 'Please wait 60 seconds before requesting a new code.']);
         }
 
         $otp = OtpCode::generateFor($user, 'email_verification');
