@@ -64,8 +64,14 @@ class OtpVerificationController extends Controller
         $otp->markAsUsed();
         $user->markEmailAsVerified();
 
-        return redirect()->intended(route('dashboard', absolute: false))
-            ->with('status', 'email-verified');
+        Auth::logout();
+        $request->session()->invalidate();
+        $request->session()->regenerateToken();
+
+        sleep(2);
+
+        return redirect()->route('login')
+            ->with('status', 'Account verified successfully. Please sign in to continue.');
     }
 
     /**
@@ -91,6 +97,8 @@ class OtpVerificationController extends Controller
 
         $otp = OtpCode::generateFor($user, 'email_verification');
         Mail::to($user->email)->send(new OtpVerificationMail($user, $otp));
+
+        sleep(2);
 
         return back()->with('status', 'A new verification code has been sent to your email.');
     }

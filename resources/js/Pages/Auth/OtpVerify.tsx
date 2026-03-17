@@ -1,6 +1,7 @@
 import GuestLayout from '@/Layouts/GuestLayout';
 import { Head, useForm } from '@inertiajs/react';
 import { FormEventHandler } from 'react';
+import Alert from '@/Components/Alert';
 
 export default function OtpVerify({ email }: { email: string }) {
     const { data, setData, post, processing, errors } = useForm({
@@ -35,6 +36,8 @@ export default function OtpVerify({ email }: { email: string }) {
                 </p>
             </div>
 
+            <Alert type="error" message={errors.code} />
+
             <form onSubmit={submit} className="space-y-8">
                 <div>
                     <label htmlFor="code" className="input-label text-center block w-full mb-4">
@@ -52,7 +55,6 @@ export default function OtpVerify({ email }: { email: string }) {
                         required
                         autoFocus
                     />
-                    {errors.code && <p className="mt-3 text-xs text-red-400 text-center font-bold tracking-wide">{errors.code}</p>}
                 </div>
 
                 <div className="pt-2 flex flex-col space-y-6">

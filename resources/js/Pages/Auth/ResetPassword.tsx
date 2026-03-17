@@ -1,6 +1,7 @@
 import GuestLayout from '@/Layouts/GuestLayout';
 import { Head, useForm } from '@inertiajs/react';
 import { FormEventHandler } from 'react';
+import Alert from '@/Components/Alert';
 
 export default function ResetPassword({ token, email }: { token: string; email: string }) {
     const { data, setData, post, processing, errors, reset } = useForm({
@@ -31,6 +32,17 @@ export default function ResetPassword({ token, email }: { token: string; email: 
                 </p>
             </div>
 
+            <Alert 
+                type="error" 
+                message={Object.keys(errors).length > 0 ? (
+                    <div className="space-y-1">
+                        {Object.values(errors).map((error, i) => (
+                            <p key={i}>{error}</p>
+                        ))}
+                    </div>
+                ) : null} 
+            />
+
             <form onSubmit={submit} className="space-y-6">
                 <div>
                     <label htmlFor="password" className="input-label">New Password</label>
@@ -45,7 +57,6 @@ export default function ResetPassword({ token, email }: { token: string; email: 
                         onChange={(e) => setData('password', e.target.value)}
                         required
                     />
-                    {errors.password && <p className="mt-1.5 text-xs text-red-400 ml-1">{errors.password}</p>}
                 </div>
 
                 <div>
@@ -60,7 +71,6 @@ export default function ResetPassword({ token, email }: { token: string; email: 
                         onChange={(e) => setData('password_confirmation', e.target.value)}
                         required
                     />
-                    {errors.password_confirmation && <p className="mt-1.5 text-xs text-red-400 ml-1">{errors.password_confirmation}</p>}
                 </div>
 
                 <div className="pt-2">

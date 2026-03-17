@@ -1,6 +1,7 @@
 import GuestLayout from '@/Layouts/GuestLayout';
 import { Head, Link, useForm } from '@inertiajs/react';
 import { FormEventHandler } from 'react';
+import Alert from '@/Components/Alert';
 
 export default function Register() {
     const { data, setData, post, processing, errors, reset } = useForm({
@@ -29,6 +30,17 @@ export default function Register() {
                 <p className="text-slate-400 text-sm">Join the community and explore premium events.</p>
             </div>
 
+            <Alert 
+                type="error" 
+                message={Object.keys(errors).length > 0 ? (
+                    <div className="space-y-1">
+                        {Object.values(errors).map((error, i) => (
+                            <p key={i}>{error}</p>
+                        ))}
+                    </div>
+                ) : null} 
+            />
+
             <form onSubmit={submit} className="space-y-5">
                 <div>
                     <label htmlFor="name" className="input-label">Full Name</label>
@@ -42,7 +54,6 @@ export default function Register() {
                         required
                         autoFocus
                     />
-                    {errors.name && <p className="mt-1.5 text-xs text-red-400 ml-1">{errors.name}</p>}
                 </div>
 
                 <div>
@@ -58,7 +69,6 @@ export default function Register() {
                             required
                         />
                     </div>
-                    {errors.username && <p className="mt-1.5 text-xs text-red-400 ml-1">{errors.username}</p>}
                 </div>
 
                 <div>
@@ -73,7 +83,6 @@ export default function Register() {
                         onChange={(e) => setData('email', e.target.value)}
                         required
                     />
-                    {errors.email && <p className="mt-1.5 text-xs text-red-400 ml-1">{errors.email}</p>}
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
@@ -105,9 +114,6 @@ export default function Register() {
                         />
                     </div>
                 </div>
-                {(errors.password || errors.password_confirmation) && (
-                    <p className="text-xs text-red-400 ml-1">{errors.password || errors.password_confirmation}</p>
-                )}
 
                 <div className="pt-2">
                     <button className="btn-primary w-full group py-4" disabled={processing}>

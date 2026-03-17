@@ -49,6 +49,8 @@ class PasswordResetLinkController extends Controller
             $request->session()->put('otp_password_email', $request->email);
         }
 
+        sleep(2);
+
         return redirect()->route('otp.password');
     }
 }
