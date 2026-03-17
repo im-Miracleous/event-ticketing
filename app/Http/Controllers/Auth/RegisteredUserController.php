@@ -56,8 +56,6 @@ class RegisteredUserController extends Controller
         $otp = OtpCode::generateFor($user, 'email_verification');
         Mail::to($user->email)->send(new OtpVerificationMail($user, $otp));
 
-        sleep(2);
-
         return redirect()->route('otp.verify');
     }
 }
