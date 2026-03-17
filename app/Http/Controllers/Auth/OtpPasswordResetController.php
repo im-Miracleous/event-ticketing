@@ -73,6 +73,8 @@ class OtpPasswordResetController extends Controller
         $request->session()->put('otp_password_verified', true);
         $request->session()->put('otp_password_email', $email);
 
+        sleep(2);
+
         return redirect()->route('password.reset', ['token' => 'otp-verified', 'email' => $email]);
     }
 
@@ -105,6 +107,8 @@ class OtpPasswordResetController extends Controller
 
         $otp = OtpCode::generateFor($user, 'password_reset');
         Mail::to($user->email)->send(new OtpPasswordResetMail($user, $otp));
+
+        sleep(2);
 
         return back()->with('status', 'A new code has been sent to your email.');
     }

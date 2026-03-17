@@ -67,6 +67,8 @@ class NewPasswordController extends Controller
         // Clear session
         $request->session()->forget(['otp_password_verified', 'otp_password_email']);
 
+        sleep(2);
+
         return redirect()->route('login')->with('status', 'Your password has been reset!');
     }
 }
