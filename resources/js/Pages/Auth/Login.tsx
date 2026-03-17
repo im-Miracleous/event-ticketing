@@ -1,6 +1,7 @@
 import GuestLayout from '@/Layouts/GuestLayout';
 import { Head, Link, useForm } from '@inertiajs/react';
 import { FormEventHandler } from 'react';
+import Alert from '@/Components/Alert';
 
 export default function Login({ status, canResetPassword }: { status?: string; canResetPassword?: boolean }) {
     const { data, setData, post, processing, errors, reset } = useForm({
@@ -27,7 +28,8 @@ export default function Login({ status, canResetPassword }: { status?: string; c
                 <p className="text-slate-400 text-sm">Sign in to your premium event experience.</p>
             </div>
 
-            {status && <div className="mb-6 text-sm font-medium text-secondary-400 text-center bg-secondary-500/10 py-3 rounded-xl border border-secondary-500/20">{status}</div>}
+            <Alert type="success" message={status} />
+            <Alert type="error" message={errors.login} />
 
             <form onSubmit={submit} className="space-y-6">
                 <div>
@@ -43,7 +45,6 @@ export default function Login({ status, canResetPassword }: { status?: string; c
                         onChange={(e) => setData('login', e.target.value)}
                         required
                     />
-                    {errors.login && <p className="mt-1.5 text-xs text-red-400 ml-1">{errors.login}</p>}
                 </div>
 
                 <div>
