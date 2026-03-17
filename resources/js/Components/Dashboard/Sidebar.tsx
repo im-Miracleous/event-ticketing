@@ -63,10 +63,11 @@ const navItems: NavItem[] = [
 
 interface SidebarProps {
     isOpen: boolean;
+    isCollapsed: boolean;
     onClose: () => void;
 }
 
-export default function Sidebar({ isOpen, onClose }: SidebarProps) {
+export default function Sidebar({ isOpen, isCollapsed, onClose }: SidebarProps) {
     const currentUrl = usePage().url;
 
     const isActive = (item: NavItem) => {
@@ -78,11 +79,11 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
 
     const sidebarContent = (
         <div className="flex flex-col h-full">
-            <div className="flex items-center gap-2.5 px-5 h-16 shrink-0 border-b border-white/5">
+            <div className="flex items-center gap-2.5 px-5 h-16 shrink-0 border-b border-slate-200 dark:border-white/5">
                 <div className="h-8 w-8 rounded-lg bg-gradient-to-tr from-primary-600 to-secondary-500 flex items-center justify-center shadow-lg shadow-primary-500/20">
                     <span className="text-lg font-black text-white">E</span>
                 </div>
-                <span className="text-xl font-bold tracking-tighter text-white">
+                <span className="text-xl font-bold tracking-tighter text-slate-900 dark:text-white">
                     EVENT<span className="bg-gradient-to-r from-primary-400 to-secondary-400 bg-clip-text text-transparent">HIVE</span>
                 </span>
             </div>
@@ -97,26 +98,26 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
                             onClick={onClose}
                             className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 group ${
                                 active
-                                    ? 'bg-primary-600/15 text-primary-400 shadow-sm shadow-primary-500/5'
-                                    : 'text-slate-400 hover:bg-white/5 hover:text-white'
+                                    ? 'bg-primary-50 dark:bg-primary-600/15 text-primary-600 dark:text-primary-400 shadow-sm shadow-primary-500/5'
+                                    : 'text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-white/5 hover:text-slate-900 dark:hover:text-white'
                             }`}
                         >
-                            <span className={`transition-colors ${active ? 'text-primary-400' : 'text-slate-500 group-hover:text-slate-300'}`}>
+                            <span className={`transition-colors ${active ? 'text-primary-600 dark:text-primary-400' : 'text-slate-400 dark:text-slate-500 group-hover:text-slate-600 dark:group-hover:text-slate-300'}`}>
                                 {item.icon}
                             </span>
                             {item.label}
                             {active && (
-                                <span className="ml-auto h-1.5 w-1.5 rounded-full bg-primary-400" />
+                                <span className="ml-auto h-1.5 w-1.5 rounded-full bg-primary-500 dark:bg-primary-400" />
                             )}
                         </Link>
                     );
                 })}
             </nav>
 
-            <div className="px-3 py-4 border-t border-white/5">
-                <div className="px-3 py-2 rounded-xl bg-white/[0.03] border border-white/5">
-                    <p className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">EventHive</p>
-                    <p className="text-xs text-slate-400 mt-0.5">v1.0.0 — Beta</p>
+            <div className="px-3 py-4 border-t border-slate-200 dark:border-white/5">
+                <div className="px-3 py-2 rounded-xl bg-slate-50 dark:bg-white/[0.03] border border-slate-200 dark:border-white/5">
+                    <p className="text-[11px] font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider">EventHive</p>
+                    <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">v1.0.0 — Beta</p>
                 </div>
             </div>
         </div>
@@ -125,7 +126,11 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
     return (
         <>
             {/* Desktop Sidebar */}
-            <aside className="hidden lg:flex lg:flex-col lg:w-64 lg:fixed lg:inset-y-0 bg-navy-950 border-r border-white/5 z-40">
+            <aside
+                className={`hidden lg:flex lg:flex-col lg:w-64 lg:fixed lg:inset-y-0 bg-white dark:bg-navy-950 border-r border-slate-200 dark:border-white/5 z-40 transition-transform duration-300 ease-in-out ${
+                    isCollapsed ? '-translate-x-full' : 'translate-x-0'
+                }`}
+            >
                 {sidebarContent}
             </aside>
 
@@ -139,7 +144,7 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
 
             {/* Mobile Sidebar */}
             <aside
-                className={`fixed inset-y-0 left-0 z-50 w-64 bg-navy-950 border-r border-white/5 transform transition-transform duration-300 ease-in-out lg:hidden ${
+                className={`fixed inset-y-0 left-0 z-50 w-64 bg-white dark:bg-navy-950 border-r border-slate-200 dark:border-white/5 transform transition-transform duration-300 ease-in-out lg:hidden ${
                     isOpen ? 'translate-x-0' : '-translate-x-full'
                 }`}
             >
