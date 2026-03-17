@@ -129,6 +129,7 @@ class CreateRootAccount extends Command
                 'email' => $email,
                 'password' => $password,
                 'role' => 'Root',
+                'email_verified_at' => now(),
             ]);
 
             $this->info("-----------------------------------------");

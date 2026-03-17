@@ -18,7 +18,6 @@ class PasswordResetLinkController extends Controller
     /**
      * Display the password reset link request view.
      */
-<<<<<<< HEAD
     public function create(): Response
     {
         return Inertia::render('Auth/ForgotPassword', [
@@ -27,22 +26,12 @@ class PasswordResetLinkController extends Controller
     }
 
     /**
-     * Handle an incoming password reset link request.
-=======
-    public function create(): View
-    {
-        return view('auth.forgot-password');
-    }
-
-    /**
      * Generate an OTP and email it to the user (replaces link-based reset).
->>>>>>> master
      *
      * @throws ValidationException
      */
     public function store(Request $request): RedirectResponse
     {
-        $request->validate([
         $request->validate([
             'email' => 'required|email',
         ]);

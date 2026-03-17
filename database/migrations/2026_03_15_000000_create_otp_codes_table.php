@@ -10,7 +10,8 @@ return new class extends Migration
     {
         Schema::create('otp_codes', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('user_id')->constrained()->cascadeOnDelete();
+            $table->char('user_id', 36);
+            $table->foreign('user_id')->references('id')->on('users')->cascadeOnDelete();
             $table->string('code', 6);
             $table->enum('type', ['email_verification', 'password_reset'])->default('email_verification');
             $table->timestamp('expires_at');

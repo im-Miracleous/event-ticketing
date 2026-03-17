@@ -4,7 +4,7 @@ import { FormEventHandler } from 'react';
 
 export default function Login({ status, canResetPassword }: { status?: string; canResetPassword?: boolean }) {
     const { data, setData, post, processing, errors, reset } = useForm({
-        email: '',
+        login: '',
         password: '',
         remember: false as boolean,
     });
@@ -31,19 +31,19 @@ export default function Login({ status, canResetPassword }: { status?: string; c
 
             <form onSubmit={submit} className="space-y-6">
                 <div>
-                    <label htmlFor="email" className="input-label">Email Address</label>
+                    <label htmlFor="login" className="input-label">Email or Username</label>
                     <input
-                        id="email"
-                        type="email"
-                        name="email"
-                        value={data.email}
+                        id="login"
+                        type="text"
+                        name="login"
+                        value={data.login}
                         className="input-field"
                         autoComplete="username"
                         autoFocus
-                        onChange={(e) => setData('email', e.target.value)}
+                        onChange={(e) => setData('login', e.target.value)}
                         required
                     />
-                    {errors.email && <p className="mt-1.5 text-xs text-red-400 ml-1">{errors.email}</p>}
+                    {errors.login && <p className="mt-1.5 text-xs text-red-400 ml-1">{errors.login}</p>}
                 </div>
 
                 <div>
