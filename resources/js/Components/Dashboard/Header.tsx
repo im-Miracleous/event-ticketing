@@ -1,5 +1,6 @@
 import Dropdown from '@/Components/Dropdown';
 import { usePage } from '@inertiajs/react';
+import type { UserRole } from '@/config/navigation';
 
 interface HeaderProps {
     onMenuToggle: () => void;
@@ -7,9 +8,10 @@ interface HeaderProps {
     isCollapsed: boolean;
     isDark: boolean;
     onThemeToggle: () => void;
+    activeRole: UserRole;
 }
 
-export default function Header({ onMenuToggle, onCollapseToggle, isCollapsed, isDark, onThemeToggle }: HeaderProps) {
+export default function Header({ onMenuToggle, onCollapseToggle, isCollapsed, isDark, onThemeToggle, activeRole }: HeaderProps) {
     const user = usePage().props.auth.user;
 
     return (
@@ -37,17 +39,44 @@ export default function Header({ onMenuToggle, onCollapseToggle, isCollapsed, is
                         </svg>
                     </button>
 
-                    {/* Search */}
-                    <div className="hidden sm:flex items-center gap-2 bg-slate-100 dark:bg-white/5 border border-slate-200 dark:border-white/5 rounded-xl px-3 py-2 w-72 focus-within:border-primary-500/40 transition-colors">
-                        <svg className="w-4 h-4 text-slate-400 dark:text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                            <path strokeLinecap="round" strokeLinejoin="round" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z" />
-                        </svg>
-                        <input
-                            type="text"
-                            placeholder="Search..."
-                            className="bg-transparent border-0 text-sm text-slate-700 dark:text-slate-300 placeholder-slate-400 dark:placeholder-slate-500 focus:ring-0 w-full p-0"
-                        />
-                    </div>
+                    {/* ─── Role-specific centre content ─── */}
+
+                    {/* Admin/Root: Mode indicator badge */}
+                    {(activeRole === 'admin' || activeRole === 'root') && (
+                        <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-xl bg-amber-500/10 dark:bg-amber-400/10 border border-amber-500/20 dark:border-amber-400/15">
+                            <span className="relative flex h-2 w-2">
+                                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75" />
+                                <span className="relative inline-flex rounded-full h-2 w-2 bg-amber-500 dark:bg-amber-400" />
+                            </span>
+                            <span className="text-xs font-bold uppercase tracking-wider text-amber-600 dark:text-amber-400">
+                                {activeRole === 'root' ? 'Root Mode' : 'Admin Mode'}
+                            </span>
+                        </div>
+                    )}
+
+                    {/* Organizer: Create Event CTA */}
+                    {activeRole === 'organizer' && (
+                        <button className="hidden sm:inline-flex items-center gap-2 rounded-xl bg-primary-600 hover:bg-primary-700 text-white px-4 py-2 text-sm font-semibold transition-colors shadow-sm shadow-primary-500/25">
+                            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+                            </svg>
+                            Create Event
+                        </button>
+                    )}
+
+                    {/* User: Search bar */}
+                    {activeRole === 'user' && (
+                        <div className="hidden sm:flex items-center gap-2 bg-slate-100 dark:bg-white/5 border border-slate-200 dark:border-white/5 rounded-xl px-3 py-2 w-72 focus-within:border-primary-500/40 transition-colors">
+                            <svg className="w-4 h-4 text-slate-400 dark:text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                <path strokeLinecap="round" strokeLinejoin="round" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z" />
+                            </svg>
+                            <input
+                                type="text"
+                                placeholder="Search events..."
+                                className="bg-transparent border-0 text-sm text-slate-700 dark:text-slate-300 placeholder-slate-400 dark:placeholder-slate-500 focus:ring-0 w-full p-0"
+                            />
+                        </div>
+                    )}
                 </div>
 
                 <div className="flex items-center gap-2">
