@@ -47,8 +47,6 @@ class AuthenticatedSessionController extends Controller
 
         $request->session()->regenerateToken();
 
-        sleep(2);
-
         return redirect('/');
     }
 }
