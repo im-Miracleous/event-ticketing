@@ -25,22 +25,22 @@ export default function Welcome({ auth }: PageProps) {
 
                 <div className="flex items-center space-x-8">
                     {auth.user ? (
-                        <Link 
-                            href={route('dashboard')} 
+                        <Link
+                            href={route('dashboard')}
                             className="btn-primary px-6 py-2.5"
                         >
                             <span className="text-sm font-bold tracking-widest uppercase">Dashboard</span>
                         </Link>
                     ) : (
                         <>
-                            <Link 
-                                href={route('login')} 
+                            <Link
+                                href={route('login')}
                                 className="text-sm font-bold tracking-widest uppercase text-slate-300 hover:text-white transition-colors"
                             >
                                 Sign In
                             </Link>
-                            <Link 
-                                href={route('register')} 
+                            <Link
+                                href={route('register')}
                                 className="btn-primary px-8 py-3"
                             >
                                 <span className="text-sm font-black tracking-widest uppercase text-white">Get Started</span>
@@ -56,12 +56,12 @@ export default function Welcome({ auth }: PageProps) {
                     <span className="flex h-2 w-2 rounded-full bg-secondary-400"></span>
                     <span className="text-xs font-bold uppercase tracking-widest text-secondary-300">New: Premium VIP Access</span>
                 </div>
-                
+
                 <h1 className="text-6xl md:text-8xl font-black tracking-tighter mb-8 leading-none italic">
                     <span className="block">EVERY EVENT</span>
                     <span className="bg-gradient-to-r from-primary-400 via-secondary-300 to-primary-500 bg-clip-text text-transparent">ONE PLATFORM</span>
                 </h1>
-                
+
                 <p className="max-w-2xl mx-auto text-lg md:text-xl text-slate-400 mb-12 leading-relaxed">
                     Discover, book, and experience the world's most exclusive events. From underground concerts to elite tech summits, EventHive is your all-access pass to excellence.
                 </p>
@@ -101,15 +101,15 @@ export default function Welcome({ auth }: PageProps) {
                         </div>
                         <Link href="#" className="hidden md:flex items-center space-x-2 text-primary-400 font-bold uppercase tracking-widest text-sm hover:text-primary-300 transition-colors">
                             <span>View All Events</span>
-                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 8l4 4m0 0l-4 4m4-4H3"/></svg>
+                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 8l4 4m0 0l-4 4m4-4H3" /></svg>
                         </Link>
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
                         {[
                             { title: 'Neon Nights Festival', location: 'Tokyo, Japan', date: 'DEC 15, 2026', img: 'https://images.unsplash.com/photo-1492684223066-81342ee5ff30' },
-                            { title: 'Global Tech Summit', location: 'San Francisco, CA', date: 'JAN 22, 2027', img: 'https://images.unsplash.com/photo-1540575861501-7ad058239783' },
-                            { title: 'Vanguard Art Gala', location: 'Paris, France', date: 'FEB 04, 2027', img: 'https://images.unsplash.com/photo-1459749411177-042180ce672c' },
+                            { title: 'Global Tech Summit', location: 'San Francisco, CA', date: 'JAN 22, 2027', img: 'https://globalsummit.tech/assets/uploads/sites/8/2015/12/GTS-2021-Cover-4964x2792.jpg' },
+                            { title: 'Vanguard Art Gala', location: 'Paris, France', date: 'FEB 04, 2027', img: 'https://hips.hearstapps.com/hmg-prod/images/1960f3ac-b094-467f-894c-9b30d40c93df.jpeg' },
                         ].map((event, i) => (
                             <div key={i} className="group cursor-pointer">
                                 <div className="relative aspect-[4/5] overflow-hidden rounded-3xl mb-6 ring-1 ring-white/10 group-hover:ring-primary-500/50 transition-all duration-500 shadow-2xl">
@@ -118,12 +118,12 @@ export default function Welcome({ auth }: PageProps) {
                                         <div className="text-xs font-bold text-secondary-400 uppercase tracking-widest mb-2">{event.date}</div>
                                         <h3 className="text-2xl font-black italic tracking-tighter text-white uppercase group-hover:text-primary-400 transition-colors leading-none">{event.title}</h3>
                                         <div className="mt-4 flex items-center text-xs text-slate-400 uppercase font-bold tracking-widest">
-                                            <svg className="w-4 h-4 mr-1 text-primary-500" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>
+                                            <svg className="w-4 h-4 mr-1 text-primary-500" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z" /></svg>
                                             {event.location}
                                         </div>
                                     </div>
                                     <div className="absolute top-6 right-6 h-12 w-12 rounded-full bg-white/10 backdrop-blur-md flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity translate-y-2 group-hover:translate-y-0 duration-300">
-                                        <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/></svg>
+                                        <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M12 6v6m0 0v6m0-6h6m-6 0H6" /></svg>
                                     </div>
                                 </div>
                             </div>
@@ -137,7 +137,7 @@ export default function Welcome({ auth }: PageProps) {
                 <div className="max-w-5xl mx-auto glass-card p-12 md:p-24 text-center border-white/10 relative overflow-hidden">
                     <div className="absolute top-0 right-0 w-64 h-64 bg-primary-500/10 blur-[100px]" />
                     <div className="absolute bottom-0 left-0 w-64 h-64 bg-secondary-500/10 blur-[100px]" />
-                    
+
                     <h2 className="text-4xl md:text-6xl font-black italic tracking-tighter text-white uppercase mb-8 leading-tight">
                         READY TO HIVE IN?
                     </h2>
@@ -159,7 +159,7 @@ export default function Welcome({ auth }: PageProps) {
                         </div>
                         <span className="text-xl font-black tracking-tighter italic text-white uppercase">EVENTHIVE</span>
                     </div>
-                    
+
                     <div className="flex space-x-8 text-xs font-bold uppercase tracking-widest text-slate-500">
                         <Link href="#" className="hover:text-primary-400 transition-colors">Discover</Link>
                         <Link href="#" className="hover:text-primary-400 transition-colors">Pricing</Link>
