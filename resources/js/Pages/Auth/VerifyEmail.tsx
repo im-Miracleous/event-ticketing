@@ -43,18 +43,18 @@ export default function VerifyEmail({ status }: { status?: string }) {
                         </svg>
                     </button>
                     
-                    <button 
+                    <Link
+                        href={route('logout')}
+                        method="post"
+                        as="button"
                         type="button"
                         className="text-sm text-slate-500 hover:text-white transition-colors text-center font-bold uppercase tracking-widest"
                     >
-                        <Link
-                            href={route('logout')}
-                            method="post"
-                            as="button"
-                        >
-                            Log Out
-                        </Link>
-                    </button>
+                        Log Out
+                    </Link>
+
+
+
                 </div>
             </form>
         </GuestLayout>
