@@ -20,7 +20,7 @@ class NewPasswordController extends Controller
     /**
      * Display the password reset view.
      */
-    public function create(Request $request, $token): Response
+    public function create(Request $request, $token): Response|RedirectResponse
     {
         if (!$request->session()->get('otp_password_verified')) {
             return redirect()->route('password.request');
