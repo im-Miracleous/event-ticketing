@@ -73,7 +73,7 @@ class OtpPasswordResetController extends Controller
         $request->session()->put('otp_password_verified', true);
         $request->session()->put('otp_password_email', $email);
 
-        return redirect()->route('password.reset', ['email' => $email]);
+        return redirect()->route('password.reset', ['token' => 'otp-verified', 'email' => $email]);
     }
 
     /**

@@ -20,7 +20,7 @@ class NewPasswordController extends Controller
     /**
      * Display the password reset view.
      */
-    public function create(Request $request): Response
+    public function create(Request $request, $token): Response
     {
         if (!$request->session()->get('otp_password_verified')) {
             return redirect()->route('password.request');
@@ -28,7 +28,7 @@ class NewPasswordController extends Controller
 
         return Inertia::render('Auth/ResetPassword', [
             'email' => $request->session()->get('otp_password_email'),
-            'token' => 'otp-verified', // Dummy token for compatibility
+            'token' => $token,
         ]);
     }
 
