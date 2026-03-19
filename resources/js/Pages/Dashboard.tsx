@@ -27,8 +27,8 @@ const stats = [
     },
     {
         title: 'Ticket Sales',
-        value: '$14,500',
-        trend: '+8.1%',
+        value: 'Rp1.434.500',
+        trend: '+41.1%',
         trendUp: true,
         icon: (
             <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
@@ -38,8 +38,8 @@ const stats = [
     },
     {
         title: 'Revenue',
-        value: '$48,200',
-        trend: '-2.4%',
+        value: 'Rp485.200',
+        trend: '-20.4%',
         trendUp: false,
         icon: (
             <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
