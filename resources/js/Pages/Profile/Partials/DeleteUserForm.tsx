@@ -44,7 +44,6 @@ export default function DeleteUserForm({
 
     const closeModal = () => {
         setConfirmingUserDeletion(false);
-
         clearErrors();
         reset();
     };
@@ -52,15 +51,13 @@ export default function DeleteUserForm({
     return (
         <section className={`space-y-6 ${className}`}>
             <header>
-                <h2 className="text-lg font-medium text-gray-900">
+                <h2 className="text-lg font-semibold text-slate-900 dark:text-white">
                     Delete Account
                 </h2>
-
-                <p className="mt-1 text-sm text-gray-600">
+                <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
                     Once your account is deleted, all of its resources and data
                     will be permanently deleted. Before deleting your account,
-                    please download any data or information that you wish to
-                    retain.
+                    please download any data or information that you wish to retain.
                 </p>
             </header>
 
@@ -70,11 +67,11 @@ export default function DeleteUserForm({
 
             <Modal show={confirmingUserDeletion} onClose={closeModal}>
                 <form onSubmit={deleteUser} className="p-6">
-                    <h2 className="text-lg font-medium text-gray-900">
+                    <h2 className="text-lg font-semibold text-slate-900 dark:text-white">
                         Are you sure you want to delete your account?
                     </h2>
 
-                    <p className="mt-1 text-sm text-gray-600">
+                    <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">
                         Once your account is deleted, all of its resources and
                         data will be permanently deleted. Please enter your
                         password to confirm you would like to permanently delete
@@ -94,26 +91,21 @@ export default function DeleteUserForm({
                             name="password"
                             ref={passwordInput}
                             value={data.password}
-                            onChange={(e) =>
-                                setData('password', e.target.value)
-                            }
-                            className="mt-1 block w-3/4"
+                            onChange={(e) => setData('password', e.target.value)}
+                            className="mt-1 block w-full"
                             isFocused
-                            placeholder="Password"
+                            placeholder="Enter your password..."
                         />
 
-                        <InputError
-                            message={errors.password}
-                            className="mt-2"
-                        />
+                        <InputError message={errors.password} className="mt-2" />
                     </div>
 
-                    <div className="mt-6 flex justify-end">
+                    <div className="mt-6 flex justify-end gap-3">
                         <SecondaryButton onClick={closeModal}>
                             Cancel
                         </SecondaryButton>
 
-                        <DangerButton className="ms-3" disabled={processing}>
+                        <DangerButton disabled={processing}>
                             Delete Account
                         </DangerButton>
                     </div>

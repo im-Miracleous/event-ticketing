@@ -12,6 +12,9 @@
         font-family: 'Inter', sans-serif;
         -webkit-font-smoothing: antialiased;
         -moz-osx-font-smoothing: grayscale;
+        @apply bg-slate-50 text-slate-800;
+    }
+    .dark body {
         @apply bg-navy-950 text-slate-200;
     }
 }
