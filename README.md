@@ -7,53 +7,102 @@
 <a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
 </p>
 
-## About Laravel
+# Team Onboarding Guide - Event Ticketing Application
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+Hello Team! 👋
+This document contains a brief explanation of the application we are building, how to run the application locally, and our task division plan.
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+## 📌 Brief Application Description
+This application is an **Event Ticketing System**.
+The main technologies we use in this project are:
+- **Backend:** Laravel (PHP)
+- **Frontend:** React.js with TypeScript (.tsx)
+- **Bridge:** Inertia.js (connects Laravel & React without a separate API)
+- **Styling:** Tailwind CSS
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+This application uses a **Role-Based Access Control (RBAC)** system where layouts and access rights are differentiated for 3 main roles:
+1. **Admin / Root**
+2. **Organizer** (Event Creator)
+3. **User** (Participant / Ticket Buyer)
 
-## Learning Laravel
+---
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework. You can also check out [Laravel Learn](https://laravel.com/learn), where you will be guided through building a modern Laravel application.
+## 🚀 How to Run the Application Locally
 
-If you don't feel like reading, [Laracasts](https://laracasts.com) can help. Laracasts contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+Because this project uses Laravel and a JavaScript framework (React/Vite), we need to run two servers (*backend* and *frontend*) simultaneously. Here are the initial setup steps:
 
-## Laravel Sponsors
+### 1. System Requirements (Prerequisites)
+Make sure your laptop/computer has the following installed:
+- PHP (minimum v8.1+) & Composer
+- Node.js & NPM
+- Database (MySQL/MariaDB) - You can use **Laragon** or **XAMPP**
 
-We would like to extend our thanks to the following sponsors for funding Laravel development. If you are interested in becoming a sponsor, please visit the [Laravel Partners program](https://partners.laravel.com).
+### 2. Initial Installation Steps (First Time Setup)
+Run these commands in the terminal (VS Code / Git Bash) at the project root folder:
 
-### Premium Partners
+```bash
+# 1. Install PHP dependencies
+composer install
 
-- **[Vehikl](https://vehikl.com)**
-- **[Tighten Co.](https://tighten.co)**
-- **[Kirschbaum Development Group](https://kirschbaumdevelopment.com)**
-- **[64 Robots](https://64robots.com)**
-- **[Curotec](https://www.curotec.com/services/technologies/laravel)**
-- **[DevSquad](https://devsquad.com/hire-laravel-developers)**
-- **[Redberry](https://redberry.international/laravel-development)**
-- **[Active Logic](https://activelogic.com)**
+# 2. Install JavaScript/Node dependencies
+npm install
 
-## Contributing
+# 3. Copy the environment file
+cp .env.example .env
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+# 4. Generate Application Key
+php artisan key:generate
+```
 
-## Code of Conduct
+### 3. Database Configuration
+Open the **Laragon / XAMPP** application and run MySQL.
+1. Create a new database (e.g., name it `event_ticketing`).
+2. Open the `.env` file in VS Code, then adjust this section to match your database:
+```env
+DB_CONNECTION=mysql
+DB_HOST=127.0.0.1
+DB_PORT=3306
+DB_DATABASE=event_ticketing
+DB_USERNAME=root
+DB_PASSWORD=
+```
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+### 4. Running Database Migration & Seeder
+To create tables in the database along with initial (dummy) data:
+```bash
+php artisan migrate --seed
+```
 
-## Security Vulnerabilities
+*(Optional)* If at any point during **development** you need to completely reset the database from scratch and re-run all seeders, you can run:
+```bash
+php artisan migrate:fresh --seed
+```
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+### 5. Updating an Existing Clone (Syncing with the Cloud)
+If you have previously cloned the repository and want to get the latest updates from the cloud, run these commands:
+```bash
+# Fetch & pull the latest repository changes
+git fetch
+git pull
 
-## License
+# Update dependencies (in case new packages were added)
+composer install
+npm install
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+# Migrate changes to the database (if there are new tables/columns)
+php artisan migrate
+```
+
+### 6. How to Run the Application (Every time you code)
+Open **2 different Terminals** in VS Code, then run:
+
+**Terminal 1 (Backend - PHP):**
+```bash
+php artisan serve
+```
+
+**Terminal 2 (Frontend - Vite/React):**
+```bash
+npm run dev
+```
+The application can now be accessed in the browser via the link: `http://localhost:8000`
