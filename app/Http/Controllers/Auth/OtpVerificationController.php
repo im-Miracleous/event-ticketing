@@ -17,14 +17,14 @@ class OtpVerificationController extends Controller
     /**
      * Display the OTP entry form.
      */
-    public function show(Request $request): RedirectResponse|Response
+    public function show(Request $request)
     {
         // If already verified, skip
         if ($request->user()->hasVerifiedEmail()) {
             return redirect()->intended(route('dashboard', absolute: false));
         }
 
-        return Inertia::render('Auth/OtpVerify', [
+        return view('auth.otp-verify', [
             'email' => $request->user()->email,
         ]);
     }
