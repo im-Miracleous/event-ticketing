@@ -3,9 +3,17 @@ namespace App\Http\Controllers;
 use App\Models\Event;
 use Illuminate\Http\Request;
 
+use Inertia\Inertia;
+
 class EventController extends Controller {
     public function index() {
-        return response()->json(Event::with(['category', 'organizer'])->get());
+        return Inertia::render('Organizer/Dashboard', [
+            'events' => Event::with(['category', 'organizer'])->get()
+        ]);
+    }
+    
+    public function create() {
+        return Inertia::render('Organizer/Events/Create');
     }
 
     public function store(Request $request) {
@@ -13,24 +21,33 @@ class EventController extends Controller {
             'id' => 'required|string|max:36|unique:events',
             'title' => 'required|string|max:45',
             'description' => 'required|string|max:200',
-            'banner_image' => 'required|image|mimes:jpeg,png,jpg|max:2048',
+            'banner_image' => 'nullable|image|mimes:jpeg,png,jpg|max:2048',
             'event_date' => 'required|date',
             'total_quota' => 'required|integer',
-            'start_time' => 'required|date_format:Y-m-d H:i:s',
-            'end_time' => 'required|date_format:Y-m-d H:i:s',
+            'start_time' => 'required|date',
+            'end_time' => 'required|date',
             'location' => 'required|string|max:45',
-            'event_category_id' => 'required|exists:event_category,id',
-            'organizer_id' => 'required|exists:organizers,id'
+            'event_category_id' => 'required',
+            'organizer_id' => 'required'
         ]);
 
         if ($request->hasFile('banner_image')) {
             $path = $request->file('banner_image')->store('banners', 'public');
             $data['banner_image'] = '/storage/' . $path;
+        } else {
+            $data['banner_image'] = '/placeholder.jpg';
         }
 
-        $data['status'] = 'Active';
+        Event::create($data);
 
-        return response()->json(Event::create($data), 201);
+        return redirect()->route('organizer.dashboard')->with('success', 'Event created successfully.');
+    }
+
+    public function edit($id) {
+        $event = Event::findOrFail($id);
+        return Inertia::render('Organizer/Events/Edit', [
+            'event' => $event
+        ]);
     }
 
     public function update(Request $request, $id) {
@@ -40,11 +57,9 @@ class EventController extends Controller {
             'description' => 'string|max:200',
             'event_date' => 'date',
             'total_quota' => 'integer',
-            'start_time' => 'date_format:Y-m-d H:i:s',
-            'end_time' => 'date_format:Y-m-d H:i:s',
-            'location' => 'string|max:45',
-            'event_category_id' => 'exists:event_category,id',
-            'organizer_id' => 'exists:organizers,id'
+            'start_time' => 'date',
+            'end_time' => 'date',
+            'location' => 'string|max:45'
         ]);
 
         if ($request->hasFile('banner_image')) {
@@ -55,14 +70,12 @@ class EventController extends Controller {
 
         $event->update($data);
 
-        return response()->json($event);
+        return redirect()->route('organizer.dashboard')->with('success', 'Event updated successfully.');
     }
 
-    public function toggleStatus($id) {
+    public function destroy($id) {
         $event = Event::findOrFail($id);
-        $event->status = ($event->status == 'Active') ? 'Inactive' : 'Active';
-        $event->save();
-        
-        return response()->json($event);
+        $event->delete(); // This performs a soft delete
+        return redirect()->back()->with('success', 'Event inactive successfully.');
     }
 }

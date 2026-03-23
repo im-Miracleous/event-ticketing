@@ -24,10 +24,11 @@ Route::middleware('auth')->group(function () {
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 });
 
+use App\Http\Controllers\EventController;
+
 Route::middleware(['auth', 'verified'])->prefix('organizer')->name('organizer.')->group(function () {
-    Route::get('/dashboard', function () {
-        return Inertia::render('Organizer/Dashboard');
-    })->name('dashboard');
+    Route::get('/dashboard', [EventController::class, 'index'])->name('dashboard');
+    Route::resource('events', EventController::class);
 });
 
 require __DIR__.'/auth.php';
