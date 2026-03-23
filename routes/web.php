@@ -25,10 +25,15 @@ Route::middleware('auth')->group(function () {
 });
 
 use App\Http\Controllers\EventController;
+use App\Http\Controllers\TicketTypeController;
 
 Route::middleware(['auth', 'verified'])->prefix('organizer')->name('organizer.')->group(function () {
     Route::get('/dashboard', [EventController::class, 'index'])->name('dashboard');
     Route::resource('events', EventController::class);
+    
+    Route::get('/events/{event}/tickets', [TicketTypeController::class, 'index'])->name('events.tickets.index');
+    Route::post('/events/{event}/tickets', [TicketTypeController::class, 'store'])->name('events.tickets.store');
+    Route::delete('/events/{event}/tickets/{ticket}', [TicketTypeController::class, 'destroy'])->name('events.tickets.destroy');
 });
 
 require __DIR__.'/auth.php';
