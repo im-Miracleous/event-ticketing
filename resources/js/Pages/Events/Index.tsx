@@ -1,238 +1,444 @@
-import React, { useState, useEffect } from 'react';
-import DashboardLayout from '@/Layouts/DashboardLayout';
 import { Head, Link, router } from '@inertiajs/react';
-import TextInput from '@/Components/TextInput';
-import PrimaryButton from '@/Components/PrimaryButton';
-import SecondaryButton from '@/Components/SecondaryButton';
+import DashboardLayout from '@/Layouts/DashboardLayout';
+import { useState, useCallback, useEffect } from 'react';
 
-interface Event {
+interface Category {
+    id: number;
+    name: string;
+    icon?: string;
+}
+
+interface Organizer {
+    id: string;
+    name: string;
+}
+
+interface TicketType {
+    id: number;
+    name: string;
+    price: string | number;
+    available_stock: number;
+}
+
+interface EventItem {
     id: string;
     title: string;
     description: string;
-    banner_image: string;
+    banner_image: string | null;
     event_date: string;
+    start_time: string;
+    end_time: string;
     location: string;
+    format: 'Online' | 'Offline';
     status: string;
-    category?: { name: string };
-    organizer?: { name: string };
+    category: Category | null;
+    organizer: Organizer | null;
+    ticket_types: TicketType[];
 }
 
-interface Meta {
-    links: { url: string | null; label: string; active: boolean }[];
+interface PaginationLink {
+    url: string | null;
+    label: string;
+    active: boolean;
+}
+
+interface PaginatedEvents {
+    data: EventItem[];
+    current_page: number;
+    last_page: number;
+    total: number;
+    per_page: number;
+    links: PaginationLink[];
+}
+
+interface Filters {
+    search?: string;
+    category?: string | number;
+    location?: string;
+    format?: string;
+    price_min?: string | number;
+    price_max?: string | number;
+    time?: string;
+    date_from?: string;
+    date_to?: string;
+    sort?: string;
 }
 
 interface Props {
-    events: {
-        data: Event[];
-        links: Meta['links'];
-        current_page: number;
-        last_page: number;
-    };
-    categories: { id: number; name: string }[];
-    filters: {
-        search?: string;
-        category?: string;
-        location?: string;
-        date_from?: string;
-        date_to?: string;
-    };
+    events: PaginatedEvents;
+    trendingEvents: EventItem[];
+    categories: Category[];
+    filters: Filters;
 }
 
-export default function Index({ events, categories, filters }: Props) {
-    const [search, setSearch] = useState(filters.search || '');
-    const [category, setCategory] = useState(filters.category || '');
-    const [location, setLocation] = useState(filters.location || '');
-    const [dateFrom, setDateFrom] = useState(filters.date_from || '');
-    const [dateTo, setDateTo] = useState(filters.date_to || '');
+const SORT_OPTIONS = [
+    { value: 'date_asc',   label: 'Nearest' },
+    { value: 'popular',    label: 'Most Popular' },
+    { value: 'price_asc',  label: 'Lowest Price' },
+    { value: 'price_desc', label: 'Highest Price' },
+];
 
-    const handleSearch = (e: React.FormEvent) => {
-        e.preventDefault();
-        router.get(route('events.index'), {
-            search,
-            category,
-            location,
-            date_from: dateFrom,
-            date_to: dateTo
-        }, { preserveState: true, replace: true });
-    };
+const CATEGORY_ICONS: Record<string, JSX.Element> = {
+    'Music': <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3" /></svg>,
+    'Tech': <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg>,
+    'Sport': <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" /></svg>,
+    'Education': <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" /></svg>,
+    'Default': <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" /></svg>
+};
 
-    const clearFilters = () => {
-        setSearch('');
-        setCategory('');
-        setLocation('');
-        setDateFrom('');
-        setDateTo('');
-        router.get(route('events.index'));
+function formatCurrency(amount: number) {
+    return new Intl.NumberFormat('id-ID', {
+        style: 'currency',
+        currency: 'IDR',
+        minimumFractionDigits: 0
+    }).format(amount);
+}
+
+function formatDate(dateStr: string) {
+    return new Date(dateStr).toLocaleDateString('en-GB', {
+        day: '2-digit', month: 'short', year: 'numeric',
+    }).toUpperCase();
+}
+
+const CalendarIcon = () => (
+    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 0 1 2.25-2.25h13.5A2.25 2.25 0 0 1 21 7.5v11.25m-18 0A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75m-18 0v-7.5A2.25 2.25 0 0 1 5.25 9h13.5A2.25 2.25 0 0 1 21 11.25v7.5" />
+    </svg>
+);
+
+const PinIcon = () => (
+    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M15 10.5a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" /><path strokeLinecap="round" strokeLinejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1 1 15 0Z" />
+    </svg>
+);
+
+// ─── Event Card Component ──────────────────────────────────────────────────
+function EventCard({ event }: { event: EventItem }) {
+    const minPrice = event.ticket_types?.length > 0 
+        ? Math.min(...event.ticket_types.map(t => Number(t.price))) 
+        : 0;
+    
+    const fallbackImg = `https://images.unsplash.com/photo-1501281668745-f7f57925c3b4?q=80&w=800&auto=format&fit=crop`;
+    
+    const isSoldOut = event.ticket_types?.every(t => t.available_stock === 0) ?? false;
+    const isEarlyBird = event.id.includes('early'); // dummy logic for badge
+
+    return (
+        <div className="group relative bg-white dark:bg-slate-900/40 rounded-[2rem] overflow-hidden border border-slate-200 dark:border-slate-800 hover:border-violet-500/50 shadow-sm hover:shadow-2xl hover:shadow-violet-500/10 transition-all duration-500">
+            {/* Image Section */}
+            <div className="relative aspect-[4/3] overflow-hidden">
+                <img
+                    src={event.banner_image ?? fallbackImg}
+                    alt={event.title}
+                    className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
+                />
+                <div className="absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-black/80 to-transparent pointer-events-none" />
+                
+                {/* Badges */}
+                <div className="absolute top-4 left-4 flex flex-wrap gap-2">
+                    {event.category && (
+                        <span className="px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider bg-violet-600 text-white shadow-lg">
+                            {event.category.name}
+                        </span>
+                    )}
+                    {isSoldOut ? (
+                        <span className="px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider bg-red-500 text-white">Sold Out</span>
+                    ) : isEarlyBird ? (
+                        <span className="px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider bg-amber-500 text-white">Early Bird</span>
+                    ) : (
+                        <span className="px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider bg-emerald-500 text-white">New</span>
+                    )}
+                </div>
+
+                <div className="absolute bottom-4 left-4 right-4 flex items-center justify-between">
+                    <div className="flex items-center gap-1.5 text-white">
+                        <CalendarIcon />
+                        <span className="text-xs font-bold">{formatDate(event.event_date)}</span>
+                    </div>
+                    {event.format === 'Online' && (
+                        <span className="px-2 py-0.5 rounded-md bg-blue-500/80 backdrop-blur-md text-[10px] font-bold text-white uppercase">Online</span>
+                    )}
+                </div>
+            </div>
+
+            {/* Content Section */}
+            <div className="p-6">
+                <div className="flex items-start justify-between gap-4 mb-2">
+                    <h3 className="flex-1 font-bold text-slate-900 dark:text-white text-lg leading-tight group-hover:text-violet-600 dark:group-hover:text-violet-400 transition-colors line-clamp-2">
+                        {event.title}
+                    </h3>
+                </div>
+
+                <div className="flex items-center gap-1.5 text-slate-500 dark:text-slate-400 text-sm mb-6">
+                    <PinIcon />
+                    <span className="truncate">{event.location}</span>
+                </div>
+
+                <div className="flex items-center justify-between pt-4 border-t border-slate-100 dark:border-slate-800">
+                    <div className="flex flex-col">
+                        <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">Price starts from</span>
+                        <span className="text-lg font-black text-slate-900 dark:text-white">
+                            {minPrice > 0 ? formatCurrency(minPrice) : 'FREE'}
+                        </span>
+                    </div>
+                    <Link
+                        href={`/events/${event.id}`}
+                        className="p-3 rounded-2xl bg-slate-900 dark:bg-white text-white dark:text-slate-900 hover:bg-violet-600 dark:hover:bg-violet-400 transition-colors"
+                    >
+                        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3" />
+                        </svg>
+                    </Link>
+                </div>
+            </div>
+        </div>
+    );
+}
+
+// ─── Main Catalog Page ──────────────────────────────────────────────────────
+export default function EventCatalog({ events, trendingEvents, categories, filters }: Props) {
+    const [search, setSearch] = useState(filters.search ?? '');
+    const [activeTab, setActiveTab] = useState(filters.category ?? 'all');
+
+    const updateFilter = (newFilters: Partial<Filters>) => {
+        const currentParams = { ...filters, ...newFilters };
+        const cleanParams: any = {};
+        Object.keys(currentParams).forEach(key => {
+            if (currentParams[key as keyof Filters] !== undefined && currentParams[key as keyof Filters] !== '') {
+                cleanParams[key] = currentParams[key as keyof Filters];
+            }
+        });
+        router.get('/events', cleanParams, { preserveState: true, replace: true });
     };
 
     return (
         <DashboardLayout>
-            <Head title="Discover Events" />
+            <Head title="Discover Events - EventHive" />
 
-            <div className="mb-8">
-                <h1 className="text-3xl font-black text-slate-900 dark:text-white tracking-tight">Discover Events</h1>
-                <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">Explore and book tickets for the best events in town.</p>
-            </div>
+            {/* ── HERO SECTION ── */}
+            <section className="relative -mx-4 sm:-mx-6 lg:-mx-8 mb-12 py-20 px-4 sm:px-6 lg:px-8 bg-slate-950 overflow-hidden">
+                <div className="absolute inset-0 z-0">
+                    <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1459749411177-042180ce672c?q=80&w=2000&auto=format&fit=crop')] bg-cover bg-center opacity-30 mix-blend-overlay" />
+                    <div className="absolute inset-0 bg-gradient-to-b from-transparent via-slate-950/80 to-slate-950" />
+                    <div className="absolute -top-24 -left-20 w-96 h-96 bg-violet-600/20 rounded-full blur-[120px]" />
+                    <div className="absolute -bottom-24 -right-20 w-96 h-96 bg-blue-600/20 rounded-full blur-[120px]" />
+                </div>
 
-            {/* Search & Filter Section */}
-            <div className="bg-white dark:bg-navy-900 rounded-2xl shadow-sm border border-slate-200 dark:border-white/10 p-6 mb-8">
-                <form onSubmit={handleSearch} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 items-end">
-                    <div className="lg:col-span-2">
-                        <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-2">Search Events</label>
-                        <div className="relative">
-                            <TextInput
-                                value={search}
-                                onChange={(e) => setSearch(e.target.value)}
-                                placeholder="Search by name or description..."
-                                className="w-full pl-10"
-                            />
-                            <div className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">
-                                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                <div className="relative z-10 max-w-4xl mx-auto text-center">
+                    <h1 className="text-4xl sm:text-6xl font-black text-white mb-6 tracking-tight leading-tight">
+                        Don't Miss Out on the <span className="text-transparent bg-clip-text bg-gradient-to-r from-violet-400 to-blue-400">Perfect Moment</span>
+                    </h1>
+                    <p className="text-lg text-slate-400 mb-10 max-w-2xl mx-auto font-medium">
+                        Discover thousands of music concerts, workshops, and exclusive seminars tailored just for you.
+                    </p>
+
+                    {/* SEARCH BAR */}
+                    <div className="relative max-w-3xl mx-auto group">
+                        <div className="absolute inset-0 bg-violet-500/20 rounded-[2rem] blur-2xl group-hover:bg-violet-500/30 transition-all duration-500" />
+                        <div className="relative flex items-center bg-white dark:bg-slate-900/80 backdrop-blur-xl border border-white/10 p-2 rounded-[2rem] shadow-2xl">
+                            <div className="flex-1 flex items-center px-4">
+                                <svg className="w-6 h-6 text-slate-400 mr-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z" />
                                 </svg>
+                                <input
+                                    type="text"
+                                    value={search}
+                                    onChange={e => setSearch(e.target.value)}
+                                    onKeyDown={e => e.key === 'Enter' && updateFilter({ search })}
+                                    placeholder="Find your favorite events..."
+                                    className="w-full bg-transparent border-none focus:ring-0 text-slate-900 dark:text-white placeholder-slate-500 py-3 text-lg font-medium"
+                                />
                             </div>
+                            <button 
+                                onClick={() => updateFilter({ search })}
+                                className="bg-slate-900 dark:bg-violet-600 hover:bg-violet-700 text-white px-8 py-3 rounded-[1.5rem] font-bold transition-all transform hover:scale-[1.02] active:scale-[0.98]"
+                            >
+                                Search
+                            </button>
                         </div>
                     </div>
+                </div>
+            </section>
 
-                    <div>
-                        <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-2">Category</label>
-                        <select
-                            value={category}
-                            onChange={(e) => setCategory(e.target.value)}
-                            className="w-full rounded-xl border-slate-200 dark:border-white/10 dark:bg-navy-950 dark:text-white focus:border-primary-500 focus:ring-primary-500 transition-all duration-200 text-sm py-2.5"
-                        >
-                            <option value="">All Categories</option>
-                            {categories.map((cat) => (
-                                <option key={cat.id} value={cat.id}>{cat.name}</option>
-                            ))}
-                        </select>
+            {/* ── TRENDING SECTION (Carousel Style) ── */}
+            {trendingEvents?.length > 0 && (
+                <section className="mb-16">
+                    <div className="flex items-center justify-between mb-8">
+                        <h2 className="text-2xl font-black text-slate-900 dark:text-white flex items-center gap-3">
+                            <span className="w-2 h-8 bg-violet-600 rounded-full" />
+                            Trending Events
+                        </h2>
                     </div>
-
-                    <div>
-                        <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-2">Location</label>
-                        <TextInput
-                            value={location}
-                            onChange={(e) => setLocation(e.target.value)}
-                            placeholder="City or venue..."
-                            className="w-full"
-                        />
-                    </div>
-
-                    <div className="flex gap-2">
-                        <PrimaryButton type="submit" className="flex-1 justify-center py-2.5">
-                            Search
-                        </PrimaryButton>
-                        <SecondaryButton type="button" onClick={clearFilters} title="Clear Filters" className="px-3">
-                            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                            </svg>
-                        </SecondaryButton>
-                    </div>
-                </form>
-            </div>
-
-            {/* Events Grid */}
-            {events.data.length > 0 ? (
-                <>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6">
-                        {events.data.map((event) => (
-                            <div key={event.id} className="group relative bg-white dark:bg-navy-900 rounded-2xl overflow-hidden border border-slate-200 dark:border-white/10 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-xl hover:shadow-primary-500/10">
-                                {/* Banner Image */}
-                                <div className="aspect-[16/9] w-full overflow-hidden relative">
-                                    <img 
-                                        src={event.banner_image || 'https://images.unsplash.com/photo-1501281668745-f7f57925c3b4?auto=format&fit=crop&q=80&w=800'} 
-                                        alt={event.title}
-                                        className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-110"
-                                    />
-                                    <div className="absolute top-4 right-4">
-                                        <span className="px-3 py-1 rounded-full bg-white/90 dark:bg-navy-900/90 backdrop-blur-md text-[10px] font-black uppercase tracking-widest text-primary-600 dark:text-primary-400 border border-white/20">
-                                            {event.category?.name || 'Event'}
-                                        </span>
-                                    </div>
-                                    {/* Date Overlay */}
-                                    <div className="absolute bottom-4 left-4 bg-white/90 dark:bg-navy-900/90 backdrop-blur-md rounded-xl p-2 px-3 border border-white/20 flex flex-col items-center">
-                                        <span className="text-[10px] font-black uppercase text-slate-500 dark:text-slate-400 tracking-tighter">
-                                            {new Date(event.event_date).toLocaleDateString('id-ID', { month: 'short' })}
-                                        </span>
-                                        <span className="text-lg font-black text-slate-900 dark:text-white leading-none">
-                                            {new Date(event.event_date).toLocaleDateString('id-ID', { day: '2-digit' })}
-                                        </span>
-                                    </div>
-                                </div>
-
-                                <div className="p-6">
-                                    <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-2 line-clamp-1">{event.title}</h3>
-                                    
-                                    <div className="space-y-3 mb-6">
-                                        <div className="flex items-center gap-2 text-sm text-slate-500 dark:text-slate-400">
-                                            <svg className="w-4 h-4 text-primary-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-                                            </svg>
-                                            <span className="truncate">{event.location}</span>
-                                        </div>
-                                        <div className="flex items-center gap-2 text-sm text-slate-500 dark:text-slate-400">
-                                            <svg className="w-4 h-4 text-primary-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                            </svg>
-                                            <span>Starts {new Date(event.event_date).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}</span>
-                                        </div>
-                                    </div>
-
-                                    <div className="flex items-center justify-between pt-4 border-t border-slate-100 dark:border-white/5">
-                                        <div className="flex flex-col">
-                                            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Starting from</span>
-                                            <span className="text-lg font-black text-primary-600 dark:text-primary-400">Free</span>
-                                        </div>
-                                        <Link 
-                                            href={`/events/${event.id}`}
-                                            className="px-5 py-2.5 rounded-xl bg-slate-100 dark:bg-white/5 text-slate-900 dark:text-white text-sm font-bold transition-all duration-200 hover:bg-primary-600 hover:text-white"
-                                        >
-                                            View Details
-                                        </Link>
+                    
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 pb-4 overflow-x-auto no-scrollbar">
+                        {trendingEvents.slice(0, 2).map(event => (
+                            <div key={event.id} className="relative h-[300px] rounded-[2.5rem] overflow-hidden group cursor-pointer border border-white/10 shadow-lg">
+                                <img src={event.banner_image ?? ''} className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-1000" />
+                                <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/40 to-transparent" />
+                                <div className="absolute bottom-8 left-8 right-8 text-left">
+                                    <span className="inline-block px-3 py-1 bg-violet-600 text-[10px] font-black text-white uppercase rounded-full mb-3 tracking-widest">Featured</span>
+                                    <h3 className="text-2xl font-black text-white mb-2 line-clamp-1">{event.title}</h3>
+                                    <div className="flex items-center gap-4 text-slate-300 text-sm font-medium">
+                                        <span className="flex items-center gap-1.5"><CalendarIcon /> {formatDate(event.event_date)}</span>
+                                        <span className="flex items-center gap-1.5"><PinIcon /> {event.location}</span>
                                     </div>
                                 </div>
                             </div>
                         ))}
                     </div>
+                </section>
+            )}
 
-                    {/* Pagination */}
-                    {events.last_page > 1 && (
-                        <div className="mt-12 flex justify-center">
-                            <div className="flex items-center gap-2 bg-white dark:bg-navy-900 p-1.5 rounded-2xl border border-slate-200 dark:border-white/10 shadow-sm">
-                                {events.links.map((link, i) => (
-                                    <Link
-                                        key={i}
-                                        href={link.url || '#'}
-                                        dangerouslySetInnerHTML={{ __html: link.label }}
-                                        className={`px-4 py-2 rounded-xl text-sm font-bold transition-all duration-200 ${
-                                            link.active 
-                                                ? 'bg-primary-600 text-white shadow-lg shadow-primary-500/30' 
-                                                : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-white/5'
-                                        } ${!link.url ? 'opacity-50 cursor-not-allowed' : ''}`}
-                                    />
+            {/* ── CATEGORY QUICK FILTER ── */}
+            <section className="mb-12">
+                <div className="flex items-center gap-4 overflow-x-auto no-scrollbar pb-4">
+                    <button 
+                        onClick={() => { setActiveTab('all'); updateFilter({ category: undefined }); }}
+                        className={`flex items-center gap-3 px-6 py-4 rounded-3xl font-bold transition-all whitespace-nowrap ${
+                            activeTab === 'all' 
+                            ? 'bg-violet-600 text-white shadow-xl shadow-violet-500/30' 
+                            : 'bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:border-violet-500'
+                        }`}
+                    >
+                        {CATEGORY_ICONS.Default}
+                        All Events
+                    </button>
+                    {categories.map(cat => (
+                        <button 
+                            key={cat.id}
+                            onClick={() => { setActiveTab(cat.id); updateFilter({ category: cat.id }); }}
+                            className={`flex items-center gap-3 px-6 py-4 rounded-3xl font-bold transition-all whitespace-nowrap ${
+                                String(activeTab) === String(cat.id)
+                                ? 'bg-violet-600 text-white shadow-xl shadow-violet-500/30' 
+                                : 'bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:border-violet-500'
+                            }`}
+                        >
+                            {CATEGORY_ICONS[cat.name] || CATEGORY_ICONS.Default}
+                            {cat.name}
+                        </button>
+                    ))}
+                </div>
+            </section>
+
+            {/* ── MAIN CONTENT AREA (Grid + Filter) ── */}
+            <div className="flex flex-col lg:flex-row gap-8">
+                {/* Sidebar Filter */}
+                <aside className="w-full lg:w-72 space-y-8">
+                    <div className="bg-white dark:bg-slate-900/40 border border-slate-200 dark:border-slate-800 rounded-[2.5rem] p-8">
+                        <div className="flex items-center justify-between mb-8">
+                            <h3 className="font-black text-slate-900 dark:text-white uppercase tracking-wider text-sm">Filters</h3>
+                            <button onClick={() => updateFilter({})} className="text-xs text-violet-500 font-bold hover:underline">Reset</button>
+                        </div>
+
+                        {/* Format Filter */}
+                        <div className="mb-8">
+                            <h4 className="text-xs font-black text-slate-400 uppercase tracking-widest mb-4">Event Format</h4>
+                            <div className="flex gap-2">
+                                {['Online', 'Offline'].map(f => (
+                                    <button 
+                                        key={f}
+                                        onClick={() => updateFilter({ format: filters.format === f ? undefined : f })}
+                                        className={`flex-1 py-2 rounded-xl text-xs font-bold transition-all ${
+                                            filters.format === f 
+                                            ? 'bg-violet-600 text-white shadow-lg' 
+                                            : 'bg-slate-100 dark:bg-slate-800 text-slate-500 hover:bg-slate-200'
+                                        }`}
+                                    >
+                                        {f}
+                                    </button>
                                 ))}
                             </div>
                         </div>
-                    )}
-                </>
-            ) : (
-                <div className="bg-white dark:bg-navy-900 rounded-2xl border border-dashed border-slate-300 dark:border-white/10 p-20 flex flex-col items-center text-center">
-                    <div className="w-24 h-24 rounded-3xl bg-slate-50 dark:bg-white/5 flex items-center justify-center mb-6">
-                        <svg className="w-12 h-12 text-slate-300 dark:text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                        </svg>
+
+                        {/* Time Quick Filter */}
+                        <div className="mb-8 text-left">
+                            <h4 className="text-xs font-black text-slate-400 uppercase tracking-widest mb-4">When</h4>
+                            <div className="grid grid-cols-2 gap-2">
+                                {['today', 'tomorrow', 'week'].map(t => (
+                                    <button 
+                                        key={t}
+                                        onClick={() => updateFilter({ time: filters.time === t ? undefined : t })}
+                                        className={`py-2 rounded-xl text-xs font-bold capitalize transition-all ${
+                                            filters.time === t 
+                                            ? 'bg-violet-600 text-white' 
+                                            : 'bg-slate-100 dark:bg-slate-800 text-slate-500'
+                                        }`}
+                                    >
+                                        {t === 'week' ? 'This Week' : t}
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+
+                        {/* Price Range */}
+                        <div className="text-left">
+                            <h4 className="text-xs font-black text-slate-400 uppercase tracking-widest mb-4">Price Range</h4>
+                            <div className="space-y-4">
+                                <input 
+                                    type="range" 
+                                    min="0" 
+                                    max="5000000" 
+                                    step="50000"
+                                    value={filters.price_max || 5000000}
+                                    onChange={e => updateFilter({ price_max: e.target.value })}
+                                    className="w-full h-1.5 bg-slate-200 dark:bg-slate-800 rounded-lg appearance-none cursor-pointer accent-violet-600"
+                                />
+                                <div className="flex justify-between text-[10px] font-black text-slate-500 uppercase">
+                                    <span>Rp 0</span>
+                                    <span>Max {formatCurrency(Number(filters.price_max) || 5000000)}</span>
+                                </div>
+                            </div>
+                        </div>
                     </div>
-                    <h2 className="text-2xl font-black text-slate-900 dark:text-white mb-2">No events found</h2>
-                    <p className="text-slate-500 dark:text-slate-400 max-w-sm">We couldn't find any events matching your current filters. Try adjusting your search criteria.</p>
-                    <SecondaryButton onClick={clearFilters} className="mt-8">
-                        Reset All Filters
-                    </SecondaryButton>
+                </aside>
+
+                {/* Event Grid */}
+                <div className="flex-1">
+                    <div className="flex items-center justify-between mb-8">
+                        <p className="text-slate-500 font-medium whitespace-nowrap overflow-hidden text-ellipsis">
+                            <span className="font-black text-slate-900 dark:text-white">{events.total}</span> events matching your vibe
+                        </p>
+                        <select 
+                            value={filters.sort || 'date_asc'}
+                            onChange={e => updateFilter({ sort: e.target.value })}
+                            className="bg-transparent border-none text-sm font-black text-violet-600 focus:ring-0 cursor-pointer"
+                        >
+                            {SORT_OPTIONS.map(opt => (
+                                <option key={opt.value} value={opt.value}>Sort by: {opt.label}</option>
+                            ))}
+                        </select>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-8">
+                        {events.data.length > 0 ? (
+                            events.data.map(event => (
+                                <EventCard key={event.id} event={event} />
+                            ))
+                        ) : (
+                            <div className="col-span-full py-20 text-center">
+                                <div className="w-24 h-24 bg-slate-100 dark:bg-slate-900 rounded-full flex items-center justify-center mx-auto mb-6 text-slate-300">
+                                    <svg className="w-12 h-12" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                                </div>
+                                <h3 className="text-xl font-black text-slate-900 dark:text-white mb-2">Oops! No match found</h3>
+                                <p className="text-slate-500 mb-8 max-w-xs mx-auto">Maybe try searching for something else or reset your filters?</p>
+                                <button onClick={() => updateFilter({})} className="px-8 py-3 bg-violet-600 text-white rounded-2xl font-bold shadow-lg shadow-violet-500/30">Clear All Filters</button>
+                            </div>
+                        )}
+                    </div>
+
+                    {/* Load More */}
+                    {events.current_page < events.last_page && (
+                        <div className="mt-16 flex justify-center">
+                           <button 
+                                onClick={() => router.visit(events.links[events.current_page + 1].url || '', { preserveState: true })}
+                                className="px-10 py-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white rounded-[1.5rem] font-black hover:border-violet-500 transition-all shadow-xl shadow-slate-200/50 dark:shadow-none"
+                            >
+                                Load More Events
+                            </button>
+                        </div>
+                    )}
                 </div>
-            )}
+            </div>
         </DashboardLayout>
     );
 }
-
-// Global route function helper (assuming ziggy-js is used, which is standard for Inertia)
-declare function route(name: string, params?: any): string;
