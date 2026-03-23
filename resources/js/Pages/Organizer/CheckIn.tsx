@@ -1,6 +1,7 @@
 import OrganizerLayout from '@/Layouts/OrganizerLayout';
 import { Head, useForm, usePage } from '@inertiajs/react';
 import React, { FormEvent, useEffect, useState } from 'react';
+import { Html5QrcodeScanner } from 'html5-qrcode';
 
 export default function CheckIn() {
     const { flash } = usePage().props as any;
@@ -17,6 +18,27 @@ export default function CheckIn() {
             setAlertMessage({ type: 'error', text: errors.code });
         }
     }, [flash, errors]);
+
+    useEffect(() => {
+        const scanner = new Html5QrcodeScanner('qr-reader', {
+            qrbox: { width: 250, height: 250 },
+            fps: 5,
+        }, false);
+        
+        scanner.render(
+            (text) => {
+                setData('code', text);
+            },
+            (err) => {
+                // ignore scanning errors
+            }
+        );
+
+        return () => {
+            scanner.clear().catch(console.error);
+        };
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
 
     const submit = (e: FormEvent) => {
         e.preventDefault();
@@ -39,6 +61,10 @@ export default function CheckIn() {
                         </div>
                         <h2 className="text-2xl font-black text-white uppercase tracking-tight">Scan / Input Kode</h2>
                         <p className="text-blue-100 text-sm mt-1">Masukkan ID Tiket atau Scan Barcode pengunjung</p>
+                    </div>
+
+                    <div className="bg-white">
+                        <div id="qr-reader" className="w-full max-w-sm mx-auto overflow-hidden"></div>
                     </div>
 
                     <div className="p-8 pb-10 space-y-6">
