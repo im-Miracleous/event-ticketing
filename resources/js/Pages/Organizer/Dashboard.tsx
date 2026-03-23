@@ -3,7 +3,7 @@ import { Head, Link } from '@inertiajs/react';
 
 export default function Dashboard() {
     return (
-        <OrganizerLayout header="EVENT">
+        <OrganizerLayout header="EVENT" sidebarType="dashboard">
             <Head title="Organizer Dashboard" />
 
             <div className="max-w-7xl mx-auto space-y-6">
@@ -69,13 +69,13 @@ export default function Dashboard() {
                                 </div>
                             </div>
 
-                            <div className="mt-4 pt-4 border-t border-gray-100 space-y-2">
-                                <div className="flex justify-between items-center text-sm">
-                                    <span className="font-bold text-gray-800">0</span>
+                            <div className="mt-4 pt-4 border-t border-gray-100 space-y-1">
+                                <div className="flex items-center text-sm">
+                                    <span className="font-bold text-gray-800 mr-2">0</span>
                                     <span className="text-gray-500 font-medium text-xs">Tiket Terjual dan Dipesan</span>
                                 </div>
-                                <div className="flex justify-between items-center text-sm">
-                                    <span className="font-bold text-gray-800">0</span>
+                                <div className="flex items-center text-sm">
+                                    <span className="font-bold text-gray-800 mr-2">0</span>
                                     <span className="text-gray-500 font-medium text-xs">Kali Dilihat</span>
                                 </div>
                             </div>
