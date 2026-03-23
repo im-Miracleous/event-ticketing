@@ -50,25 +50,7 @@ export default function DashboardLayout({ children }: PropsWithChildren) {
                 </main>
             </div>
 
-            {/* Dev-only role switcher to avoid git conflicts when teammates test different roles */}
-            {import.meta.env.DEV && (
-                <div className="fixed bottom-4 right-4 z-50 rounded-xl bg-white dark:bg-navy-900 border border-slate-200 dark:border-white/10 shadow-2xl p-2 flex items-center gap-1 backdrop-blur-xl">
-                    <span className="text-[10px] font-black uppercase tracking-widest px-2 text-slate-500 dark:text-slate-400">Dev Role</span>
-                    {(['root', 'admin', 'organizer', 'user'] as UserRole[]).map((role) => (
-                        <button
-                            key={role}
-                            onClick={() => handleRoleChange(role)}
-                            className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-all duration-200 ${
-                                activeRole === role 
-                                    ? 'bg-primary-600 text-white shadow-md shadow-primary-500/20 ring-1 ring-primary-500/50' 
-                                    : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-white/5'
-                            }`}
-                        >
-                            {role.charAt(0).toUpperCase() + role.slice(1)}
-                        </button>
-                    ))}
-                </div>
-            )}
+
         </div>
     );
 }
