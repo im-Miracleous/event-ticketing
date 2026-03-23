@@ -3,25 +3,25 @@ import Header from '@/Components/Dashboard/Header';
 import { useTheme } from '@/hooks/useTheme';
 import { PropsWithChildren, useState } from 'react';
 import type { UserRole } from '@/config/navigation';
+import { usePage } from '@inertiajs/react';
 
 export default function DashboardLayout({ children }: PropsWithChildren) {
     const [sidebarOpen, setSidebarOpen] = useState(false);
     const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
     const { isDark, toggleTheme } = useTheme();
 
-    // Use localStorage for mock state so teammates don't have merge conflicts changing hardcoded values
-    const [activeRole, setActiveRole] = useState<UserRole>(() => {
-        if (typeof window !== 'undefined') {
-            const saved = localStorage.getItem('mock_role');
-            if (saved === 'root' || saved === 'admin' || saved === 'organizer' || saved === 'user') return saved as UserRole;
-        }
-        return 'admin';
-    });
+    // Read role directly from the authenticated user passed by Inertia's HandleInertiaRequests
+    const user = usePage().props.auth?.user as any;
+    const rawRole: string = user?.role ?? 'user';
 
-    const handleRoleChange = (role: UserRole) => {
-        setActiveRole(role);
-        localStorage.setItem('mock_role', role);
+    // Map Laravel role names (User/Admin/Organizer/Root) → TypeScript UserRole
+    const roleMap: Record<string, UserRole> = {
+        Root:      'root',
+        Admin:     'admin',
+        Organizer: 'organizer',
+        User:      'user',
     };
+    const activeRole: UserRole = roleMap[rawRole] ?? 'user';
 
     return (
         <div className="min-h-screen bg-slate-50 text-slate-800 dark:bg-navy-950 dark:text-slate-200 selection:bg-primary-500/30">
@@ -33,8 +33,7 @@ export default function DashboardLayout({ children }: PropsWithChildren) {
             />
 
             <div
-                className={`flex flex-col min-h-screen transition-[padding] duration-300 ease-in-out ${sidebarCollapsed ? 'lg:pl-0' : 'lg:pl-64'
-                    }`}
+                className={`flex flex-col min-h-screen transition-[padding] duration-300 ease-in-out ${sidebarCollapsed ? 'lg:pl-0' : 'lg:pl-64'}`}
             >
                 <Header
                     onMenuToggle={() => setSidebarOpen((prev) => !prev)}
@@ -49,8 +48,6 @@ export default function DashboardLayout({ children }: PropsWithChildren) {
                     {children}
                 </main>
             </div>
-
-
         </div>
     );
 }

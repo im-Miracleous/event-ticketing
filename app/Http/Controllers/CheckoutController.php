@@ -10,9 +10,12 @@ use App\Models\TicketType;
 use App\Models\TransactionDetail;
 use App\Models\Ticket;
 use App\Models\Attendee;
+use App\Mail\BookingPendingMail;
+use App\Mail\ETicketMail;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Str;
 use Inertia\Inertia;
 
@@ -128,6 +131,10 @@ class CheckoutController extends Controller
             // Dispatch auto-cancel job after 15 minutes
             CancelExpiredBooking::dispatch($transaction->id)->delay($expiresAt);
 
+            // Send Booking Pending Email
+            $transaction->load('event');
+            Mail::to(Auth::user()->email)->send(new BookingPendingMail($transaction));
+
             return $transaction;
         });
 
@@ -192,6 +199,9 @@ class CheckoutController extends Controller
                     $ticket->update(['ticket_status' => 'Active']);
                 }
             }
+
+            // Send E-Ticket Email
+            Mail::to(Auth::user()->email)->send(new ETicketMail($transaction));
         });
 
         return redirect()->route('checkout.result', $transactionId);

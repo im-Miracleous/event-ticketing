@@ -9,6 +9,7 @@ class OtpCode extends Model
 {
     protected $fillable = [
         'user_id',
+        'email',
         'code',
         'type',
         'expires_at',
@@ -42,19 +43,27 @@ class OtpCode extends Model
     }
 
     /**
-     * Generate a random 6-digit OTP code for a user.
+     * Generate a random 6-digit OTP code.
+     * Can be associated with an existing User or an unregistered email string.
      */
-    public static function generateFor(User $user, string $type = 'email_verification'): self
+    public static function generateFor(User|string $recipient, string $type = 'email_verification'): self
     {
-        // Invalidate all previous OTPs of the same type for this user
-        self::where('user_id', $user->id)
-            ->where('type', $type)
-            ->whereNull('used_at')
-            ->update(['used_at' => now()]);
+        $userId = $recipient instanceof User ? $recipient->id : null;
+        $email = $recipient instanceof User ? $recipient->email : $recipient;
+
+        // Invalidate all previous OTPs of the same type for this recipient
+        $query = self::where('type', $type)->whereNull('used_at');
+        if ($userId) {
+            $query->where('user_id', $userId);
+        } else {
+            $query->where('email', $email);
+        }
+        $query->update(['used_at' => now()]);
 
         return self::create([
-            'user_id'    => $user->id,
-            'code'       => str_pad(random_int(0, 999999), 6, '0', STR_PAD_LEFT),
+            'user_id'    => $userId,
+            'email'      => $email,
+            'code'       => str_pad((string)random_int(0, 999999), 6, '0', STR_PAD_LEFT),
             'type'       => $type,
             'expires_at' => now()->addMinutes(10),
         ]);

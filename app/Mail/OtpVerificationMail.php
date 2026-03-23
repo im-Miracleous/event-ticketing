@@ -18,9 +18,12 @@ class OtpVerificationMail extends Mailable
      * Create a new message instance.
      */
     public function __construct(
-        public User $user,
-        public OtpCode $otp
-    ) {}
+        public ?User $user,
+        public OtpCode $otp,
+        public string $name = ''
+    ) {
+        $this->name = $user ? $user->name : $name;
+    }
 
     /**
      * Get the message envelope.
