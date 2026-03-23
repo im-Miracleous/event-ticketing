@@ -104,11 +104,11 @@ export default function OrganizerLayout({
                                         <Link href={route('organizer.dashboard')} className="w-full flex items-center px-12 py-3 bg-blue-500 text-white rounded-lg text-sm font-bold shadow-sm">
                                             Informasi Event
                                         </Link>
-                                        <Link href="#" className="w-full flex items-center px-12 py-2 text-gray-600 hover:bg-gray-50 hover:text-blue-500 rounded-lg text-sm font-medium transition-colors">
+                                        <Link href={route('organizer.dashboard')} className="w-full flex items-center px-12 py-2 text-gray-600 hover:bg-gray-50 hover:text-blue-500 rounded-lg text-sm font-medium transition-colors">
                                             Tiket Event
                                         </Link>
-                                        <Link href="#" className="w-full flex items-center px-12 py-2 text-gray-600 hover:bg-gray-50 hover:text-blue-500 rounded-lg text-sm font-medium transition-colors">
-                                            Formulir Pemesanan
+                                        <Link href={route('organizer.check-in')} className="w-full flex items-center px-12 py-2 text-gray-600 hover:bg-gray-50 hover:text-blue-500 rounded-lg text-sm font-medium transition-colors">
+                                            Check-In / Validasi
                                         </Link>
                                     </div>
                                 </div>
