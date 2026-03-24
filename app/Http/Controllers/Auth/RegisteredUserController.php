@@ -39,6 +39,7 @@ class RegisteredUserController extends Controller
             'username' => 'required|string|lowercase|max:255|unique:'.User::class,
             'email' => 'required|string|lowercase|email|max:255|unique:'.User::class,
             'password' => ['required', 'confirmed', Rules\Password::defaults()],
+            'role' => ['required', 'string', 'in:User,Organizer'],
         ]);
 
         // Instead of creating the user in DB, store the registration data in the session
@@ -47,6 +48,7 @@ class RegisteredUserController extends Controller
             'username' => $request->username,
             'email' => $request->email,
             'password' => Hash::make($request->password),
+            'role' => $request->role,
         ];
         
         $request->session()->put('pending_registration', $pendingData);

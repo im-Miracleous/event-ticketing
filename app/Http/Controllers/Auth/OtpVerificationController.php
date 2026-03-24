@@ -77,6 +77,7 @@ class OtpVerificationController extends Controller
             'username' => $pending['username'],
             'email' => $pending['email'],
             'password' => $pending['password'],
+            'role' => $pending['role'] ?? 'User',
         ]);
 
         $user->markEmailAsVerified();
