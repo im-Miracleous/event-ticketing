@@ -12,25 +12,32 @@ class AuthController extends Controller
 {
     public function showLogin()
     {
-        return view('auth.login');
+        return \Inertia\Inertia::render('Auth/Login', [
+            'canResetPassword' => \Illuminate\Support\Facades\Route::has('password.request'),
+            'status' => session('status'),
+        ]);
     }
 
     public function login(Request $request)
     {
-        $credentials = $request->validate([
-            'username' => ['required', 'string'],
+        $request->validate([
+            'login'    => ['required', 'string'],
             'password' => ['required'],
         ]);
 
-        if (Auth::attempt($credentials, $request->boolean('remember'))) {
+        $loginValue = $request->input('login');
+        $fieldType  = filter_var($loginValue, FILTER_VALIDATE_EMAIL) ? 'email' : 'username';
+
+        if (Auth::attempt([$fieldType => $loginValue, 'password' => $request->password], $request->boolean('remember'))) {
             $request->session()->regenerate();
             return redirect()->intended('/');
         }
 
         return back()->withErrors([
-            'username' => 'The provided credentials do not match our records.',
-        ])->onlyInput('username');
+            'login' => 'Email/username atau password salah.',
+        ])->onlyInput('login');
     }
+
 
     public function showRegister()
     {
@@ -61,7 +68,11 @@ class AuthController extends Controller
         Auth::logout();
         $request->session()->invalidate();
         $request->session()->regenerateToken();
-        
-        return redirect('/login');
+
+        // Use Inertia::location() to force a full browser redirect
+        // (plain redirect() causes Inertia to render the Blade login page
+        //  as a partial swap inside the existing layout)
+        return \Inertia\Inertia::location('/login');
     }
+
 }

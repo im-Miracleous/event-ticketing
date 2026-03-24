@@ -21,8 +21,10 @@ class Event extends Model {
         'start_time', 
         'end_time', 
         'location', 
+        'format',
         'event_category_id', 
         'organizer_id',
+        'status',
     ];
     
     public function category() { 

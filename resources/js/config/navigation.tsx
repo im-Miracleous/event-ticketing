@@ -133,6 +133,7 @@ const UserSettingsIcon = (
  */
 const adminNavItems: NavItem[] = [
     { label: 'System Dashboard',  href: '/dashboard',              routeName: 'dashboard',           icon: DashboardIcon },
+    { label: 'Discover Events',   href: '/events',                 routeName: 'events.index',        icon: SearchIcon },
     { label: 'All Events',        href: '/admin/events',           routeName: 'admin.events.*',      icon: EventsIcon },
     { label: 'Event Categories',  href: '/admin/categories',       routeName: 'admin.categories.*',  icon: CategoryIcon },
     { label: 'User Management',   href: '/admin/users',            routeName: 'admin.users.*',       icon: UsersIcon },
@@ -148,6 +149,7 @@ const adminNavItems: NavItem[] = [
  */
 const organizerNavItems: NavItem[] = [
     { label: 'Organizer Dashboard', href: '/dashboard',                routeName: 'dashboard',                icon: DashboardIcon },
+    { label: 'Discover Events',     href: '/events',                   routeName: 'events.index',             icon: SearchIcon },
     { label: 'My Events',           href: '/organizer/events',         routeName: 'organizer.events.*',       icon: EventsIcon },
     { label: 'Create Event',        href: '/organizer/events/create',  routeName: 'organizer.events.create',  icon: CreateIcon },
     { label: 'Attendee Management', href: '/organizer/attendees',      routeName: 'organizer.attendees.*',    icon: UsersIcon },
