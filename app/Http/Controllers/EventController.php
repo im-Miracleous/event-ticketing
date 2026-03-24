@@ -75,7 +75,7 @@ class EventController extends Controller {
 
     public function destroy($id) {
         $event = Event::findOrFail($id);
-        $event->delete(); // This performs a soft delete
+        $event->update(['status' => 'ended']);
         return redirect()->back()->with('success', 'Event inactive successfully.');
     }
 }
