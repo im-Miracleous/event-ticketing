@@ -2,76 +2,63 @@ import DashboardLayout from '@/Layouts/DashboardLayout';
 import StatisticsCard from '@/Components/Dashboard/StatisticsCard';
 import { Head } from '@inertiajs/react';
 
-/* ─── Mock Data ─────────────────────────────────────────────────────── */
+/* ─── Types ─────────────────────────────────────────────────────────── */
 
-const financeStats = [
-    {
-        title: 'Total Ticket Sales',
-        value: 'Rp14.340.000',
-        trend: '+41.1%',
-        trendUp: true,
-        icon: (
-            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 6v.75m0 3v.75m0 3v.75m0 3V18m-9-5.25h5.25M7.5 15h3M3.375 5.25c-.621 0-1.125.504-1.125 1.125v3.026a2.999 2.999 0 0 1 0 5.198v3.026c0 .621.504 1.125 1.125 1.125h17.25c.621 0 1.125-.504 1.125-1.125v-3.026a2.999 2.999 0 0 1 0-5.198V6.375c0-.621-.504-1.125-1.125-1.125H3.375Z" />
-            </svg>
-        ),
-    },
-    {
-        title: 'Platform Fee (20%)',
-        value: 'Rp2.868.000',
-        trend: '+18.7%',
-        trendUp: true,
-        icon: (
-            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v12m-3-2.818.879.659c1.171.879 3.07.879 4.242 0 1.172-.879 1.172-2.303 0-3.182C13.536 12.219 12.768 12 12 12c-.725 0-1.45-.22-2.003-.659-1.106-.879-1.106-2.303 0-3.182s2.9-.879 4.006 0l.415.33M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
-            </svg>
-        ),
-    },
-    {
-        title: 'Organizer Payouts',
-        value: 'Rp11.472.000',
-        trend: '+38.2%',
-        trendUp: true,
-        icon: (
-            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 18.75a60.07 60.07 0 0 1 15.797 2.101c.727.198 1.453-.342 1.453-1.096V18.75M3.75 4.5v.75A.75.75 0 0 1 3 6h-.75m0 0v-.375c0-.621.504-1.125 1.125-1.125H20.25M2.25 6v9m18-10.5v.75c0 .414.336.75.75.75h.75m-1.5-1.5h.375c.621 0 1.125.504 1.125 1.125v9.75c0 .621-.504 1.125-1.125 1.125h-.375m1.5-1.5H21a.75.75 0 0 0-.75.75v.75m0 0H3.75m0 0h-.375a1.125 1.125 0 0 1-1.125-1.125V15m1.5 1.5v-.75A.75.75 0 0 0 3 15h-.75M15 10.5a3 3 0 1 1-6 0 3 3 0 0 1 6 0Zm3 0h.008v.008H18V10.5Zm-12 0h.008v.008H6V10.5Z" />
-            </svg>
-        ),
-    },
-    {
-        title: 'Pending Payouts',
-        value: 'Rp1.250.000',
-        trend: '-8.3%',
-        trendUp: false,
-        icon: (
-            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
-            </svg>
-        ),
-    },
-];
+interface StatItem {
+    title: string;
+    value: string;
+}
 
-const recentTransactions = [
-    { id: 'TXN-001', user: 'Budi Santoso',   event: 'Tech Summit 2026',     amount: 'Rp350.000', fee: 'Rp70.000',  date: 'Mar 24, 2026', status: 'Completed' },
-    { id: 'TXN-002', user: 'Citra Dewi',     event: 'Music Fiesta Jakarta', amount: 'Rp500.000', fee: 'Rp100.000', date: 'Mar 23, 2026', status: 'Completed' },
-    { id: 'TXN-003', user: 'Denny Prasetyo', event: 'Art & Design Expo',    amount: 'Rp200.000', fee: 'Rp40.000',  date: 'Mar 23, 2026', status: 'Completed' },
-    { id: 'TXN-004', user: 'Eka Putri',      event: 'Marathon Jakarta',     amount: 'Rp150.000', fee: 'Rp30.000',  date: 'Mar 22, 2026', status: 'Pending' },
-    { id: 'TXN-005', user: 'Fajar Nugroho',  event: 'Charity Gala Dinner',  amount: 'Rp750.000', fee: 'Rp150.000', date: 'Mar 22, 2026', status: 'Completed' },
-    { id: 'TXN-006', user: 'Grace Ling',     event: 'Tech Summit 2026',     amount: 'Rp350.000', fee: 'Rp70.000',  date: 'Mar 21, 2026', status: 'Refunded' },
-];
+interface TransactionItem {
+    id: string;
+    user: string;
+    event: string;
+    amount: string;
+    fee: string;
+    date: string;
+    status: string;
+}
 
-const monthlyRevenue = [
-    { month: 'Oct', sales: 'Rp8.200.000', fee: 'Rp1.640.000' },
-    { month: 'Nov', sales: 'Rp9.800.000', fee: 'Rp1.960.000' },
-    { month: 'Dec', sales: 'Rp12.500.000', fee: 'Rp2.500.000' },
-    { month: 'Jan', sales: 'Rp10.100.000', fee: 'Rp2.020.000' },
-    { month: 'Feb', sales: 'Rp11.800.000', fee: 'Rp2.360.000' },
-    { month: 'Mar', sales: 'Rp14.340.000', fee: 'Rp2.868.000' },
+interface MonthlyRevenueItem {
+    month: string;
+    sales: string;
+    fee: string;
+}
+
+interface Props {
+    financeStats: StatItem[];
+    recentTransactions: TransactionItem[];
+    monthlyRevenue: MonthlyRevenueItem[];
+}
+
+/* ─── Icons ─────────────────────────────────────────────────────────── */
+
+const financeIcons = [
+    (
+        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 6v.75m0 3v.75m0 3v.75m0 3V18m-9-5.25h5.25M7.5 15h3M3.375 5.25c-.621 0-1.125.504-1.125 1.125v3.026a2.999 2.999 0 0 1 0 5.198v3.026c0 .621.504 1.125 1.125 1.125h17.25c.621 0 1.125-.504 1.125-1.125v-3.026a2.999 2.999 0 0 1 0-5.198V6.375c0-.621-.504-1.125-1.125-1.125H3.375Z" />
+        </svg>
+    ),
+    (
+        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v12m-3-2.818.879.659c1.171.879 3.07.879 4.242 0 1.172-.879 1.172-2.303 0-3.182C13.536 12.219 12.768 12 12 12c-.725 0-1.45-.22-2.003-.659-1.106-.879-1.106-2.303 0-3.182s2.9-.879 4.006 0l.415.33M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
+        </svg>
+    ),
+    (
+        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 18.75a60.07 60.07 0 0 1 15.797 2.101c.727.198 1.453-.342 1.453-1.096V18.75M3.75 4.5v.75A.75.75 0 0 1 3 6h-.75m0 0v-.375c0-.621.504-1.125 1.125-1.125H20.25M2.25 6v9m18-10.5v.75c0 .414.336.75.75.75h.75m-1.5-1.5h.375c.621 0 1.125.504 1.125 1.125v9.75c0 .621-.504 1.125-1.125 1.125h-.375m1.5-1.5H21a.75.75 0 0 0-.75.75v.75m0 0H3.75m0 0h-.375a1.125 1.125 0 0 1-1.125-1.125V15m1.5 1.5v-.75A.75.75 0 0 0 3 15h-.75M15 10.5a3 3 0 1 1-6 0 3 3 0 0 1 6 0Zm3 0h.008v.008H18V10.5Zm-12 0h.008v.008H6V10.5Z" />
+        </svg>
+    ),
+    (
+        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
+        </svg>
+    ),
 ];
 
 /* ─── Component ─────────────────────────────────────────────────────── */
 
-export default function AdminFinance() {
+export default function AdminFinance({ financeStats, recentTransactions, monthlyRevenue }: Props) {
     return (
         <DashboardLayout>
             <Head title="Financial Overview" />
@@ -86,14 +73,12 @@ export default function AdminFinance() {
 
             {/* KPI Row */}
             <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 mb-8">
-                {financeStats.map((stat) => (
+                {financeStats.map((stat, idx) => (
                     <StatisticsCard
                         key={stat.title}
                         title={stat.title}
                         value={stat.value}
-                        icon={stat.icon}
-                        trend={stat.trend}
-                        trendUp={stat.trendUp}
+                        icon={financeIcons[idx] || financeIcons[0]}
                     />
                 ))}
             </div>
@@ -146,8 +131,8 @@ export default function AdminFinance() {
                                         <td className="px-5 py-3 text-emerald-500 dark:text-emerald-400 whitespace-nowrap">{txn.fee}</td>
                                         <td className="px-5 py-3 whitespace-nowrap">
                                             <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-semibold ${
-                                                txn.status === 'Completed' ? 'bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 ring-1 ring-emerald-500/20' :
-                                                txn.status === 'Pending'   ? 'bg-amber-50 dark:bg-amber-500/10 text-amber-600 dark:text-amber-400 ring-1 ring-amber-500/20' :
+                                                txn.status === 'Success' ? 'bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 ring-1 ring-emerald-500/20' :
+                                                txn.status === 'Pending' ? 'bg-amber-50 dark:bg-amber-500/10 text-amber-600 dark:text-amber-400 ring-1 ring-amber-500/20' :
                                                 'bg-red-50 dark:bg-red-500/10 text-red-500 dark:text-red-400 ring-1 ring-red-500/20'
                                             }`}>
                                                 {txn.status}

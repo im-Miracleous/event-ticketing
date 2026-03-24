@@ -1,44 +1,58 @@
 import DashboardLayout from '@/Layouts/DashboardLayout';
 import Pagination from '@/Components/Dashboard/Pagination';
-import { Head } from '@inertiajs/react';
+import { Head, router, useForm } from '@inertiajs/react';
 import { useState } from 'react';
 
-/* ─── Mock Data ─────────────────────────────────────────────────────── */
+/* ─── Types ─────────────────────────────────────────────────────────── */
 
-const promotions = [
-    { id: 1,  code: 'WELCOME2026',   type: 'Percentage', value: '15%',       usage: '124 / 500',   validUntil: 'Apr 30, 2026', status: 'Active' },
-    { id: 2,  code: 'SUMMERFEST',    type: 'Percentage', value: '20%',       usage: '312 / 1,000', validUntil: 'Jun 30, 2026', status: 'Active' },
-    { id: 3,  code: 'FLASH50K',      type: 'Fixed',      value: 'Rp50.000',  usage: '50 / 50',     validUntil: 'Mar 25, 2026', status: 'Expired' },
-    { id: 4,  code: 'EARLYBIRD',     type: 'Percentage', value: '10%',       usage: '89 / 200',    validUntil: 'May 15, 2026', status: 'Active' },
-    { id: 5,  code: 'BUNDLEDEAL',    type: 'Fixed',      value: 'Rp100.000', usage: '0 / 100',     validUntil: 'Jul 01, 2026', status: 'Draft' },
-    { id: 6,  code: 'NEWYEAR27',     type: 'Percentage', value: '25%',       usage: '0 / 300',     validUntil: 'Jan 15, 2027', status: 'Draft' },
-    { id: 7,  code: 'STUDENT15',     type: 'Percentage', value: '15%',       usage: '200 / 500',   validUntil: 'Dec 31, 2026', status: 'Active' },
-    { id: 8,  code: 'VIP25K',        type: 'Fixed',      value: 'Rp25.000',  usage: '30 / 100',    validUntil: 'Apr 01, 2026', status: 'Expired' },
-    { id: 9,  code: 'RAMADAN2026',   type: 'Percentage', value: '30%',       usage: '150 / 250',   validUntil: 'Apr 20, 2026', status: 'Active' },
-    { id: 10, code: 'GROUPBUY',      type: 'Fixed',      value: 'Rp75.000',  usage: '10 / 50',     validUntil: 'May 30, 2026', status: 'Active' },
-    { id: 11, code: 'LAUNCH2026',    type: 'Percentage', value: '50%',       usage: '100 / 100',   validUntil: 'Feb 28, 2026', status: 'Expired' },
-    { id: 12, code: 'LOYALCUST',     type: 'Fixed',      value: 'Rp150.000', usage: '5 / 20',      validUntil: 'Aug 31, 2026', status: 'Active' },
-];
+interface PromotionItem {
+    id: number;
+    code: string;
+    type: string;
+    value: string;
+    usage: string;
+    validUntil: string;
+    status: string;
+    event: string;
+}
 
-const banners = [
-    { id: 1, title: 'Tech Summit 2026 — Featured',   position: 'Hero',    status: 'Active',   updatedAt: 'Mar 22, 2026' },
-    { id: 2, title: 'Music Fiesta Early Bird',        position: 'Sidebar', status: 'Active',   updatedAt: 'Mar 20, 2026' },
-    { id: 3, title: 'Spring Sale Banner',             position: 'Hero',    status: 'Inactive', updatedAt: 'Mar 15, 2026' },
-];
+interface PaginatedPromotions {
+    data: PromotionItem[];
+    current_page: number;
+    last_page: number;
+    per_page: number;
+    total: number;
+}
+
+interface Props {
+    promotions: PaginatedPromotions;
+    filters: {
+        per_page?: number;
+    };
+}
 
 /* ─── Component ─────────────────────────────────────────────────────── */
 
-export default function AdminPromotions() {
+export default function AdminPromotions({ promotions, filters }: Props) {
     const [showModal, setShowModal] = useState(false);
-    const [promoPage, setPromoPage] = useState(1);
-    const [promoPerPage, setPromoPerPage] = useState(5);
 
-    const totalPromos = promotions.length;
-    const paginatedPromos = promotions.slice((promoPage - 1) * promoPerPage, promoPage * promoPerPage);
+    const handlePageChange = (page: number) => {
+        router.get(route('admin.promotions.index'), {
+            page,
+            per_page: promotions.per_page,
+        }, { preserveState: true, replace: true });
+    };
 
-    const handlePromoPerPageChange = (value: number) => {
-        setPromoPerPage(value);
-        setPromoPage(1);
+    const handlePerPageChange = (value: number) => {
+        router.get(route('admin.promotions.index'), {
+            per_page: value,
+        }, { preserveState: true, replace: true });
+    };
+
+    const handleDelete = (id: number) => {
+        if (confirm('Are you sure you want to delete this promotion?')) {
+            router.delete(route('admin.promotions.destroy', { id }));
+        }
     };
 
     const statusColor = (status: string) => {
@@ -93,7 +107,7 @@ export default function AdminPromotions() {
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-100 dark:divide-white/5">
-                            {paginatedPromos.map((promo) => (
+                            {promotions.data.map((promo) => (
                                 <tr key={promo.id} className="hover:bg-slate-50 dark:hover:bg-white/[0.02] transition-colors">
                                     <td className="px-5 py-3.5 whitespace-nowrap">
                                         <span className="font-mono text-sm font-semibold text-slate-800 dark:text-white bg-slate-100 dark:bg-white/5 px-2 py-0.5 rounded-lg">{promo.code}</span>
@@ -109,7 +123,12 @@ export default function AdminPromotions() {
                                     </td>
                                     <td className="px-5 py-3.5 text-right whitespace-nowrap">
                                         <button className="text-xs font-medium text-primary-600 dark:text-primary-400 hover:text-primary-700 dark:hover:text-primary-300 transition-colors mr-3">Edit</button>
-                                        <button className="text-xs font-medium text-red-500 dark:text-red-400 hover:text-red-600 dark:hover:text-red-300 transition-colors">Delete</button>
+                                        <button
+                                            onClick={() => handleDelete(promo.id)}
+                                            className="text-xs font-medium text-red-500 dark:text-red-400 hover:text-red-600 dark:hover:text-red-300 transition-colors"
+                                        >
+                                            Delete
+                                        </button>
                                     </td>
                                 </tr>
                             ))}
@@ -119,48 +138,12 @@ export default function AdminPromotions() {
 
                 {/* Pagination */}
                 <Pagination
-                    currentPage={promoPage}
-                    totalItems={totalPromos}
-                    perPage={promoPerPage}
-                    onPageChange={setPromoPage}
-                    onPerPageChange={handlePromoPerPageChange}
+                    currentPage={promotions.current_page}
+                    totalItems={promotions.total}
+                    perPage={promotions.per_page}
+                    onPageChange={handlePageChange}
+                    onPerPageChange={handlePerPageChange}
                 />
-            </div>
-
-            {/* Featured Banners */}
-            <div className="rounded-2xl bg-white dark:bg-white/[0.03] border border-slate-200 dark:border-white/5 shadow-sm dark:shadow-none overflow-hidden">
-                <div className="px-5 py-4 border-b border-slate-100 dark:border-white/5 flex items-center justify-between">
-                    <h2 className="text-base font-semibold text-slate-900 dark:text-white">Featured Banners</h2>
-                    <button className="inline-flex items-center gap-1.5 text-xs font-semibold text-primary-600 dark:text-primary-400 hover:text-primary-700 dark:hover:text-primary-300 transition-colors">
-                        <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
-                        </svg>
-                        Add Banner
-                    </button>
-                </div>
-                <div className="divide-y divide-slate-100 dark:divide-white/5">
-                    {banners.map((banner) => (
-                        <div key={banner.id} className="flex items-center justify-between px-5 py-4 hover:bg-slate-50 dark:hover:bg-white/[0.02] transition-colors">
-                            <div className="flex items-center gap-4">
-                                <div className="h-12 w-20 rounded-lg bg-gradient-to-br from-primary-500/20 to-secondary-500/20 border border-primary-500/10 flex items-center justify-center">
-                                    <svg className="w-5 h-5 text-primary-500/50" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                                        <path strokeLinecap="round" strokeLinejoin="round" d="m2.25 15.75 5.159-5.159a2.25 2.25 0 0 1 3.182 0l5.159 5.159m-1.5-1.5 1.409-1.409a2.25 2.25 0 0 1 3.182 0l2.909 2.909M3.75 21h16.5a1.5 1.5 0 0 0 1.5-1.5V5.25a1.5 1.5 0 0 0-1.5-1.5H3.75a1.5 1.5 0 0 0-1.5 1.5v14.25a1.5 1.5 0 0 0 1.5 1.5Z" />
-                                    </svg>
-                                </div>
-                                <div>
-                                    <p className="text-sm font-medium text-slate-800 dark:text-slate-200">{banner.title}</p>
-                                    <p className="text-xs text-slate-400 dark:text-slate-500 mt-0.5">Position: {banner.position} · Updated {banner.updatedAt}</p>
-                                </div>
-                            </div>
-                            <div className="flex items-center gap-3">
-                                <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-semibold ${statusColor(banner.status)}`}>
-                                    {banner.status}
-                                </span>
-                                <button className="text-xs font-medium text-primary-600 dark:text-primary-400 hover:text-primary-700 dark:hover:text-primary-300 transition-colors">Edit</button>
-                            </div>
-                        </div>
-                    ))}
-                </div>
             </div>
 
             {/* Add Promo Modal */}

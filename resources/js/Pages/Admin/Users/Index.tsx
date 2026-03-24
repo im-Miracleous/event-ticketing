@@ -1,38 +1,44 @@
 import DashboardLayout from '@/Layouts/DashboardLayout';
 import Pagination from '@/Components/Dashboard/Pagination';
-import { Head } from '@inertiajs/react';
+import { Head, router } from '@inertiajs/react';
 import { useState, useEffect } from 'react';
 import type { UserRole } from '@/config/navigation';
 
-/* ─── Mock Data ─────────────────────────────────────────────────────── */
+/* ─── Types ─────────────────────────────────────────────────────────── */
 
-const allUsers = [
-    { id: 1,  name: 'Super Admin',      email: 'root@eventhive.com',       role: 'Root',      status: 'Active',    joinedAt: 'Jan 01, 2025' },
-    { id: 2,  name: 'Admin Utama',      email: 'admin@eventhive.com',      role: 'Admin',     status: 'Active',    joinedAt: 'Feb 10, 2025' },
-    { id: 3,  name: 'Sarah Johnson',    email: 'sarah@example.com',        role: 'Organizer', status: 'Active',    joinedAt: 'Mar 05, 2026' },
-    { id: 4,  name: 'Ahmad Rizky',      email: 'ahmad.rizky@example.com',  role: 'Organizer', status: 'Active',    joinedAt: 'Mar 12, 2026' },
-    { id: 5,  name: 'Budi Santoso',     email: 'budi.s@example.com',       role: 'User',      status: 'Active',    joinedAt: 'Mar 18, 2026' },
-    { id: 6,  name: 'Citra Dewi',       email: 'citra.dewi@example.com',   role: 'User',      status: 'Suspended', joinedAt: 'Feb 28, 2026' },
-    { id: 7,  name: 'Denny Prasetyo',   email: 'denny.p@example.com',      role: 'User',      status: 'Active',    joinedAt: 'Mar 20, 2026' },
-    { id: 8,  name: 'Eka Putri',        email: 'eka.putri@example.com',    role: 'User',      status: 'Active',    joinedAt: 'Mar 22, 2026' },
-    { id: 9,  name: 'Fajar Nugroho',    email: 'fajar.n@example.com',      role: 'Organizer', status: 'Active',    joinedAt: 'Jan 15, 2026' },
-    { id: 10, name: 'Grace Ling',       email: 'grace.ling@example.com',   role: 'User',      status: 'Banned',    joinedAt: 'Dec 01, 2025' },
-    { id: 11, name: 'Hendra Wijaya',    email: 'hendra.w@example.com',     role: 'User',      status: 'Active',    joinedAt: 'Jan 20, 2026' },
-    { id: 12, name: 'Indah Permata',    email: 'indah.p@example.com',      role: 'Organizer', status: 'Active',    joinedAt: 'Feb 05, 2026' },
-    { id: 13, name: 'Joko Susilo',      email: 'joko.s@example.com',       role: 'User',      status: 'Active',    joinedAt: 'Feb 14, 2026' },
-    { id: 14, name: 'Kartini Rahayu',   email: 'kartini.r@example.com',    role: 'User',      status: 'Suspended', joinedAt: 'Mar 01, 2026' },
-    { id: 15, name: 'Lukman Hakim',     email: 'lukman.h@example.com',     role: 'User',      status: 'Active',    joinedAt: 'Mar 10, 2026' },
-];
+interface UserItem {
+    id: string;
+    name: string;
+    email: string;
+    role: string;
+    status: string;
+    joinedAt: string;
+}
+
+interface PaginatedUsers {
+    data: UserItem[];
+    current_page: number;
+    last_page: number;
+    per_page: number;
+    total: number;
+}
+
+interface Props {
+    users: PaginatedUsers;
+    filters: {
+        role?: string;
+        search?: string;
+        per_page?: number;
+    };
+}
 
 const roleFilters = ['All', 'Root', 'Admin', 'Organizer', 'User'];
 
 /* ─── Component ─────────────────────────────────────────────────────── */
 
-export default function AdminUsers() {
-    const [activeFilter, setActiveFilter] = useState('All');
-    const [search, setSearch] = useState('');
-    const [currentPage, setCurrentPage] = useState(1);
-    const [perPage, setPerPage] = useState(10);
+export default function AdminUsers({ users, filters }: Props) {
+    const [search, setSearch] = useState(filters.search || '');
+    const activeFilter = filters.role || 'All';
 
     // Read the mock role from localStorage to hide Root users when viewed as Admin
     const [activeRole, setActiveRole] = useState<UserRole>('admin');
@@ -42,7 +48,6 @@ export default function AdminUsers() {
             setActiveRole(saved as UserRole);
         }
 
-        // Listen to storage changes and our custom event so switching role in the dev widget updates this page immediately
         const handleRoleChange = () => {
             const role = localStorage.getItem('mock_role');
             if (role === 'root' || role === 'admin' || role === 'organizer' || role === 'user') {
@@ -57,37 +62,50 @@ export default function AdminUsers() {
         };
     }, []);
 
-    // Filter users: hide Root accounts when logged in as Admin
-    const visibleUsers = allUsers.filter((u) => {
-        if (activeRole !== 'root' && u.role === 'Root') return false;
-        return true;
-    });
-
     // Also hide Root from the filter chips when not Root
     const visibleRoleFilters = activeRole === 'root' ? roleFilters : roleFilters.filter((f) => f !== 'Root');
 
-    const filteredUsers = visibleUsers.filter((u) => {
-        const matchesFilter = activeFilter === 'All' || u.role === activeFilter;
-        const matchesSearch = u.name.toLowerCase().includes(search.toLowerCase()) || u.email.toLowerCase().includes(search.toLowerCase());
-        return matchesFilter && matchesSearch;
-    });
-
-    const totalItems = filteredUsers.length;
-    const paginatedUsers = filteredUsers.slice((currentPage - 1) * perPage, currentPage * perPage);
+    // Filter out Root users client-side when not Root
+    const visibleUsers = activeRole === 'root' ? users.data : users.data.filter(u => u.role !== 'Root');
 
     const handleFilterChange = (filter: string) => {
-        setActiveFilter(filter);
-        setCurrentPage(1);
+        router.get(route('admin.users.index'), {
+            role: filter === 'All' ? undefined : filter,
+            search: search || undefined,
+            per_page: users.per_page,
+        }, { preserveState: true, replace: true });
     };
 
     const handleSearchChange = (value: string) => {
         setSearch(value);
-        setCurrentPage(1);
+        router.get(route('admin.users.index'), {
+            role: activeFilter === 'All' ? undefined : activeFilter,
+            search: value || undefined,
+            per_page: users.per_page,
+        }, { preserveState: true, replace: true });
+    };
+
+    const handlePageChange = (page: number) => {
+        router.get(route('admin.users.index'), {
+            page,
+            role: activeFilter === 'All' ? undefined : activeFilter,
+            search: search || undefined,
+            per_page: users.per_page,
+        }, { preserveState: true, replace: true });
     };
 
     const handlePerPageChange = (value: number) => {
-        setPerPage(value);
-        setCurrentPage(1);
+        router.get(route('admin.users.index'), {
+            role: activeFilter === 'All' ? undefined : activeFilter,
+            search: search || undefined,
+            per_page: value,
+        }, { preserveState: true, replace: true });
+    };
+
+    const handleStatusUpdate = (userId: string, status: string) => {
+        router.patch(route('admin.users.updateStatus', { id: userId }), { status }, {
+            preserveState: true,
+        });
     };
 
     const roleColor = (role: string) => {
@@ -169,7 +187,7 @@ export default function AdminUsers() {
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-100 dark:divide-white/5">
-                            {paginatedUsers.map((user) => (
+                            {visibleUsers.map((user) => (
                                 <tr key={user.id} className="hover:bg-slate-50 dark:hover:bg-white/[0.02] transition-colors">
                                     <td className="px-5 py-3.5 whitespace-nowrap">
                                         <div className="flex items-center gap-3">
@@ -201,14 +219,17 @@ export default function AdminUsers() {
                                             View
                                         </button>
                                         {user.role !== 'Root' && (
-                                            <button className="text-xs font-medium text-red-500 dark:text-red-400 hover:text-red-600 dark:hover:text-red-300 transition-colors">
+                                            <button
+                                                onClick={() => handleStatusUpdate(user.id, user.status === 'Active' ? 'Suspended' : 'Active')}
+                                                className="text-xs font-medium text-red-500 dark:text-red-400 hover:text-red-600 dark:hover:text-red-300 transition-colors"
+                                            >
                                                 {user.status === 'Active' ? 'Suspend' : 'Reactivate'}
                                             </button>
                                         )}
                                     </td>
                                 </tr>
                             ))}
-                            {paginatedUsers.length === 0 && (
+                            {visibleUsers.length === 0 && (
                                 <tr>
                                     <td colSpan={5} className="px-5 py-12 text-center text-sm text-slate-400 dark:text-slate-500">
                                         No users found matching your criteria.
@@ -221,10 +242,10 @@ export default function AdminUsers() {
 
                 {/* Pagination */}
                 <Pagination
-                    currentPage={currentPage}
-                    totalItems={totalItems}
-                    perPage={perPage}
-                    onPageChange={setCurrentPage}
+                    currentPage={users.current_page}
+                    totalItems={users.total}
+                    perPage={users.per_page}
+                    onPageChange={handlePageChange}
                     onPerPageChange={handlePerPageChange}
                 />
             </div>

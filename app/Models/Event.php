@@ -21,7 +21,8 @@ class Event extends Model {
         'end_time', 
         'location', 
         'event_category_id', 
-        'organizer_id'];
+        'organizer_id',
+        'status'];
     
     public function category() { 
         return $this->belongsTo(EventCategory::class, 'event_category_id'); 

@@ -14,6 +14,7 @@ export default function Login({ status, canResetPassword }: { status?: string; c
         e.preventDefault();
 
         post(route('login'), {
+            replace: true,
             onFinish: () => reset('password'),
         });
     };
