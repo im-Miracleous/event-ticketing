@@ -1,10 +1,8 @@
 <?php
 namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Event extends Model {
-    use SoftDeletes;
     protected $table = 'events';
 
     protected $primaryKey = 'id';
@@ -24,7 +22,21 @@ class Event extends Model {
         'end_time', 
         'location', 
         'event_category_id', 
-        'organizer_id'];
+        'organizer_id',
+        'status',
+    ];
+
+    public function scopeDraft($query) {
+        return $query->where('status', 'draft');
+    }
+
+    public function scopePublished($query) {
+        return $query->where('status', 'published');
+    }
+
+    public function scopeNonaktif($query) {
+        return $query->where('status', 'nonaktif');
+    }
     
     public function category() { 
         return $this->belongsTo(EventCategory::class, 'event_category_id'); 
