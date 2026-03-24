@@ -17,7 +17,7 @@ return new class extends Migration
             $table->text('description');
             $table->string('logo')->nullable();
             $table->string('bank_account', 45);
-            $table->char('user_id', 36)->index('fk_organizers_users_idx');
+            $table->unsignedBigInteger('user_id')->index('fk_organizers_users_idx');
             $table->timestamp('created_at')->nullable()->useCurrent();
             $table->timestamp('updated_at')->useCurrentOnUpdate()->nullable()->useCurrent();
         });

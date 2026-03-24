@@ -148,11 +148,11 @@ const adminNavItems: NavItem[] = [
  * Covers: events (own), tickets_types, attendees, promotions, transactions (own earnings).
  */
 const organizerNavItems: NavItem[] = [
-    { label: 'Organizer Dashboard', href: '/dashboard',                routeName: 'dashboard',                icon: DashboardIcon },
+    { label: 'Organizer Dashboard', href: '/organizer/dashboard',      routeName: 'organizer.dashboard',      icon: DashboardIcon },
     { label: 'Discover Events',     href: '/events',                   routeName: 'events.index',             icon: SearchIcon },
-    { label: 'My Events',           href: '/organizer/events',         routeName: 'organizer.events.*',       icon: EventsIcon },
-    { label: 'Create Event',        href: '/organizer/events/create',  routeName: 'organizer.events.create',  icon: CreateIcon },
-    { label: 'Attendee Management', href: '/organizer/attendees',      routeName: 'organizer.attendees.*',    icon: UsersIcon },
+    { label: 'My Events',           href: '/organizer/dashboard',      routeName: 'organizer.dashboard',      icon: EventsIcon },
+    { label: 'Create Event',        href: '/organizer/dashboard',      routeName: 'organizer.dashboard',      icon: CreateIcon },
+    { label: 'Attendee Management', href: '/organizer/dashboard',      routeName: 'organizer.dashboard',      icon: UsersIcon },
     { label: 'Promotions',          href: '/organizer/promotions',     routeName: 'organizer.promotions.*',   icon: PromotionIcon },
     { label: 'Earnings',            href: '/organizer/earnings',       routeName: 'organizer.earnings.*',     icon: EarningsIcon },
 ];

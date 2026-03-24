@@ -49,7 +49,7 @@
     <div class="mt-8 pt-6 border-t border-gray-100 flex flex-col items-center gap-4">
         <p class="text-sm text-gray-500">Didn't receive a code?</p>
         
-        <form method="POST" action="{{ route('otp.resend') }}" id="resend-form">
+        <form method="POST" action="{{ route('otp.verify.resend') }}" id="resend-form">
             @csrf
             <button type="submit" 
                     id="resend-btn"

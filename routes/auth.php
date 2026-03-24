@@ -17,7 +17,7 @@ Route::middleware('guest')->group(function () {
     Route::get('register', [AuthController::class, 'showRegister'])
         ->name('register');
 
-    Route::post('register', [AuthController::class, 'register']);
+    Route::post('register', [RegisteredUserController::class, 'store']);
 
     Route::get('login', [AuthController::class, 'showLogin'])
         ->name('login');
@@ -40,7 +40,8 @@ Route::middleware('guest')->group(function () {
     // OTP Registration Verification
     Route::get('otp-verify', [OtpVerificationController::class, 'show'])
         ->name('otp.verify');
-    Route::post('otp-verify', [OtpVerificationController::class, 'verify']);
+    Route::post('otp-verify', [OtpVerificationController::class, 'verify'])
+        ->name('otp.verify.submit');
     Route::post('otp-verify/resend', [OtpVerificationController::class, 'resend'])
         ->name('otp.verify.resend');
 
@@ -52,6 +53,7 @@ Route::middleware('guest')->group(function () {
 });
 
 Route::middleware('auth')->group(function () {
+    Route::get('verify-email', EmailVerificationPromptController::class)
         ->name('verification.notice');
 
     Route::get('verify-email/{id}/{hash}', VerifyEmailController::class)

@@ -11,11 +11,8 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('wishlists', function (Blueprint $table) {
-            $table->unsignedBigInteger('user_id');
-            $table->unsignedBigInteger('event_id')->index('fk_wishlist_events_idx');
-
-            $table->primary(['user_id', 'event_id']);
+        Schema::table('events', function (Blueprint $table) {
+            $table->string('status')->default('Active')->after('organizer_id');
         });
     }
 
@@ -24,6 +21,8 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('wishlists');
+        Schema::table('events', function (Blueprint $table) {
+            $table->dropColumn('status');
+        });
     }
 };

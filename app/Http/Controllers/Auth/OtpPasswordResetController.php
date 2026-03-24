@@ -25,7 +25,7 @@ class OtpPasswordResetController extends Controller
             return redirect()->route('password.request');
         }
 
-        return view('auth.otp-password', [
+        return Inertia::render('Auth/OtpPassword', [
             'email' => $email,
         ]);
     }
