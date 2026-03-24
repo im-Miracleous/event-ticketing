@@ -132,7 +132,7 @@ const UserSettingsIcon = (
  * validation_logs, app_settings.
  */
 const adminNavItems: NavItem[] = [
-    { label: 'System Dashboard',  href: '/dashboard',              routeName: 'dashboard',           icon: DashboardIcon },
+    { label: 'System Dashboard',  href: '/admin/dashboard',        routeName: 'admin.dashboard',     icon: DashboardIcon },
     { label: 'All Events',        href: '/admin/events',           routeName: 'admin.events.*',      icon: EventsIcon },
     { label: 'Event Categories',  href: '/admin/categories',       routeName: 'admin.categories.*',  icon: CategoryIcon },
     { label: 'User Management',   href: '/admin/users',            routeName: 'admin.users.*',       icon: UsersIcon },

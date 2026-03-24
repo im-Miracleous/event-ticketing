@@ -21,6 +21,7 @@ export default function DashboardLayout({ children }: PropsWithChildren) {
     const handleRoleChange = (role: UserRole) => {
         setActiveRole(role);
         localStorage.setItem('mock_role', role);
+        window.dispatchEvent(new Event('mock_role_changed'));
     };
 
     return (
