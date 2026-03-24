@@ -41,20 +41,19 @@ class RegisteredUserController extends Controller
             'password' => ['required', 'confirmed', Rules\Password::defaults()],
         ]);
 
-        $user = User::create([
+        // Instead of creating the user in DB, store the registration data in the session
+        $pendingData = [
             'name' => $request->name,
             'username' => $request->username,
             'email' => $request->email,
             'password' => Hash::make($request->password),
-        ]);
+        ];
+        
+        $request->session()->put('pending_registration', $pendingData);
 
-        event(new Registered($user));
-
-        Auth::login($user);
-
-        // Generate and Send OTP
-        $otp = OtpCode::generateFor($user, 'email_verification');
-        Mail::to($user->email)->send(new OtpVerificationMail($user, $otp));
+        // Generate and Send OTP for the unregistered email
+        $otp = OtpCode::generateFor($request->email, 'email_verification');
+        Mail::to($request->email)->send(new OtpVerificationMail(null, $otp, $request->name));
 
         return redirect()->route('otp.verify');
     }
