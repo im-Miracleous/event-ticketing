@@ -19,7 +19,7 @@ export default function Dashboard() {
                 <div className="flex flex-col md:flex-row md:items-center justify-between space-y-4 md:space-y-0 p-6 bg-white border border-gray-200 rounded-xl shadow-sm">
                     <div className="flex items-center space-x-4">
                         <Link
-                            href={route('organizer.dashboard')} 
+                            href={route('organizer.events.create')} 
                             className="bg-emerald-500 hover:bg-emerald-600 text-white font-bold py-2.5 px-6 rounded-full flex items-center space-x-2 transition-colors shadow-md shadow-emerald-500/30"
                         >
                             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4"/></svg>
