@@ -10,6 +10,7 @@ export default function Register() {
         email: '',
         password: '',
         password_confirmation: '',
+        role: 'User',
     });
 
     const submit: FormEventHandler = (e) => {
@@ -112,6 +113,34 @@ export default function Register() {
                             onChange={(e) => setData('password_confirmation', e.target.value)}
                             required
                         />
+                    </div>
+                </div>
+
+                <div>
+                    <label className="input-label mb-2 block">Account Type</label>
+                    <div className="flex bg-slate-800/50 p-1 rounded-xl shadow-inner border border-slate-700/50">
+                        <label className={`flex-1 text-center py-3 rounded-lg cursor-pointer transition-all duration-300 ${data.role === 'User' ? 'bg-primary-500 text-white shadow-lg shadow-primary-500/20 font-bold' : 'text-slate-400 hover:text-slate-200 hover:bg-slate-700/50'}`}>
+                            <input 
+                                type="radio" 
+                                name="role" 
+                                value="User" 
+                                checked={data.role === 'User'} 
+                                onChange={(e) => setData('role', e.target.value)} 
+                                className="sr-only" 
+                            />
+                            Attendee
+                        </label>
+                        <label className={`flex-1 text-center py-3 rounded-lg cursor-pointer transition-all duration-300 ${data.role === 'Organizer' ? 'bg-primary-500 text-white shadow-lg shadow-primary-500/20 font-bold' : 'text-slate-400 hover:text-slate-200 hover:bg-slate-700/50'}`}>
+                            <input 
+                                type="radio" 
+                                name="role" 
+                                value="Organizer" 
+                                checked={data.role === 'Organizer'} 
+                                onChange={(e) => setData('role', e.target.value)} 
+                                className="sr-only" 
+                            />
+                            Organizer
+                        </label>
                     </div>
                 </div>
 

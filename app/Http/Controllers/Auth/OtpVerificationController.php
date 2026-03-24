@@ -62,6 +62,16 @@ class OtpVerificationController extends Controller
 
         // Mark OTP as used and verify email
         $otp->markAsUsed();
+
+        // Create the user now that email is verified
+        $user = User::create([
+            'name' => $pending['name'],
+            'username' => $pending['username'],
+            'email' => $pending['email'],
+            'password' => $pending['password'],
+            'role' => $pending['role'] ?? 'User',
+        ]);
+
         $user->markEmailAsVerified();
 
         Auth::logout();

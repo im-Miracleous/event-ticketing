@@ -39,6 +39,7 @@ class RegisteredUserController extends Controller
             'username' => 'required|string|lowercase|max:255|unique:'.User::class,
             'email' => 'required|string|lowercase|email|max:255|unique:'.User::class,
             'password' => ['required', 'confirmed', Rules\Password::defaults()],
+            'role' => ['required', 'string', 'in:User,Organizer'],
         ]);
 
         $user = User::create([
@@ -46,7 +47,10 @@ class RegisteredUserController extends Controller
             'username' => $request->username,
             'email' => $request->email,
             'password' => Hash::make($request->password),
+            'role' => $request->role,
         ]);
+        
+        $request->session()->put('pending_registration', $pendingData);
 
         event(new Registered($user));
 
