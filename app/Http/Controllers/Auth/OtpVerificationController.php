@@ -91,7 +91,15 @@ class OtpVerificationController extends Controller
 
         sleep(1);
 
-        return redirect()->intended(route('dashboard', absolute: false))
+        if (in_array($user->role, ['Root', 'Admin'])) {
+            $defaultRoute = route('admin.dashboard');
+        } elseif ($user->role === 'Organizer') {
+            $defaultRoute = route('organizer.dashboard');
+        } else {
+            $defaultRoute = route('dashboard');
+        }
+
+        return redirect()->intended($defaultRoute)
             ->with('status', 'Account created and verified successfully.');
     }
 

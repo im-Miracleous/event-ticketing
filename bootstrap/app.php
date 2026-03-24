@@ -24,8 +24,13 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->redirectGuestsTo(fn (Request $request) => route('login'));
         $middleware->redirectUsersTo(function (Request $request) {
             $user = $request->user();
-            if ($user && in_array($user->role, ['Root', 'Admin'])) {
-                return route('admin.dashboard');
+            if ($user) {
+                if (in_array($user->role, ['Root', 'Admin'])) {
+                    return route('admin.dashboard');
+                }
+                if ($user->role === 'Organizer') {
+                    return route('organizer.dashboard');
+                }
             }
             return route('dashboard');
         });

@@ -33,7 +33,18 @@ class AuthController extends Controller
 
         if (Auth::attempt([$fieldType => $loginValue, 'password' => $request->password], $request->boolean('remember'))) {
             $request->session()->regenerate();
-            return redirect()->intended(route('dashboard'));
+            
+            $user = Auth::user();
+            
+            if (in_array($user->role, ['Root', 'Admin'])) {
+                $defaultRoute = route('admin.dashboard');
+            } elseif ($user->role === 'Organizer') {
+                $defaultRoute = route('organizer.dashboard');
+            } else {
+                $defaultRoute = route('dashboard');
+            }
+
+            return redirect()->intended($defaultRoute);
         }
 
         return back()->withErrors([
