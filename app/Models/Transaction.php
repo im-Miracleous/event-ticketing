@@ -17,8 +17,15 @@ class Transaction extends Model {
         'user_id', 
         'payment_id', 
         'event_id', 
-        'promotion_id'
+        'promotion_id',
+        'expires_at',
     ];
+
+    protected function casts(): array
+    {
+        return ['expires_at' => 'datetime'];
+    }
+
 
     public function user() { 
         return $this->belongsTo(User::class, 'user_id'); 
