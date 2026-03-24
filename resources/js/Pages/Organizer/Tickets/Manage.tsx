@@ -1,4 +1,4 @@
-import OrganizerLayout from '@/Layouts/OrganizerLayout';
+import DashboardLayout from '@/Layouts/DashboardLayout';
 import { Head, useForm, Link } from '@inertiajs/react';
 import React, { FormEvent } from 'react';
 
@@ -17,8 +17,13 @@ export default function ManageTickets({ event, ticketTypes }: { event: any, tick
     };
 
     return (
-        <OrganizerLayout header={`MANAJEMEN TIKET: ${event.title}`}>
+        <DashboardLayout>
             <Head title="Manajemen Tiket Event" />
+
+            <div className="mb-6">
+                <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Manage Tickets: {event.title}</h1>
+                <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">Create and manage ticket types for this event.</p>
+            </div>
 
             <div className="max-w-5xl mx-auto space-y-6 mt-6">
                 <div className="flex items-center space-x-4 mb-4">
@@ -137,6 +142,6 @@ export default function ManageTickets({ event, ticketTypes }: { event: any, tick
                     </div>
                 </div>
             </div>
-        </OrganizerLayout>
+        </DashboardLayout>
     );
 }

@@ -1,4 +1,4 @@
-import OrganizerLayout from '@/Layouts/OrganizerLayout';
+import DashboardLayout from '@/Layouts/DashboardLayout';
 import { Head, useForm, usePage } from '@inertiajs/react';
 import React, { FormEvent, useEffect, useState } from 'react';
 import { Html5QrcodeScanner } from 'html5-qrcode';
@@ -50,8 +50,13 @@ export default function CheckIn() {
     };
 
     return (
-        <OrganizerLayout header="VALIDASI TIKET / CHECK-IN">
+        <DashboardLayout>
             <Head title="Check-In Peserta" />
+
+            <div className="mb-6">
+                <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Event Check-In</h1>
+                <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">Scan or enter ticket codes to validate attendees.</p>
+            </div>
 
             <div className="max-w-xl mx-auto mt-12">
                 <div className="bg-white border border-gray-200 shadow-xl shadow-blue-900/5 rounded-2xl overflow-hidden">
@@ -113,6 +118,6 @@ export default function CheckIn() {
                     Sistem validasi Goers Experience Manager
                 </div>
             </div>
-        </OrganizerLayout>
+        </DashboardLayout>
     );
 }

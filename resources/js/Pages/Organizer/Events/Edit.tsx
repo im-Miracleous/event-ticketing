@@ -1,4 +1,4 @@
-import OrganizerLayout from '@/Layouts/OrganizerLayout';
+import DashboardLayout from '@/Layouts/DashboardLayout';
 import { Head, useForm, Link } from '@inertiajs/react';
 import React, { FormEvent } from 'react';
 
@@ -33,8 +33,13 @@ export default function EditEvent({ event }: { event: EventProps }) {
     };
 
     return (
-        <OrganizerLayout header={`EDIT EVENT: ${event.title}`}>
+        <DashboardLayout>
             <Head title="Edit Event" />
+
+            <div className="mb-6">
+                <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Edit Event: {event.title}</h1>
+                <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">Update event information.</p>
+            </div>
 
             <div className="max-w-4xl mx-auto bg-white border border-gray-200 shadow-sm rounded-xl overflow-hidden mt-6">
                 <div className="px-8 py-6 border-b border-gray-100 flex items-center space-x-4">
@@ -139,6 +144,6 @@ export default function EditEvent({ event }: { event: EventProps }) {
                     </div>
                 </form>
             </div>
-        </OrganizerLayout>
+        </DashboardLayout>
     );
 }
