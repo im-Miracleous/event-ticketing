@@ -112,7 +112,13 @@ export default function ManageTickets({ event, ticketTypes }: { event: any, tick
                                             <div className="flex items-center space-x-6">
                                                 <div className="text-right">
                                                     <p className="text-xs text-gray-500 font-bold uppercase mb-0.5">Harga</p>
-                                                    <p className="font-bold text-blue-600 text-lg">Rp {parseInt(ticket.price).toLocaleString('id-ID')}</p>
+                                                    <p className="font-bold text-blue-600 text-lg">
+                                                        Rp {new Intl.NumberFormat('id-ID').format(
+                                                            typeof ticket.price === 'number'
+                                                                ? ticket.price
+                                                                : Number(ticket.price ?? 0)
+                                                        )}
+                                                    </p>
                                                 </div>
                                                 <Link 
                                                     href={route('organizer.events.tickets.destroy', { event: event.id, ticket: ticket.id })} 
