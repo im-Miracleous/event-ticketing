@@ -28,7 +28,7 @@ use App\Http\Controllers\EventController;
 use App\Http\Controllers\TicketTypeController;
 use App\Http\Controllers\ValidationLogController;
 
-Route::middleware(['auth', 'verified'])->prefix('organizer')->name('organizer.')->group(function () {
+Route::middleware(['auth', 'verified', 'role:Organizer'])->prefix('organizer')->name('organizer.')->group(function () {
     Route::get('/', function () {
         return redirect()->route('organizer.dashboard');
     });
