@@ -34,8 +34,6 @@ class EventController extends Controller {
         if ($request->hasFile('banner_image')) {
             $path = $request->file('banner_image')->store('banners', 'public');
             $data['banner_image'] = '/storage/' . $path;
-        } else {
-            $data['banner_image'] = '/placeholder.jpg';
         }
 
         Event::create($data);
