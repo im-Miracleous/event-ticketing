@@ -100,8 +100,8 @@ export default function ManageTickets({ event, ticketTypes }: { event: any, tick
                                         Belum ada tiket yang ditambahkan. Silakan tambah tiket baru.
                                     </div>
                                 ) : (
-                                    ticketTypes.map((ticket, i) => (
-                                        <div key={i} className="p-6 flex items-center justify-between hover:bg-gray-50 transition-colors">
+                                    ticketTypes.map((ticket) => (
+                                        <div key={ticket.id} className="p-6 flex items-center justify-between hover:bg-gray-50 transition-colors">
                                             <div>
                                                 <div className="flex items-center space-x-3 mb-1">
                                                     <h3 className="font-bold text-gray-800 text-lg">{ticket.name}</h3>
