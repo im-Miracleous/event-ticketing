@@ -54,7 +54,7 @@
 
         <!-- Body -->
         <div class="body">
-            <p class="greeting">Hi, <strong>{{ $user->name }}</strong> 👋</p>
+            <p class="greeting">Hi, <strong>{{ $name }}</strong> 👋</p>
             <p class="desc">
                 Thanks for signing up! To keep your account secure, please verify your email address by entering the code below in your browser.
             </p>

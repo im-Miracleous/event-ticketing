@@ -22,7 +22,6 @@ Route::get('/dashboard', function () {
 
 
 Route::middleware('auth')->group(function () {
-    Route::get('/', [App\Http\Controllers\EventCatalogController::class, 'index'])->name('home');
     Route::get('/events', [App\Http\Controllers\EventCatalogController::class, 'index'])->name('events.index');
 
     // Checkout & Booking

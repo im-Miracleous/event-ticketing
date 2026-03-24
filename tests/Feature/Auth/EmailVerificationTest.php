@@ -13,35 +13,58 @@ class EmailVerificationTest extends TestCase
 
     public function test_otp_verification_screen_can_be_rendered(): void
     {
-        $user = User::factory()->unverified()->create();
+        $this->post('/register', [
+            'name' => 'Test',
+            'username' => 'testuser',
+            'email' => 'test@example.com',
+            'password' => 'password',
+            'password_confirmation' => 'password',
+        ]);
 
-        $response = $this->actingAs($user)->get('/otp-verify');
-
+        $response = $this->get('/otp-verify');
         $response->assertStatus(200);
     }
 
     public function test_email_can_be_verified_with_otp(): void
     {
-        $user = User::factory()->unverified()->create();
-        $otp = OtpCode::generateFor($user, 'email_verification');
+        $email = 'test@example.com';
+        $otp = OtpCode::generateFor($email, 'email_verification');
 
-        $response = $this->actingAs($user)->post('/otp-verify', [
+        $response = $this->withSession([
+            'pending_registration' => [
+                'name' => 'Test Name',
+                'username' => 'testuser',
+                'email' => $email,
+                'password' => 'passwordhash',
+            ]
+        ])->post('/otp-verify', [
             'code' => $otp->code,
         ]);
 
-        $this->assertTrue($user->fresh()->hasVerifiedEmail());
+        $user = User::where('email', $email)->first();
+        $this->assertNotNull($user);
+        $this->assertTrue($user->hasVerifiedEmail());
+        $this->assertAuthenticatedAs($user);
         $response->assertRedirect(route('dashboard', absolute: false));
     }
 
     public function test_email_is_not_verified_with_invalid_otp(): void
     {
-        $user = User::factory()->unverified()->create();
+        $email = 'test@example.com';
 
-        $response = $this->actingAs($user)->post('/otp-verify', [
+        $response = $this->withSession([
+            'pending_registration' => [
+                'name' => 'Test Name',
+                'username' => 'testuser',
+                'email' => $email,
+                'password' => 'passwordhash',
+            ]
+        ])->post('/otp-verify', [
             'code' => '000000',
         ]);
 
-        $this->assertFalse($user->fresh()->hasVerifiedEmail());
+        $user = User::where('email', $email)->first();
+        $this->assertNull($user);
         $response->assertSessionHasErrors('code');
     }
 }

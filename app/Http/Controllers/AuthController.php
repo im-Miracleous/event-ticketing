@@ -3,9 +3,12 @@
 namespace App\Http\Controllers;
 
 use App\Models\User;
+use App\Models\OtpCode;
+use App\Mail\OtpVerificationMail;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Validation\Rules\Password;
 
 class AuthController extends Controller
@@ -30,7 +33,7 @@ class AuthController extends Controller
 
         if (Auth::attempt([$fieldType => $loginValue, 'password' => $request->password], $request->boolean('remember'))) {
             $request->session()->regenerate();
-            return redirect()->intended('/');
+            return redirect()->intended(route('dashboard'));
         }
 
         return back()->withErrors([
@@ -41,26 +44,30 @@ class AuthController extends Controller
 
     public function showRegister()
     {
-        return view('auth.register');
+        return \Inertia\Inertia::render('Auth/Register');
     }
 
     public function register(Request $request)
     {
         $request->validate([
+            'name' => ['required', 'string', 'max:255'],
             'username' => ['required', 'string', 'max:45', 'unique:users'],
             'email' => ['required', 'string', 'email', 'max:255', 'unique:users'],
             'password' => ['required', 'confirmed', Password::defaults()],
         ]);
 
-        $user = User::create([
+        $request->session()->put('pending_registration', [
+            'name' => $request->name,
             'username' => $request->username,
             'email' => $request->email,
             'password' => Hash::make($request->password),
-            'role' => 'User',
+            'role' => $request->role ?? 'User',
         ]);
-        Auth::login($user);
 
-        return redirect('/');
+        $otp = OtpCode::generateFor($request->email, 'email_verification');
+        Mail::to($request->email)->send(new OtpVerificationMail(null, $otp, $request->name));
+
+        return redirect()->route('otp.verify');
     }
 
     public function logout(Request $request)
@@ -69,10 +76,7 @@ class AuthController extends Controller
         $request->session()->invalidate();
         $request->session()->regenerateToken();
 
-        // Use Inertia::location() to force a full browser redirect
-        // (plain redirect() causes Inertia to render the Blade login page
-        //  as a partial swap inside the existing layout)
-        return \Inertia\Inertia::location('/login');
+        return redirect('/');
     }
 
 }
