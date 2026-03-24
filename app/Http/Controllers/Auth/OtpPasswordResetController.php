@@ -17,7 +17,7 @@ class OtpPasswordResetController extends Controller
     /**
      * Display the OTP entry form.
      */
-    public function show(Request $request): Response
+    public function show(Request $request)
     {
         $email = $request->session()->get('otp_password_email');
 
@@ -25,7 +25,7 @@ class OtpPasswordResetController extends Controller
             return redirect()->route('password.request');
         }
 
-        return Inertia::render('Auth/OtpPassword', [
+        return view('auth.otp-password', [
             'email' => $email,
         ]);
     }

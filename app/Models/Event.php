@@ -1,6 +1,7 @@
 <?php
 namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
+
 class Event extends Model {
     protected $table = 'events';
 
@@ -20,8 +21,11 @@ class Event extends Model {
         'start_time', 
         'end_time', 
         'location', 
+        'format',
         'event_category_id', 
-        'organizer_id'];
+        'organizer_id',
+        'status'
+    ];
     
     public function category() { 
         return $this->belongsTo(EventCategory::class, 'event_category_id'); 

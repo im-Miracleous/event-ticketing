@@ -3,36 +3,54 @@ namespace App\Http\Controllers;
 use App\Models\ValidationLog;
 use Illuminate\Http\Request;
 
+use App\Models\Ticket;
+use Inertia\Inertia;
+
 class ValidationLogController extends Controller {
     public function index() {
-        return response()->json(ValidationLog::with('ticket')->get());
+        return Inertia::render('Organizer/CheckIn');
     }
 
     public function store(Request $request) {
-        $data = $request->validate([
-            'validation_time' => 'required|date_format:Y-m-d H:i:s',
-            'result' => 'required|in:Valid,Invalid,Expired,Already Used',
-            'ticket_id' => 'required|exists:tickets,id'
+        $request->validate([
+            'code' => 'required|string'
         ]);
 
-        return response()->json(ValidationLog::create($data), 201);
-    }
+        $ticket = Ticket::where('id', $request->code)->orWhere('qr_code', $request->code)->first();
 
-    public function update(Request $request, $id) {
-        $log = ValidationLog::findOrFail($id);
-        $data = $request->validate([
-            'result' => 'required|in:Valid,Invalid,Expired,Already Used'
+        if (!$ticket) {
+            return redirect()->back()->withErrors(['code' => 'Tiket tidak ditemukan / Invalid.']);
+        }
+
+        if ($ticket->ticket_status === 'Used') {
+            ValidationLog::create([
+                'validation_time' => now(),
+                'result' => 'Already Used',
+                'ticket_id' => $ticket->id
+            ]);
+            return redirect()->back()->withErrors(['code' => 'Tiket sudah digunakan sebelumnya.']);
+        }
+
+        if ($ticket->ticket_status !== 'Active') {
+            ValidationLog::create([
+                'validation_time' => now(),
+                'result' => 'Invalid',
+                'ticket_id' => $ticket->id
+            ]);
+            return redirect()->back()->withErrors(['code' => 'Status tiket tidak valid: ' . $ticket->ticket_status]);
+        }
+
+        // Valid
+        $ticket->ticket_status = 'Used';
+        $ticket->validated_at = now();
+        $ticket->save();
+
+        ValidationLog::create([
+            'validation_time' => now(),
+            'result' => 'Valid',
+            'ticket_id' => $ticket->id
         ]);
-        $log->update($data);
 
-        return response()->json($log);
-    }
-
-    public function toggleStatus($id) {
-        $log = ValidationLog::findOrFail($id);
-        $log->result = ($log->result == 'Valid') ? 'Invalid' : 'Valid';
-        $log->save();
-        
-        return response()->json($log);
+        return redirect()->back()->with('success', 'Tiket Valid! Check-in berhasil untuk kode: ' . $request->code);
     }
 }

@@ -34,8 +34,6 @@
         @endforeach
     </div>
 
-    {{-- Better stat cards using manual loop --}}
-
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
         <!-- Recent Events Table -->
         <div class="lg:col-span-2 card overflow-hidden">
@@ -186,7 +184,6 @@
                 @endforeach
             </div>
         </div>
-        <!-- Bar chart using inline styles -->
         <div class="flex items-end gap-3 h-40">
             @php
                 $values = [40, 65, 48, 72, 55, 90, 78, 82, 60, 95, 70, 88];
