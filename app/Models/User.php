@@ -63,4 +63,8 @@ class User extends Authenticatable implements MustVerifyEmail
     public function waitingLists() {
         return $this->belongsToMany(WaitingList::class, 'Register Waiting_List', 'users_user_id', 'waiting_list_waitinglist_id');
     }
+
+    public function organizer() {
+        return $this->hasOne(Organizer::class, 'user_id');
+    }
 }

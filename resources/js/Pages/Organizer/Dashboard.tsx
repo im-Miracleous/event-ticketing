@@ -93,7 +93,7 @@ export default function Dashboard({ auth, stats, charts }: any) {
                                     <YAxis stroke="#94a3b8" tick={{fontSize: 12}} tickFormatter={(val) => `Rp${val / 1000}k`} />
                                     <Tooltip 
                                         contentStyle={{ backgroundColor: '#0f172a', borderColor: '#1e293b', borderRadius: '0.75rem', color: '#f8fafc' }}
-                                        formatter={(value: number) => [formatCurrency(value), 'Revenue']}
+                                        formatter={(value: any) => [formatCurrency(value), 'Revenue']}
                                     />
                                     <Line type="monotone" dataKey="revenue" stroke="#8b5cf6" strokeWidth={3} activeDot={{ r: 8 }} />
                                 </LineChart>
@@ -116,7 +116,7 @@ export default function Dashboard({ auth, stats, charts }: any) {
                                     <YAxis dataKey="name" type="category" stroke="#94a3b8" width={100} tick={{fontSize: 11}} />
                                     <Tooltip 
                                         contentStyle={{ backgroundColor: '#0f172a', borderColor: '#1e293b', borderRadius: '0.75rem', color: '#f8fafc' }}
-                                        formatter={(value: number) => [formatCurrency(value), 'Revenue']}
+                                        formatter={(value: any) => [formatCurrency(value), 'Revenue']}
                                     />
                                     <Bar dataKey="revenue" fill="#3b82f6" radius={[0, 4, 4, 0]} barSize={20} />
                                 </BarChart>
