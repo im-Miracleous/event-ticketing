@@ -59,6 +59,7 @@ Route::middleware(['auth', 'verified', 'role:Organizer'])->prefix('organizer')->
         return redirect()->route('organizer.dashboard');
     });
     Route::get('/dashboard', [EventController::class, 'dashboard'])->name('dashboard');
+    Route::get('/export-sales', [EventController::class, 'exportSales'])->name('export-sales');
     Route::get('/events', [EventController::class, 'index'])->name('events.index');
     
     Route::get('/events/{event}/tickets', [TicketTypeController::class, 'index'])->name('events.tickets.index');
