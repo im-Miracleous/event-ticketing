@@ -62,6 +62,15 @@ Route::middleware(['auth', 'verified', 'role:Organizer'])->prefix('organizer')->
     Route::get('/export-sales', [EventController::class, 'exportSales'])->name('export-sales');
     Route::get('/events', [EventController::class, 'index'])->name('events.index');
     
+    // Promotions
+    Route::resource('promotions', \App\Http\Controllers\Organizer\PromotionController::class)->except(['create', 'show', 'edit']);
+    
+    // Attendees
+    Route::get('/attendees', [\App\Http\Controllers\Organizer\AttendeeController::class, 'index'])->name('attendees.index');
+    
+    // Earnings Ledger
+    Route::get('/earnings', [\App\Http\Controllers\Organizer\EarningController::class, 'index'])->name('earnings.index');
+    
     Route::get('/events/{event}/tickets', [TicketTypeController::class, 'index'])->name('events.tickets.index');
     Route::post('/events/{event}/tickets', [TicketTypeController::class, 'store'])->name('events.tickets.store');
     Route::delete('/events/{event}/tickets/{ticketType}', [TicketTypeController::class, 'destroy'])->name('events.tickets.destroy');
