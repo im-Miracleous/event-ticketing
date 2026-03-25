@@ -1,5 +1,5 @@
 import Dropdown from '@/Components/Dropdown';
-import { usePage } from '@inertiajs/react';
+import { usePage, Link } from '@inertiajs/react';
 import type { UserRole } from '@/config/navigation';
 
 interface HeaderProps {
@@ -15,13 +15,13 @@ export default function Header({ onMenuToggle, onCollapseToggle, isCollapsed, is
     const user = usePage().props.auth.user;
 
     return (
-        <header className="sticky top-0 z-30 h-16 bg-white/80 dark:bg-navy-950/80 backdrop-blur-xl border-b border-slate-200 dark:border-white/5">
+        <header className="sticky top-0 z-30 h-16 bg-navy-900/80 dark:bg-navy-950/80 backdrop-blur-xl border-b border-white/10 dark:border-white/5">
             <div className="flex items-center justify-between h-full px-4 sm:px-6">
                 <div className="flex items-center gap-3">
                     {/* Mobile hamburger */}
                     <button
                         onClick={onMenuToggle}
-                        className="lg:hidden inline-flex items-center justify-center rounded-xl p-2 text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-white/5 hover:text-slate-700 dark:hover:text-white transition"
+                        className="lg:hidden inline-flex items-center justify-center rounded-xl p-2 text-slate-500 dark:text-slate-400 hover:bg-navy-800 dark:hover:bg-navy-900/5 hover:text-slate-300 dark:hover:text-white transition"
                     >
                         <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
                             <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
@@ -31,7 +31,7 @@ export default function Header({ onMenuToggle, onCollapseToggle, isCollapsed, is
                     {/* Desktop sidebar collapse toggle */}
                     <button
                         onClick={onCollapseToggle}
-                        className="hidden lg:inline-flex items-center justify-center rounded-xl p-2 text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-white/5 hover:text-slate-700 dark:hover:text-white transition"
+                        className="hidden lg:inline-flex items-center justify-center rounded-xl p-2 text-slate-500 dark:text-slate-400 hover:bg-navy-800 dark:hover:bg-navy-900/5 hover:text-slate-300 dark:hover:text-white transition"
                         title={isCollapsed ? 'Show sidebar' : 'Hide sidebar'}
                     >
                         <svg className={`h-5 w-5 transition-transform duration-300 ${isCollapsed ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
@@ -54,26 +54,26 @@ export default function Header({ onMenuToggle, onCollapseToggle, isCollapsed, is
                         </div>
                     )}
 
-                    {/* Organizer: Create Event CTA */}
-                    {activeRole === 'organizer' && (
-                        <button className="hidden sm:inline-flex items-center gap-2 rounded-xl bg-primary-600 hover:bg-primary-700 text-white px-4 py-2 text-sm font-semibold transition-colors shadow-sm shadow-primary-500/25">
+                    {/* Admin: Create Event CTA */}
+                    {activeRole === 'admin' && (
+                        <Link href={route('admin.events.create')} className="hidden sm:inline-flex items-center gap-2 rounded-xl bg-primary-600 hover:bg-primary-700 text-white px-4 py-2 text-sm font-semibold transition-colors shadow-sm shadow-primary-500/25">
                             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                                 <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
                             </svg>
                             Create Event
-                        </button>
+                        </Link>
                     )}
 
                     {/* User: Search bar */}
                     {activeRole === 'user' && (
-                        <div className="hidden sm:flex items-center gap-2 bg-slate-100 dark:bg-white/5 border border-slate-200 dark:border-white/5 rounded-xl px-3 py-2 w-72 focus-within:border-primary-500/40 transition-colors">
+                        <div className="hidden sm:flex items-center gap-2 bg-navy-800 dark:bg-navy-900/5 border border-white/10 dark:border-white/5 rounded-xl px-3 py-2 w-72 focus-within:border-primary-500/40 transition-colors">
                             <svg className="w-4 h-4 text-slate-400 dark:text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                                 <path strokeLinecap="round" strokeLinejoin="round" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z" />
                             </svg>
                             <input
                                 type="text"
                                 placeholder="Search events..."
-                                className="bg-transparent border-0 text-sm text-slate-700 dark:text-slate-300 placeholder-slate-400 dark:placeholder-slate-500 focus:ring-0 w-full p-0"
+                                className="bg-transparent border-0 text-sm text-slate-300 dark:text-slate-300 placeholder-slate-400 dark:placeholder-slate-500 focus:ring-0 w-full p-0"
                             />
                         </div>
                     )}
@@ -83,7 +83,7 @@ export default function Header({ onMenuToggle, onCollapseToggle, isCollapsed, is
                     {/* Theme toggle */}
                     <button
                         onClick={onThemeToggle}
-                        className="p-2 rounded-xl text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-white/5 hover:text-slate-700 dark:hover:text-white transition"
+                        className="p-2 rounded-xl text-slate-500 dark:text-slate-400 hover:bg-navy-800 dark:hover:bg-navy-900/5 hover:text-slate-300 dark:hover:text-white transition"
                         title={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
                     >
                         {isDark ? (
@@ -98,21 +98,21 @@ export default function Header({ onMenuToggle, onCollapseToggle, isCollapsed, is
                     </button>
 
                     {/* Notifications */}
-                    <button className="relative p-2 rounded-xl text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-white/5 hover:text-slate-700 dark:hover:text-white transition">
+                    <button className="relative p-2 rounded-xl text-slate-500 dark:text-slate-400 hover:bg-navy-800 dark:hover:bg-navy-900/5 hover:text-slate-300 dark:hover:text-white transition">
                         <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
                             <path strokeLinecap="round" strokeLinejoin="round" d="M14.857 17.082a23.848 23.848 0 0 0 5.454-1.31A8.967 8.967 0 0 1 18 9.75V9A6 6 0 0 0 6 9v.75a8.967 8.967 0 0 1-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 0 1-5.714 0m5.714 0a3 3 0 1 1-5.714 0" />
                         </svg>
                         <span className="absolute top-1.5 right-1.5 h-2 w-2 rounded-full bg-primary-500 ring-2 ring-white dark:ring-navy-950" />
                     </button>
 
-                    <div className="h-6 w-px bg-slate-200 dark:bg-white/10" />
+                    <div className="h-6 w-px bg-slate-200 dark:bg-navy-900/10" />
 
                     {/* Profile dropdown */}
                     <Dropdown>
                         <Dropdown.Trigger>
                             <button
                                 type="button"
-                                className="flex items-center gap-2 rounded-xl border border-slate-200 dark:border-white/10 bg-slate-100 dark:bg-white/5 px-3 py-1.5 text-sm font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-white/10 hover:text-slate-900 dark:hover:text-white hover:border-slate-300 dark:hover:border-white/20 transition"
+                                className="flex items-center gap-2 rounded-xl border border-white/10 dark:border-white/10 bg-navy-800 dark:bg-navy-900/5 px-3 py-1.5 text-sm font-medium text-slate-300 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-navy-900/10 hover:text-slate-900 dark:hover:text-white hover:border-slate-300 dark:hover:border-white/20 transition"
                             >
                                 <div className="h-7 w-7 rounded-full bg-primary-100 dark:bg-primary-600/20 flex items-center justify-center ring-1 ring-primary-300 dark:ring-primary-500/30">
                                     <span className="text-xs font-bold text-primary-600 dark:text-primary-400">{user.name.charAt(0).toUpperCase()}</span>
@@ -124,11 +124,11 @@ export default function Header({ onMenuToggle, onCollapseToggle, isCollapsed, is
                             </button>
                         </Dropdown.Trigger>
 
-                        <Dropdown.Content contentClasses="py-1 bg-white dark:bg-navy-900 border border-slate-200 dark:border-white/10 shadow-xl dark:shadow-2xl rounded-xl mt-2 overflow-hidden">
-                            <Dropdown.Link href={route('profile.edit')} className="text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-white/5 transition-colors">
+                        <Dropdown.Content contentClasses="py-1 bg-navy-900 dark:bg-navy-900 border border-white/10 dark:border-white/10 shadow-xl dark:shadow-2xl rounded-xl mt-2 overflow-hidden">
+                            <Dropdown.Link href={route('profile.edit')} className="text-slate-300 dark:text-slate-300 hover:bg-navy-800 dark:hover:bg-navy-900/5 transition-colors">
                                 Profile Settings
                             </Dropdown.Link>
-                            <div className="h-px bg-slate-100 dark:bg-white/5 mx-2 my-1" />
+                            <div className="h-px bg-navy-800 dark:bg-navy-900/5 mx-2 my-1" />
                             <Dropdown.Link href={route('logout')} method="post" as="button" className="text-red-500 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors">
                                 Sign Out
                             </Dropdown.Link>

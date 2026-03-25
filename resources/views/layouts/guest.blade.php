@@ -8,6 +8,9 @@
 
         <title>{{ config('app.name', 'EventHive') }} – @yield('title', 'Auth')</title>
 
+        <!-- Favicon -->
+        <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><rect width=%22100%22 height=%22100%22 rx=%2220%22 fill=%22%237C3AED%22/><path d=%22M30 30h20v10h-20v10h20v10h-20v10h40v-10h-10v-10h10v-10h-10v-10h10v-10h-40z%22 fill=%22white%22/></svg>">
+
         <!-- Fonts -->
         <link rel="preconnect" href="https://fonts.googleapis.com">
         <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -111,7 +114,12 @@
             </div>
 
             <!-- Right form panel -->
-            <div class="flex-1 flex flex-col items-center justify-center px-6 py-12 bg-white relative">
+            <div class="flex-1 flex flex-col items-center justify-center px-6 py-12 relative overflow-hidden"
+                 style="background: linear-gradient(160deg, #0D0D1A 0%, #1A1A2E 60%, #0f0f1f 100%);">
+                <!-- Subtle glow accents -->
+                <div class="absolute top-0 right-0 w-96 h-96 bg-primary-600/10 rounded-full blur-[120px] pointer-events-none"></div>
+                <div class="absolute bottom-0 left-0 w-64 h-64 bg-secondary-500/5 rounded-full blur-[80px] pointer-events-none"></div>
+
                 <!-- Mobile logo -->
                 <div class="lg:hidden flex items-center gap-3 mb-10">
                     <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-primary-500 to-primary-700 flex items-center justify-center">
@@ -119,10 +127,10 @@
                             <path d="M5 3a2 2 0 00-2 2v2a2 2 0 002 2h2a2 2 0 002-2V5a2 2 0 00-2-2H5zM5 11a2 2 0 00-2 2v2a2 2 0 002 2h2a2 2 0 002-2v-2a2 2 0 00-2-2H5zM11 5a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V5zM14 11a1 1 0 011 1v1h1a1 1 0 110 2h-1v1a1 1 0 11-2 0v-1h-1a1 1 0 110-2h1v-1a1 1 0 011-1z"/>
                         </svg>
                     </div>
-                    <span class="text-2xl font-bold text-gray-900">Event<span class="text-primary-600">Hive</span></span>
+                    <span class="text-2xl font-bold text-white">Event<span class="text-primary-400">Hive</span></span>
                 </div>
 
-                <div class="w-full max-w-md animate-slide-up">
+                <div class="w-full max-w-md animate-slide-up relative z-10">
                     {{ $slot }}
                 </div>
             </div>

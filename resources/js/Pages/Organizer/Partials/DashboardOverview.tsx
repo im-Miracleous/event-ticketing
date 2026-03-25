@@ -24,16 +24,16 @@ export default function DashboardOverview({ onViewChange }: { onViewChange: (vie
             {/* Header & Quick Actions */}
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                 <div>
-                    <h1 className="text-2xl lg:text-3xl font-bold text-gray-900 tracking-tight">Organizer Dashboard</h1>
-                    <p className="text-gray-500 mt-1">Sistem menampilkan ringkasan performa event Anda saat ini.</p>
+                    <h1 className="text-2xl lg:text-3xl font-bold text-white tracking-tight">Organizer Dashboard</h1>
+                    <p className="text-slate-500 mt-1">Sistem menampilkan ringkasan performa event Anda saat ini.</p>
                 </div>
                 <div className="flex items-center gap-3 w-full sm:w-auto">
-                    <button className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 py-2.5 bg-white border border-gray-200 text-gray-700 font-semibold rounded-xl hover:bg-gray-50 transition-all shadow-sm">
+                    <button className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 py-2.5 bg-navy-900 border border-white/10 text-slate-300 font-semibold rounded-xl hover:bg-gray-50 transition-all shadow-sm">
                         <DownloadCloud className="w-4 h-4" /> Export Report
                     </button>
                     <button 
                         onClick={() => onViewChange('create-event')}
-                        className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 py-2.5 bg-indigo-600 text-white font-semibold rounded-xl hover:bg-indigo-700 transition-all shadow-sm shadow-indigo-200"
+                        className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 py-2.5 bg-primary-600 text-white font-semibold rounded-xl hover:bg-primary-700 transition-all shadow-sm shadow-primary-200"
                     >
                         <PlusCircle className="w-4 h-4" /> Create New Event
                     </button>
@@ -42,23 +42,23 @@ export default function DashboardOverview({ onViewChange }: { onViewChange: (vie
 
             {/* Metric Cards */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-                <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
+                <div className="bg-navy-900 p-6 rounded-2xl border border-white/5 shadow-sm">
                     <div className="flex justify-between items-start">
                         <div>
-                            <p className="text-sm font-medium text-gray-500 mb-1">Total Event Aktif</p>
-                            <h3 className="text-3xl font-black text-gray-900">12</h3>
+                            <p className="text-sm font-medium text-slate-500 mb-1">Total Event Aktif</p>
+                            <h3 className="text-3xl font-black text-white">12</h3>
                         </div>
-                        <div className="p-3 bg-indigo-50 text-indigo-600 rounded-xl">
+                        <div className="p-3 bg-primary-50 text-primary-600 rounded-xl">
                             <CalendarCheck className="w-6 h-6" />
                         </div>
                     </div>
                 </div>
 
-                <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
+                <div className="bg-navy-900 p-6 rounded-2xl border border-white/5 shadow-sm">
                     <div className="flex justify-between items-start">
                         <div>
-                            <p className="text-sm font-medium text-gray-500 mb-1">Total Tiket Terjual</p>
-                            <h3 className="text-3xl font-black text-gray-900">1,500</h3>
+                            <p className="text-sm font-medium text-slate-500 mb-1">Total Tiket Terjual</p>
+                            <h3 className="text-3xl font-black text-white">1,500</h3>
                         </div>
                         <div className="p-3 bg-blue-50 text-blue-600 rounded-xl">
                             <Ticket className="w-6 h-6" />
@@ -69,11 +69,11 @@ export default function DashboardOverview({ onViewChange }: { onViewChange: (vie
                     </div>
                 </div>
 
-                <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
+                <div className="bg-navy-900 p-6 rounded-2xl border border-white/5 shadow-sm">
                     <div className="flex justify-between items-start">
                         <div>
-                            <p className="text-sm font-medium text-gray-500 mb-1">Total Pendapatan</p>
-                            <h3 className="text-2xl font-black text-gray-900">{formatCurrency(182500000)}</h3>
+                            <p className="text-sm font-medium text-slate-500 mb-1">Total Pendapatan</p>
+                            <h3 className="text-2xl font-black text-white">{formatCurrency(182500000)}</h3>
                         </div>
                         <div className="p-3 bg-green-50 text-green-600 rounded-xl">
                             <DollarSign className="w-6 h-6" />
@@ -84,11 +84,11 @@ export default function DashboardOverview({ onViewChange }: { onViewChange: (vie
                     </div>
                 </div>
 
-                <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
+                <div className="bg-navy-900 p-6 rounded-2xl border border-white/5 shadow-sm">
                     <div className="flex justify-between items-start">
                         <div>
-                            <p className="text-sm font-medium text-gray-500 mb-1">Peserta Baru</p>
-                            <h3 className="text-3xl font-black text-gray-900">420</h3>
+                            <p className="text-sm font-medium text-slate-500 mb-1">Peserta Baru</p>
+                            <h3 className="text-3xl font-black text-white">420</h3>
                         </div>
                         <div className="p-3 bg-purple-50 text-purple-600 rounded-xl">
                             <Users className="w-6 h-6" />

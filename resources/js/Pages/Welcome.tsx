@@ -33,18 +33,18 @@ export default function Welcome({ auth }: PageProps) {
                         </Link>
                     ) : (
                         <>
-                            <Link
+                            <a
                                 href={route('login')}
                                 className="text-sm font-bold tracking-widest uppercase text-slate-300 hover:text-white transition-colors"
                             >
                                 Sign In
-                            </Link>
-                            <Link
+                            </a>
+                            <a
                                 href={route('register')}
                                 className="btn-primary px-8 py-3"
                             >
                                 <span className="text-sm font-black tracking-widest uppercase text-white">Get Started</span>
-                            </Link>
+                            </a>
                         </>
                     )}
                 </div>
@@ -67,9 +67,9 @@ export default function Welcome({ auth }: PageProps) {
                 </p>
 
                 <div className="flex flex-col md:flex-row items-center justify-center space-y-4 md:space-y-0 md:space-x-6">
-                    <Link href={route('register')} className="btn-primary px-10 py-5 w-full md:w-auto text-white">
+                    <a href={route('register')} className="btn-primary px-10 py-5 w-full md:w-auto text-white">
                         <span className="font-black text-sm tracking-widest uppercase">Explore Events</span>
-                    </Link>
+                    </a>
                     <button className="px-10 py-5 rounded-2xl bg-white/5 border border-white/10 backdrop-blur-md hover:bg-white/10 transition-all w-full md:w-auto">
                         <span className="font-black text-sm tracking-widest uppercase text-slate-300">How it works</span>
                     </button>
@@ -144,9 +144,9 @@ export default function Welcome({ auth }: PageProps) {
                     <p className="text-xl text-slate-400 mb-12 max-w-2xl mx-auto">
                         Experience events like never before. Secure, fast, and exclusive.
                     </p>
-                    <Link href={route('register')} className="btn-primary px-12 py-5 text-white inline-block">
+                    <a href={route('register')} className="btn-primary px-12 py-5 text-white inline-block">
                         <span className="font-black text-sm tracking-widest uppercase">Create Free Account</span>
-                    </Link>
+                    </a>
                 </div>
             </section>
 

@@ -16,10 +16,10 @@ export default function DashboardLayout({ children }: PropsWithChildren) {
 
     // Map Laravel role names (User/Admin/Organizer/Root) → TypeScript UserRole
     const roleMap: Record<string, UserRole> = {
-        Root:      'root',
-        Admin:     'admin',
+        Root: 'root',
+        Admin: 'admin',
         Organizer: 'organizer',
-        User:      'user',
+        User: 'user',
     };
     const activeRole: UserRole = roleMap[rawRole] ?? 'user';
 

@@ -27,9 +27,8 @@ class OtpVerificationController extends Controller
             return redirect()->route('register');
         }
 
-        return Inertia::render('Auth/OtpVerify', [
+        return view('auth.otp-verify', [
             'email' => $pending['email'],
-            'status' => session('status'),
         ]);
     }
 
@@ -78,6 +77,7 @@ class OtpVerificationController extends Controller
             'username' => $pending['username'],
             'email' => $pending['email'],
             'password' => $pending['password'],
+            'role' => $pending['role'] ?? 'User',
         ]);
 
         $user->markEmailAsVerified();
@@ -91,7 +91,15 @@ class OtpVerificationController extends Controller
 
         sleep(1);
 
-        return redirect()->intended(route('dashboard', absolute: false))
+        if (in_array($user->role, ['Root', 'Admin'])) {
+            $defaultRoute = route('admin.dashboard');
+        } elseif ($user->role === 'Organizer') {
+            $defaultRoute = route('organizer.dashboard');
+        } else {
+            $defaultRoute = route('dashboard');
+        }
+
+        return redirect()->intended($defaultRoute)
             ->with('status', 'Account created and verified successfully.');
     }
 

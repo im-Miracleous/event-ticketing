@@ -7,9 +7,9 @@ class Event extends Model {
 
     protected $primaryKey = 'id';
     
-    public $incrementing = false;
+    public $incrementing = true;
     
-    protected $keyType = 'string';
+    protected $keyType = 'int';
     
     protected $fillable = [
         'id', 

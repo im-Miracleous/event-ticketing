@@ -27,8 +27,7 @@ class RegistrationTest extends TestCase
             'password_confirmation' => 'password',
         ]);
 
-        $this->assertAuthenticated();
-        // Redirects to OTP verification page
+        $response->assertSessionHas('pending_registration');
         $response->assertRedirect(route('otp.verify'));
     }
 }

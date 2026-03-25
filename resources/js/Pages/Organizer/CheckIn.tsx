@@ -1,4 +1,4 @@
-import OrganizerLayout from '@/Layouts/OrganizerLayout';
+import DashboardLayout from '@/Layouts/DashboardLayout';
 import { Head, useForm, usePage } from '@inertiajs/react';
 import React, { FormEvent, useEffect, useState } from 'react';
 import { Html5QrcodeScanner } from 'html5-qrcode';
@@ -24,12 +24,12 @@ export default function CheckIn() {
             qrbox: { width: 250, height: 250 },
             fps: 5,
         }, false);
-        
+
         scanner.render(
-            (text) => {
+            (text: string) => {
                 setData('code', text);
             },
-            (err) => {
+            (err: unknown) => {
                 // ignore scanning errors
             }
         );
@@ -50,28 +50,32 @@ export default function CheckIn() {
     };
 
     return (
-        <OrganizerLayout header="VALIDASI TIKET / CHECK-IN">
+        <DashboardLayout>
             <Head title="Check-In Peserta" />
 
+            <div className="mb-6">
+                <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Event Check-In</h1>
+                <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">Scan or enter ticket codes to validate attendees.</p>
+            </div>
+
             <div className="max-w-xl mx-auto mt-12">
-                <div className="bg-white border border-gray-200 shadow-xl shadow-blue-900/5 rounded-2xl overflow-hidden">
+                <div className="bg-navy-900 border border-white/10 shadow-xl shadow-blue-900/5 rounded-2xl overflow-hidden">
                     <div className="px-8 py-6 bg-blue-600 text-center">
-                        <div className="w-16 h-16 bg-white/20 rounded-full flex items-center justify-center mx-auto mb-3 text-white">
+                        <div className="w-16 h-16 bg-navy-900/20 rounded-full flex items-center justify-center mx-auto mb-3 text-white">
                             <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 12V4a2 2 0 012-2h12a2 2 0 012 2v8" /></svg>
                         </div>
                         <h2 className="text-2xl font-black text-white uppercase tracking-tight">Scan / Input Kode</h2>
                         <p className="text-blue-100 text-sm mt-1">Masukkan ID Tiket atau Scan Barcode pengunjung</p>
                     </div>
 
-                    <div className="bg-white">
+                    <div className="bg-navy-900">
                         <div id="qr-reader" className="w-full max-w-sm mx-auto overflow-hidden"></div>
                     </div>
 
                     <div className="p-8 pb-10 space-y-6">
                         {alertMessage && (
-                            <div className={`p-4 rounded-xl flex items-start space-x-3 mb-6 ${
-                                alertMessage.type === 'success' ? 'bg-emerald-50 text-emerald-800 border border-emerald-200' : 'bg-red-50 text-red-800 border border-red-200'
-                            }`}>
+                            <div className={`p-4 rounded-xl flex items-start space-x-3 mb-6 ${alertMessage.type === 'success' ? 'bg-emerald-50 text-emerald-800 border border-emerald-200' : 'bg-red-50 text-red-800 border border-red-200'
+                                }`}>
                                 {alertMessage.type === 'success' ? (
                                     <svg className="w-6 h-6 text-emerald-500 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
                                 ) : (
@@ -88,9 +92,9 @@ export default function CheckIn() {
 
                         <form onSubmit={submit} className="space-y-4">
                             <div>
-                                <label className="block text-sm font-bold text-gray-700 mb-2">Kode Tiket (Booking Code)</label>
-                                <input 
-                                    type="text" 
+                                <label className="block text-sm font-bold text-slate-300 mb-2">Kode Tiket (Booking Code)</label>
+                                <input
+                                    type="text"
                                     autoFocus
                                     className="w-full px-5 py-4 border-2 border-gray-300 rounded-xl focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 text-lg font-bold text-center uppercase tracking-widest transition-all"
                                     placeholder="XXXX-YYYY-ZZZZ"
@@ -99,8 +103,8 @@ export default function CheckIn() {
                                 />
                             </div>
 
-                            <button 
-                                type="submit" 
+                            <button
+                                type="submit"
                                 disabled={processing}
                                 className="w-full py-4 text-sm font-bold text-white bg-blue-600 hover:bg-blue-700 rounded-xl transition-colors shadow-lg shadow-blue-600/30 flex items-center justify-center uppercase tracking-wide"
                             >
@@ -109,11 +113,11 @@ export default function CheckIn() {
                         </form>
                     </div>
                 </div>
-                
-                <div className="mt-6 text-center text-sm font-medium text-gray-500">
+
+                <div className="mt-6 text-center text-sm font-medium text-slate-500">
                     Sistem validasi Goers Experience Manager
                 </div>
             </div>
-        </OrganizerLayout>
+        </DashboardLayout>
     );
 }

@@ -18,7 +18,7 @@ return new class extends Migration
             $table->integer('quota');
             $table->dateTime('start_date');
             $table->dateTime('end_date');
-            $table->char('event_id', 36)->index('fk_promotions_events_idx');
+            $table->unsignedBigInteger('event_id')->index('fk_promotions_events_idx');
             $table->timestamp('created_at')->nullable()->useCurrent();
             $table->timestamp('updated_at')->useCurrentOnUpdate()->nullable()->useCurrent();
         });

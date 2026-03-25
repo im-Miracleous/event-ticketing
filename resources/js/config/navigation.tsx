@@ -132,15 +132,16 @@ const UserSettingsIcon = (
  * validation_logs, app_settings.
  */
 const adminNavItems: NavItem[] = [
-    { label: 'System Dashboard',  href: '/dashboard',              routeName: 'dashboard',           icon: DashboardIcon },
-    { label: 'Discover Events',   href: '/events',                 routeName: 'events.index',        icon: SearchIcon },
-    { label: 'All Events',        href: '/admin/events',           routeName: 'admin.events.*',      icon: EventsIcon },
-    { label: 'Event Categories',  href: '/admin/categories',       routeName: 'admin.categories.*',  icon: CategoryIcon },
-    { label: 'User Management',   href: '/admin/users',            routeName: 'admin.users.*',       icon: UsersIcon },
-    { label: 'Financial Overview',href: '/admin/finance',          routeName: 'admin.finance.*',     icon: FinanceIcon },
-    { label: 'Promotions',        href: '/admin/promotions',       routeName: 'admin.promotions.*',  icon: PromotionIcon },
-    { label: 'Validation Logs',   href: '/admin/validation-logs',  routeName: 'admin.validation.*',  icon: ValidationIcon },
-    { label: 'System Settings',   href: '/admin/settings',         routeName: 'admin.settings.*',    icon: ServerIcon, rootOnly: true },
+    { label: 'System Dashboard', href: '/admin/dashboard', routeName: 'admin.dashboard', icon: DashboardIcon },
+    { label: 'Discover Events', href: '/events', routeName: 'events.index', icon: SearchIcon },
+    { label: 'All Events', href: '/admin/events', routeName: 'admin.events.index', icon: EventsIcon },
+    { label: 'Create Event', href: '/admin/events/create', routeName: 'admin.events.create', icon: CreateIcon },
+    { label: 'Event Categories', href: '/admin/categories', routeName: 'admin.categories.*', icon: CategoryIcon },
+    { label: 'User Management', href: '/admin/users', routeName: 'admin.users.*', icon: UsersIcon },
+    { label: 'Financial Overview', href: '/admin/finance', routeName: 'admin.finance.*', icon: FinanceIcon },
+    { label: 'Promotions', href: '/admin/promotions', routeName: 'admin.promotions.*', icon: PromotionIcon },
+    { label: 'Validation Logs', href: '/admin/validation-logs', routeName: 'admin.validation.*', icon: ValidationIcon },
+    { label: 'System Settings', href: '/admin/settings', routeName: 'admin.settings.*', icon: ServerIcon, rootOnly: true },
 ];
 
 /**
@@ -148,13 +149,13 @@ const adminNavItems: NavItem[] = [
  * Covers: events (own), tickets_types, attendees, promotions, transactions (own earnings).
  */
 const organizerNavItems: NavItem[] = [
-    { label: 'Organizer Dashboard', href: '/organizer/dashboard',      routeName: 'organizer.dashboard',      icon: DashboardIcon },
-    { label: 'Discover Events',     href: '/events',                   routeName: 'events.index',             icon: SearchIcon },
-    { label: 'My Events',           href: '/organizer/dashboard',      routeName: 'organizer.dashboard',      icon: EventsIcon },
-    { label: 'Create Event',        href: '/organizer/dashboard',      routeName: 'organizer.dashboard',      icon: CreateIcon },
-    { label: 'Attendee Management', href: '/organizer/dashboard',      routeName: 'organizer.dashboard',      icon: UsersIcon },
-    { label: 'Promotions',          href: '/organizer/promotions',     routeName: 'organizer.promotions.*',   icon: PromotionIcon },
-    { label: 'Earnings',            href: '/organizer/earnings',       routeName: 'organizer.earnings.*',     icon: EarningsIcon },
+    { label: 'Organizer Dashboard', href: '/organizer/dashboard', routeName: 'organizer.dashboard', icon: DashboardIcon },
+    { label: 'Discover Events', href: '/events', routeName: 'events.index', icon: SearchIcon },
+    { label: 'My Events', href: '/organizer/events', routeName: 'organizer.events.*', icon: EventsIcon },
+    { label: 'Validate Tickets', href: '/organizer/check-in', routeName: 'organizer.check-in', icon: ValidationIcon },
+    { label: 'Attendee Management', href: '/organizer/attendees', routeName: 'organizer.attendees.*', icon: UsersIcon },
+    { label: 'Promotions', href: '/organizer/promotions', routeName: 'organizer.promotions.*', icon: PromotionIcon },
+    { label: 'Earnings', href: '/organizer/earnings', routeName: 'organizer.earnings.*', icon: EarningsIcon },
 ];
 
 /**
@@ -162,11 +163,11 @@ const organizerNavItems: NavItem[] = [
  * Covers: events (browse), tickets (own), wishlists, waiting_list.
  */
 const userNavItems: NavItem[] = [
-    { label: 'Discover Events',   href: '/events',               routeName: 'events.index',       icon: SearchIcon },
-    { label: 'My Tickets',        href: '/my-tickets',           routeName: 'tickets.*',          icon: TicketIcon },
-    { label: 'Saved Events',      href: '/saved-events',         routeName: 'wishlists.*',        icon: BookmarkIcon },
-    { label: 'Waiting List',      href: '/waiting-list',         routeName: 'waiting-list.*',     icon: WaitingListIcon },
-    { label: 'Account Settings',  href: '/settings',             routeName: 'settings.*',         icon: UserSettingsIcon },
+    { label: 'Discover Events', href: '/events', routeName: 'events.index', icon: SearchIcon },
+    { label: 'My Tickets', href: '/my-tickets', routeName: 'tickets.*', icon: TicketIcon },
+    { label: 'Saved Events', href: '/saved-events', routeName: 'wishlists.*', icon: BookmarkIcon },
+    { label: 'Waiting List', href: '/waiting-list', routeName: 'waiting-list.*', icon: WaitingListIcon },
+    { label: 'Account Settings', href: '/settings', routeName: 'settings.*', icon: UserSettingsIcon },
 ];
 
 // ─── Public API ─────────────────────────────────────────────────────
