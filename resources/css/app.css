@@ -9,7 +9,7 @@
         scroll-behavior: smooth;
     }
     body {
-        font-family: 'Inter', sans-serif;
+        font-family: 'Outfit', sans-serif;
         -webkit-font-smoothing: antialiased;
         -moz-osx-font-smoothing: grayscale;
         @apply bg-slate-50 text-slate-800;

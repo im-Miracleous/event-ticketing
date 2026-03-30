@@ -107,9 +107,9 @@ export default function Welcome({ auth }: PageProps) {
 
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
                         {[
-                            { title: 'Neon Nights Festival', location: 'Tokyo, Japan', date: 'DEC 15, 2026', img: 'https://images.unsplash.com/photo-1492684223066-81342ee5ff30' },
-                            { title: 'Global Tech Summit', location: 'San Francisco, CA', date: 'JAN 22, 2027', img: 'https://globalsummit.tech/assets/uploads/sites/8/2015/12/GTS-2021-Cover-4964x2792.jpg' },
-                            { title: 'Vanguard Art Gala', location: 'Paris, France', date: 'FEB 04, 2027', img: 'https://hips.hearstapps.com/hmg-prod/images/1960f3ac-b094-467f-894c-9b30d40c93df.jpeg' },
+                            { title: 'Neon Nights Festival', location: 'Tokyo, Japan', date: 'DEC 15, 2024', img: 'https://images.unsplash.com/photo-1492684223066-81342ee5ff30' },
+                            { title: 'Women in Tech Global Summit 2024', location: 'Paris, France', date: 'MAY 6-7, 2024', img: 'https://women-in-tech.org/wp-content/uploads/2024/06/womenintech-global-summit-2024-1080x608.jpg' },
+                            { title: 'Vanguard Art Gala', location: 'San Francisco, USA', date: 'FEB 04, 2025', img: 'https://hips.hearstapps.com/hmg-prod/images/1960f3ac-b094-467f-894c-9b30d40c93df.jpeg' },
                         ].map((event, i) => (
                             <div key={i} className="group cursor-pointer">
                                 <div className="relative aspect-[4/5] overflow-hidden rounded-3xl mb-6 ring-1 ring-white/10 group-hover:ring-primary-500/50 transition-all duration-500 shadow-2xl">

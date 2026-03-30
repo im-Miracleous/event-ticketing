@@ -10,7 +10,7 @@ interface StatisticsCardProps {
 
 export default function StatisticsCard({ title, value, icon, trend, trendUp = true }: StatisticsCardProps) {
     return (
-        <div className="group relative rounded-2xl bg-navy-900 dark:bg-navy-900/[0.03] border border-white/10 dark:border-white/5 p-5 shadow-sm dark:shadow-none hover:bg-navy-800 dark:hover:bg-navy-900/[0.05] hover:border-slate-300 dark:hover:border-white/10 transition-all duration-300">
+        <div className="group relative rounded-2xl bg-white dark:bg-navy-900/[0.03] border border-slate-200 dark:border-white/5 p-5 shadow-sm dark:shadow-none hover:bg-slate-50 dark:hover:bg-navy-900/[0.05] hover:border-slate-300 dark:hover:border-white/10 transition-all duration-300">
             <div className="flex items-start justify-between">
                 <div>
                     <p className="text-sm font-medium text-slate-500 dark:text-slate-400">{title}</p>

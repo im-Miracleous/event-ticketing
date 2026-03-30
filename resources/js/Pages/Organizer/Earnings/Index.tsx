@@ -71,17 +71,17 @@ export default function EarningsIndex({ auth, ledger, events, filters, summary }
             </div>
 
             {/* Ledger Table */}
-            <div className="bg-white dark:bg-navy-800 rounded-2xl shadow-sm border border-slate-200 dark:border-white/5 overflow-hidden">
+            <div className="bg-white dark:bg-navy-900 rounded-2xl shadow-sm border border-slate-200 dark:border-white/5 overflow-hidden">
                 <div className="overflow-x-auto">
                     <table className="w-full text-left border-collapse">
                         <thead>
-                            <tr className="bg-slate-50 dark:bg-navy-900 border-b border-slate-200 dark:border-white/5">
-                                <th className="py-4 px-6 text-sm font-semibold text-slate-900 dark:text-white">KODE TRX</th>
-                                <th className="py-4 px-6 text-sm font-semibold text-slate-900 dark:text-white">PEMBELI</th>
-                                <th className="py-4 px-6 text-sm font-semibold text-slate-900 dark:text-white">NAMA EVENT</th>
-                                <th className="py-4 px-6 text-sm font-semibold text-slate-900 dark:text-white">METODE BAYAR</th>
-                                <th className="py-4 px-6 text-sm font-semibold text-slate-900 dark:text-white">WAKTU TRANSAKSI</th>
-                                <th className="py-4 px-6 text-sm font-semibold text-slate-900 dark:text-white text-right">NOMINAL</th>
+                            <tr className="bg-slate-50 dark:bg-navy-950/50 border-b border-slate-200 dark:border-white/5 text-slate-500 dark:text-slate-400">
+                                <th className="py-4 px-6 text-xs font-bold uppercase tracking-wider">KODE TRX</th>
+                                <th className="py-4 px-6 text-xs font-bold uppercase tracking-wider">PEMBELI</th>
+                                <th className="py-4 px-6 text-xs font-bold uppercase tracking-wider">NAMA EVENT</th>
+                                <th className="py-4 px-6 text-xs font-bold uppercase tracking-wider">METODE BAYAR</th>
+                                <th className="py-4 px-6 text-xs font-bold uppercase tracking-wider">WAKTU TRANSAKSI</th>
+                                <th className="py-4 px-6 text-xs font-bold uppercase tracking-wider text-right">NOMINAL</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-200 dark:divide-white/5">

@@ -47,19 +47,19 @@ export default function ValidationCheckIn() {
     return (
         <div className="max-w-md mx-auto space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500 pb-20 md:pb-0">
             {/* Attendance Tracker */}
-            <div className="bg-primary-600 rounded-2xl p-6 text-white text-center shadow-lg shadow-primary-200">
+            <div className="bg-primary-600 dark:bg-primary-600 rounded-2xl p-6 text-white text-center shadow-lg shadow-primary-200 dark:shadow-primary-900/20">
                 <div className="flex items-center justify-center gap-2 mb-2">
                     <Users className="w-5 h-5 text-primary-200" />
                     <span className="text-sm font-medium text-primary-100">Statistik Kehadiran</span>
                 </div>
                 <div className="text-4xl font-black">{attendance.present} <span className="text-2xl text-primary-300">/ {attendance.total}</span></div>
                 <div className="w-full bg-primary-900/40 h-2 rounded-full mt-4 overflow-hidden">
-                    <div className="bg-navy-900 h-full rounded-full transition-all duration-500" style={{ width: `${(attendance.present / attendance.total) * 100}%` }} />
+                    <div className="bg-white dark:bg-navy-900 h-full rounded-full transition-all duration-500" style={{ width: `${(attendance.present / attendance.total) * 100}%` }} />
                 </div>
             </div>
 
             {sysMessage && (
-                <div className="text-center text-sm font-medium text-slate-500 animate-pulse bg-gray-100 py-2 rounded-lg">
+                <div className="text-center text-sm font-medium text-slate-500 animate-pulse bg-slate-50 dark:bg-navy-950/50 py-2 rounded-lg border border-slate-100 dark:border-white/5">
                     {sysMessage}
                 </div>
             )}
@@ -84,14 +84,14 @@ export default function ValidationCheckIn() {
                     
                     {scanStatus !== 'error' && (
                         <div className="space-y-1 mt-3">
-                            <p className="text-sm font-medium text-slate-300">{scannedData?.name}</p>
-                            <span className="text-xs px-2 py-1 bg-navy-900 border border-white/10 rounded-md font-bold text-slate-400 block w-max mx-auto shadow-sm">
+                            <p className="text-sm font-medium text-slate-600 dark:text-slate-300">{scannedData?.name}</p>
+                            <span className="text-xs px-2 py-1 bg-white dark:bg-navy-900 border border-slate-200 dark:border-white/10 rounded-md font-bold text-slate-500 dark:text-slate-400 block w-max mx-auto shadow-sm">
                                 {scannedData?.ticket}
                             </span>
                         </div>
                     )}
 
-                    <button onClick={() => setScanStatus('idle')} className="mt-6 text-sm font-semibold underline text-slate-500 hover:text-white">
+                    <button onClick={() => setScanStatus('idle')} className="mt-6 text-sm font-semibold underline text-slate-500 hover:text-slate-800 dark:hover:text-white transition-colors">
                         Scan tiket selanjutnya
                     </button>
                 </div>
@@ -99,27 +99,27 @@ export default function ValidationCheckIn() {
 
             {/* Scanning Interface */}
             {scanStatus === 'idle' && (
-                <div className="bg-navy-900 p-8 rounded-2xl border border-white/5 shadow-sm text-center">
-                    <div className="w-48 h-48 mx-auto border-2 border-dashed border-primary-200 rounded-2xl flex flex-col items-center justify-center bg-primary-50/50 mb-6 relative overflow-hidden group cursor-pointer hover:border-primary-400 transition-colors">
-                        <QrCode className="w-12 h-12 text-primary-300 group-hover:text-primary-500 transition-colors mb-2" />
-                        <span className="text-sm font-medium text-primary-400 group-hover:text-primary-600">Scan QR Code</span>
+                <div className="bg-white dark:bg-navy-900 p-8 rounded-2xl border border-slate-200 dark:border-white/5 shadow-sm text-center">
+                    <div className="w-48 h-48 mx-auto border-2 border-dashed border-primary-200 dark:border-primary-900/50 rounded-2xl flex flex-col items-center justify-center bg-primary-50/50 dark:bg-primary-950/20 mb-6 relative overflow-hidden group cursor-pointer hover:border-primary-400 transition-colors">
+                        <QrCode className="w-12 h-12 text-primary-300 dark:text-primary-700 group-hover:text-primary-500 transition-colors mb-2" />
+                        <span className="text-sm font-medium text-primary-400 dark:text-primary-600 group-hover:text-primary-600 dark:group-hover:text-primary-400">Scan QR Code</span>
                         
                         {/* Scanner Laser Simulation */}
                         <div className="absolute top-0 w-full h-1 bg-primary-500/50 shadow-[0_0_15px_rgba(99,102,241,0.5)] animate-[scan_2s_ease-in-out_infinite]" />
                     </div>
 
-                    <p className="text-xs text-gray-400 font-medium tracking-widest uppercase mb-4">Atau input manual</p>
+                    <p className="text-xs text-slate-400 dark:text-slate-500 font-medium tracking-widest uppercase mb-4">Atau input manual</p>
                     
                     <form onSubmit={handleManualCheckIn} className="relative">
-                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 dark:text-slate-500" />
                         <input 
                             type="text" 
                             placeholder="M-TIX-XXXXX" 
                             value={bookingCode}
                             onChange={(e) => setBookingCode(e.target.value.toUpperCase())}
-                            className="w-full pl-10 pr-24 py-3.5 text-sm font-bold border border-white/10 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all uppercase placeholder:font-normal"
+                            className="w-full pl-10 pr-24 py-3.5 text-sm font-bold bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all uppercase placeholder:font-normal text-slate-900 dark:text-white"
                         />
-                        <button type="submit" className="absolute right-2 top-1/2 -translate-y-1/2 px-4 py-2 bg-gray-900 text-white text-xs font-bold rounded-lg hover:bg-gray-800 transition-colors">
+                        <button type="submit" className="absolute right-2 top-1/2 -translate-y-1/2 px-4 py-2 bg-slate-900 dark:bg-navy-950 text-white text-xs font-bold rounded-lg hover:bg-black dark:hover:bg-black transition-colors">
                             Cek
                         </button>
                     </form>

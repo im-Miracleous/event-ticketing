@@ -88,17 +88,17 @@ export default function PromotionsIndex({ auth, promotions, events }: any) {
                 </button>
             </div>
 
-            <div className="bg-white dark:bg-navy-800 rounded-2xl shadow-sm border border-slate-200 dark:border-white/5 overflow-hidden">
+            <div className="bg-white dark:bg-navy-900 rounded-2xl shadow-sm border border-slate-200 dark:border-white/5 overflow-hidden">
                 <div className="overflow-x-auto">
                     <table className="w-full text-left border-collapse">
                         <thead>
-                            <tr className="bg-slate-50 dark:bg-navy-900 border-b border-slate-200 dark:border-white/5">
-                                <th className="py-4 px-6 text-sm font-semibold text-slate-900 dark:text-white">KODE PROMO</th>
-                                <th className="py-4 px-6 text-sm font-semibold text-slate-900 dark:text-white">NAMA EVENT</th>
-                                <th className="py-4 px-6 text-sm font-semibold text-slate-900 dark:text-white">DISKON</th>
-                                <th className="py-4 px-6 text-sm font-semibold text-slate-900 dark:text-white">KUOTA</th>
-                                <th className="py-4 px-6 text-sm font-semibold text-slate-900 dark:text-white">MASA BERLAKU</th>
-                                <th className="py-4 px-6 text-sm font-semibold text-slate-900 dark:text-white text-right">AKSI</th>
+                            <tr className="bg-slate-50 dark:bg-navy-950/50 border-b border-slate-200 dark:border-white/5 text-slate-500 dark:text-slate-400">
+                                <th className="py-4 px-6 text-xs font-bold uppercase tracking-wider">KODE PROMO</th>
+                                <th className="py-4 px-6 text-xs font-bold uppercase tracking-wider">NAMA EVENT</th>
+                                <th className="py-4 px-6 text-xs font-bold uppercase tracking-wider">DISKON</th>
+                                <th className="py-4 px-6 text-xs font-bold uppercase tracking-wider">KUOTA</th>
+                                <th className="py-4 px-6 text-xs font-bold uppercase tracking-wider">MASA BERLAKU</th>
+                                <th className="py-4 px-6 text-xs font-bold uppercase tracking-wider text-right">AKSI</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-200 dark:divide-white/5">
@@ -112,7 +112,7 @@ export default function PromotionsIndex({ auth, promotions, events }: any) {
                                 promotions.map((promo: any) => (
                                     <tr key={promo.id} className="hover:bg-slate-50 dark:hover:bg-white/5 transition-colors">
                                         <td className="py-4 px-6">
-                                            <span className="inline-block px-3 py-1 bg-primary-500/20 text-primary-400 font-bold rounded-lg tracking-wider border border-primary-500/20">
+                                            <span className="inline-block px-3 py-1 bg-primary-500/10 dark:bg-primary-500/20 text-primary-600 dark:text-primary-400 font-bold rounded-lg tracking-wider border border-primary-500/20">
                                                 {promo.code}
                                             </span>
                                         </td>

@@ -39,17 +39,17 @@ export default function AttendeesIndex({ auth, attendees, events, filters }: any
                 </div>
             </div>
 
-            <div className="bg-white dark:bg-navy-800 rounded-2xl shadow-sm border border-slate-200 dark:border-white/5 overflow-hidden">
+            <div className="bg-white dark:bg-navy-900 rounded-2xl shadow-sm border border-slate-200 dark:border-white/5 overflow-hidden">
                 <div className="overflow-x-auto">
                     <table className="w-full text-left border-collapse">
                         <thead>
-                            <tr className="bg-slate-50 dark:bg-navy-900 border-b border-slate-200 dark:border-white/5">
-                                <th className="py-4 px-6 text-sm font-semibold text-slate-900 dark:text-white">ID TIKET</th>
-                                <th className="py-4 px-6 text-sm font-semibold text-slate-900 dark:text-white">PESERTA</th>
-                                <th className="py-4 px-6 text-sm font-semibold text-slate-900 dark:text-white">PEMBELI (AKUN)</th>
-                                <th className="py-4 px-6 text-sm font-semibold text-slate-900 dark:text-white">EVENT & TIPE</th>
-                                <th className="py-4 px-6 text-sm font-semibold text-slate-900 dark:text-white">STATUS</th>
-                                <th className="py-4 px-6 text-sm font-semibold text-slate-900 dark:text-white text-right">TANGGAL BELI</th>
+                            <tr className="bg-slate-50 dark:bg-navy-950/50 border-b border-slate-200 dark:border-white/5 text-slate-500 dark:text-slate-400">
+                                <th className="py-4 px-6 text-xs font-bold uppercase tracking-wider">ID TIKET</th>
+                                <th className="py-4 px-6 text-xs font-bold uppercase tracking-wider">PESERTA</th>
+                                <th className="py-4 px-6 text-xs font-bold uppercase tracking-wider">PEMBELI (AKUN)</th>
+                                <th className="py-4 px-6 text-xs font-bold uppercase tracking-wider">EVENT & TIPE</th>
+                                <th className="py-4 px-6 text-xs font-bold uppercase tracking-wider">STATUS</th>
+                                <th className="py-4 px-6 text-xs font-bold uppercase tracking-wider text-right">TANGGAL BELI</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-200 dark:divide-white/5">
