@@ -19,6 +19,8 @@ class RegistrationTest extends TestCase
 
     public function test_new_users_can_register(): void
     {
+        \Illuminate\Support\Facades\Mail::fake();
+
         $response = $this->post('/register', [
             'name' => 'Test User',
             'username' => 'testuser',
@@ -29,5 +31,7 @@ class RegistrationTest extends TestCase
 
         $response->assertSessionHas('pending_registration');
         $response->assertRedirect(route('otp.verify'));
+
+        \Illuminate\Support\Facades\Mail::assertSent(\App\Mail\OtpVerificationMail::class);
     }
 }
