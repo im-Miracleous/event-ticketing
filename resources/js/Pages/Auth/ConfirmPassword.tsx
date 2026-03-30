@@ -26,7 +26,7 @@ export default function ConfirmPassword() {
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 15v2m0 0v2m0-2h2m-2 0H10m11-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                     </svg>
                 </div>
-                <h2 className="text-3xl font-black text-white mb-2 italic tracking-tighter uppercase">SECURE AREA</h2>
+                <h2 className="text-3xl font-black text-slate-900 dark:text-white mb-2 italic tracking-tighter uppercase">SECURE AREA</h2>
                 <div className="h-1 w-12 bg-primary-500 mx-auto rounded-full mb-6" />
                 <p className="text-slate-400 text-sm max-w-xs mx-auto">
                     This is a secure area of the application. Please confirm your password before continuing.

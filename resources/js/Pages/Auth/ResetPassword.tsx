@@ -24,11 +24,11 @@ export default function ResetPassword({ token, email }: { token: string; email: 
             <Head title="Set New Password" />
 
             <div className="text-center mb-10">
-                <h2 className="text-3xl font-black text-white mb-2 italic tracking-tighter uppercase">NEW PASSWORD</h2>
+                <h2 className="text-3xl font-black text-slate-900 dark:text-white mb-2 italic tracking-tighter uppercase">NEW PASSWORD</h2>
                 <div className="h-1 w-12 bg-primary-500 mx-auto rounded-full mb-6" />
                 <p className="text-slate-400 text-sm">
                     Enter your new secure password for <br />
-                    <span className="text-white font-semibold">{email}</span>
+                    <span className="text-slate-900 dark:text-white font-semibold">{email}</span>
                 </p>
             </div>
 

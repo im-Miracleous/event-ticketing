@@ -23,7 +23,7 @@ export default function ForgotPassword({ status }: { status?: string }) {
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
                     </svg>
                 </div>
-                <h2 className="text-3xl font-black text-white mb-2 italic tracking-tighter uppercase">FORGOT PASSWORD</h2>
+                <h2 className="text-3xl font-black text-slate-900 dark:text-white mb-2 italic tracking-tighter uppercase">FORGOT PASSWORD</h2>
                 <div className="h-1 w-12 bg-primary-500 mx-auto rounded-full mb-6" />
                 <p className="text-slate-400 text-sm max-w-xs mx-auto">
                     No worries! Enter the email address associated with your account and we'll send you an OTP.
