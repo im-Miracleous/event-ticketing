@@ -12,8 +12,8 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('wishlists', function (Blueprint $table) {
-            $table->unsignedBigInteger('user_id');
-            $table->unsignedBigInteger('event_id')->index('fk_wishlist_events_idx');
+            $table->char('user_id', 36)->index('fk_wishlist_users_idx');
+            $table->char('event_id', 36)->index('fk_wishlist_events_idx');
 
             $table->primary(['user_id', 'event_id']);
         });

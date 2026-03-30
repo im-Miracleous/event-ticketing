@@ -12,7 +12,7 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('events', function (Blueprint $table) {
-            $table->id();
+            $table->char('id', 36)->primary();
             $table->string('title', 45);
             $table->string('description', 200);
             $table->string('banner_image');
@@ -22,7 +22,7 @@ return new class extends Migration
             $table->dateTime('end_time');
             $table->string('location', 45);
             $table->unsignedBigInteger('event_category_id')->index('fk_events_category_idx');
-            $table->unsignedBigInteger('organizer_id')->index('fk_events_organizers_idx');
+            $table->char('organizer_id', 36)->index('fk_events_organizers_idx');
             $table->timestamp('created_at')->nullable()->useCurrent();
             $table->timestamp('updated_at')->useCurrentOnUpdate()->nullable()->useCurrent();
         });

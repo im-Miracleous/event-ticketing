@@ -17,7 +17,7 @@ return new class extends Migration
             $table->decimal('price', 10);
             $table->integer('quota');
             $table->integer('available_stock');
-            $table->unsignedBigInteger('event_id')->index('fk_tickets_types_events_idx');
+            $table->char('event_id', 36)->index('fk_tickets_types_events_idx');
             $table->timestamp('created_at')->nullable()->useCurrent();
             $table->timestamp('updated_at')->useCurrentOnUpdate()->nullable()->useCurrent();
         });

@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Contracts\Auth\MustVerifyEmail;
+use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
@@ -11,7 +12,33 @@ use Illuminate\Support\Str;
 class User extends Authenticatable implements MustVerifyEmail
 {
     /** @use HasFactory<\Database\Factories\UserFactory> */
-    use HasFactory, Notifiable;
+    use HasFactory, Notifiable, HasUuids;
+
+    /**
+     * The primary key for the model.
+     * @var string
+     */
+    protected $primaryKey = 'id';
+
+    /**
+     * Get the value indicating whether the IDs are incrementing.
+     *
+     * @return bool
+     */
+    public function getIncrementing()
+    {
+        return false;
+    }
+
+    /**
+     * Get the auto-incrementing key type.
+     *
+     * @return string
+     */
+    public function getKeyType()
+    {
+        return 'string';
+    }
 
     /**
      * The attributes that are mass assignable.
@@ -62,9 +89,5 @@ class User extends Authenticatable implements MustVerifyEmail
 
     public function waitingLists() {
         return $this->belongsToMany(WaitingList::class, 'Register Waiting_List', 'users_user_id', 'waiting_list_waitinglist_id');
-    }
-
-    public function organizer() {
-        return $this->hasOne(Organizer::class, 'user_id');
     }
 }

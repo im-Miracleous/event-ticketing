@@ -12,12 +12,12 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('organizers', function (Blueprint $table) {
-            $table->id();
+            $table->char('id', 36)->primary();
             $table->string('name', 100);
             $table->text('description');
             $table->string('logo')->nullable();
             $table->string('bank_account', 45);
-            $table->unsignedBigInteger('user_id')->index('fk_organizers_users_idx');
+            $table->char('user_id', 36)->index('fk_organizers_users_idx');
             $table->timestamp('created_at')->nullable()->useCurrent();
             $table->timestamp('updated_at')->useCurrentOnUpdate()->nullable()->useCurrent();
         });

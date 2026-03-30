@@ -10,7 +10,7 @@ return new class extends Migration
     {
         Schema::create('otp_codes', function (Blueprint $table) {
             $table->id();
-            $table->unsignedBigInteger('user_id')->nullable();
+            $table->char('user_id', 36)->index('fk_otp_users_idx');
             $table->foreign('user_id')->references('id')->on('users')->cascadeOnDelete();
             $table->string('email')->nullable();
             $table->string('code', 6);

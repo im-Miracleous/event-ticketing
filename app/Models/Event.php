@@ -1,15 +1,17 @@
 <?php
 namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Concerns\HasUuids;
 
 class Event extends Model {
+    use HasUuids;
     protected $table = 'events';
 
     protected $primaryKey = 'id';
     
-    public $incrementing = true;
+    public $incrementing = false;
     
-    protected $keyType = 'int';
+    protected $keyType = 'string';
     
     protected $fillable = [
         'id', 
@@ -24,7 +26,7 @@ class Event extends Model {
         'format',
         'event_category_id', 
         'organizer_id',
-        'status',
+        'status'
     ];
     
     public function category() { 
