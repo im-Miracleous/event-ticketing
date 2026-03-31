@@ -26,31 +26,32 @@ class EventController extends Controller
             $search = $request->search;
             $query->where(function ($q) use ($search) {
                 $q->where('title', 'like', "%{$search}%")
-                  ->orWhereHas('organizer', fn($oq) => $oq->where('name', 'like', "%{$search}%"));
+                    ->orWhereHas('organizer', fn($oq) => $oq->where('name', 'like', "%{$search}%"));
             });
         }
 
         $events = $query->orderByDesc('created_at')
             ->paginate($request->input('per_page', 10))
             ->through(fn($e) => [
-                'id'        => $e->id,
-                'name'      => $e->title,
+                'id' => $e->id,
+                'name' => $e->title,
                 'organizer' => $e->organizer->name ?? '—',
-                'category'  => $e->category->name ?? '—',
-                'date'      => $e->event_date ? \Carbon\Carbon::parse($e->event_date)->format('M d, Y') : '—',
-                'tickets'   => $e->ticketTypes->count() > 0
+                'category' => $e->category->name ?? '—',
+                'date' => $e->event_date ? \Carbon\Carbon::parse($e->event_date)->format('M d, Y') : '—',
+                'tickets' => $e->ticketTypes->count() > 0
                     ? ($e->ticketTypes->sum('quota') - $e->ticketTypes->sum('available_stock')) . ' / ' . $e->ticketTypes->sum('quota')
                     : '0 / ' . $e->total_quota,
-                'status'    => $e->status ?? 'Active',
+                'status' => $e->status ?? 'Active',
             ]);
 
         return Inertia::render('Admin/Events/Index', [
-            'events'  => $events,
+            'events' => $events,
             'filters' => $request->only(['status', 'search', 'per_page']),
         ]);
     }
 
-    public function create() {
+    public function create()
+    {
         if (\App\Models\EventCategory::count() === 0) {
             \App\Models\EventCategory::insert([
                 ['name' => 'Music & Concert', 'description' => 'Live music events and concerts'],
@@ -67,7 +68,8 @@ class EventController extends Controller
         ]);
     }
 
-    public function store(Request $request) {
+    public function store(Request $request)
+    {
         $data = $request->validate([
             'title' => 'required|string|max:45',
             'description' => 'required|string|max:200',
@@ -81,7 +83,7 @@ class EventController extends Controller
             'event_category_id' => 'required|exists:event_category,id',
             'organizer_id' => 'required|exists:organizers,id'
         ]);
-        
+
         if ($request->hasFile('banner_image')) {
             $path = $request->file('banner_image')->store('banners', 'public');
             $data['banner_image'] = '/storage/' . $path;
@@ -94,7 +96,8 @@ class EventController extends Controller
         return redirect()->route('admin.events.index')->with('success', 'Event created successfully.');
     }
 
-    public function edit($id) {
+    public function edit($id)
+    {
         $event = Event::findOrFail($id);
         return Inertia::render('Admin/Events/Edit', [
             'event' => $event,
@@ -103,7 +106,8 @@ class EventController extends Controller
         ]);
     }
 
-    public function update(Request $request, $id) {
+    public function update(Request $request, $id)
+    {
         $event = Event::findOrFail($id);
         $data = $request->validate([
             'title' => 'string|max:45',

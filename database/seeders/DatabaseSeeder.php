@@ -73,7 +73,7 @@ class DatabaseSeeder extends Seeder
                     'username'          => str_replace('-', '.', $slug),
                     'role'              => $idx < 4 ? 'Organizer' : 'User',
                     'status'            => $idx === 7 ? 'Banned' : ($idx === 5 || $idx === 13 ? 'Suspended' : 'Active'),
-                    'password'          => Hash::make('password'),
+                    'password'          => 'password',
                     'email_verified_at' => now()->subDays(rand(1, 90)),
                 ]
             );
@@ -131,7 +131,6 @@ class DatabaseSeeder extends Seeder
             $events[] = Event::firstOrCreate(
                 ['title' => $def[0]],
                 [
-                    'id'                => Str::uuid()->toString(),
                     'description'       => fake()->sentence(10),
                     'banner_image'      => 'https://picsum.photos/seed/' . Str::slug($def[0]) . '/800/400',
                     'event_date'        => $date,

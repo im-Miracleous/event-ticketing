@@ -144,12 +144,19 @@ export default function CheckoutShow({ event }: Props) {
                                                     {tt.available_stock === 0 ? '🔴 Habis' : `${tt.available_stock} tiket tersedia`}
                                                 </p>
                                             </div>
-                                            {tt.available_stock > 0 && (
+                                            {tt.available_stock > 0 ? (
                                                 <div className="flex items-center gap-3">
                                                     <button onClick={() => updateQty(tt, -1)} className="w-9 h-9 rounded-full bg-slate-100 dark:bg-slate-800 font-black text-slate-700 dark:text-white hover:bg-violet-100 dark:hover:bg-violet-900/40 transition-colors">−</button>
                                                     <span className="w-6 text-center text-lg font-black text-slate-900 dark:text-white">{getQty(tt.id)}</span>
                                                     <button onClick={() => updateQty(tt, 1)} className="w-9 h-9 rounded-full bg-violet-600 hover:bg-violet-500 font-black text-white transition-colors">+</button>
                                                 </div>
+                                            ) : (
+                                                <button
+                                                    onClick={() => router.post('/waiting-list', { event_id: event.id, ticket_type_id: tt.id }, { preserveScroll: true })}
+                                                    className="px-4 py-2 rounded-xl text-xs font-bold text-amber-600 border border-amber-300 dark:border-amber-700 hover:bg-amber-50 dark:hover:bg-amber-900/20 transition-colors"
+                                                >
+                                                    📋 Join Waiting List
+                                                </button>
                                             )}
                                         </div>
                                         {errors[tt.id] && (

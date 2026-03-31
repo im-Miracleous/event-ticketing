@@ -69,6 +69,7 @@ interface Props {
     trendingEvents: EventItem[];
     categories: Category[];
     filters: Filters;
+    savedEventIds: (string | number)[];
 }
 
 const SORT_OPTIONS = [
@@ -113,7 +114,7 @@ const PinIcon = () => (
 );
 
 // ─── Event Card Component ──────────────────────────────────────────────────
-function EventCard({ event }: { event: EventItem }) {
+function EventCard({ event, isSaved, onToggleSave }: { event: EventItem; isSaved: boolean; onToggleSave: () => void }) {
     const minPrice = event.ticket_types?.length > 0 
         ? Math.min(...event.ticket_types.map(t => Number(t.price))) 
         : 0;
@@ -121,7 +122,6 @@ function EventCard({ event }: { event: EventItem }) {
     const fallbackImg = `https://images.unsplash.com/photo-1501281668745-f7f57925c3b4?q=80&w=800&auto=format&fit=crop`;
     
     const isSoldOut = event.ticket_types?.every(t => t.available_stock === 0) ?? false;
-    const isEarlyBird = event.id.includes('early'); // dummy logic for badge
 
     return (
         <div className="group relative bg-white dark:bg-slate-900/40 rounded-[2rem] overflow-hidden border border-slate-200 dark:border-slate-800 hover:border-violet-500/50 shadow-sm hover:shadow-2xl hover:shadow-violet-500/10 transition-all duration-500">
@@ -141,14 +141,25 @@ function EventCard({ event }: { event: EventItem }) {
                             {event.category.name}
                         </span>
                     )}
-                    {isSoldOut ? (
+                    {isSoldOut && (
                         <span className="px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider bg-red-500 text-white">Sold Out</span>
-                    ) : isEarlyBird ? (
-                        <span className="px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider bg-amber-500 text-white">Early Bird</span>
-                    ) : (
-                        <span className="px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider bg-emerald-500 text-white">New</span>
                     )}
                 </div>
+
+                {/* Save/Bookmark Button */}
+                <button
+                    onClick={(e) => { e.preventDefault(); e.stopPropagation(); onToggleSave(); }}
+                    className={`absolute top-4 right-4 p-2.5 rounded-xl backdrop-blur-md transition-all duration-300 ${
+                        isSaved 
+                        ? 'bg-violet-600 text-white shadow-lg shadow-violet-500/40' 
+                        : 'bg-black/30 text-white/80 hover:bg-violet-600 hover:text-white'
+                    }`}
+                    title={isSaved ? 'Hapus dari simpan' : 'Simpan event'}
+                >
+                    <svg className="w-4 h-4" fill={isSaved ? 'currentColor' : 'none'} viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M17.593 3.322c1.1.128 1.907 1.077 1.907 2.185V21L12 17.25 4.5 21V5.507c0-1.108.806-2.057 1.907-2.185a48.507 48.507 0 0 1 11.186 0Z" />
+                    </svg>
+                </button>
 
                 <div className="absolute bottom-4 left-4 right-4 flex items-center justify-between">
                     <div className="flex items-center gap-1.5 text-white">
@@ -182,7 +193,7 @@ function EventCard({ event }: { event: EventItem }) {
                         </span>
                     </div>
                     <Link
-                        href={`/events/${event.id}`}
+                        href={`/events/${event.id}/checkout`}
                         className="p-3 rounded-2xl bg-slate-900 dark:bg-white text-white dark:text-slate-900 hover:bg-violet-600 dark:hover:bg-violet-400 transition-colors"
                     >
                         <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
@@ -196,7 +207,13 @@ function EventCard({ event }: { event: EventItem }) {
 }
 
 // ─── Main Catalog Page ──────────────────────────────────────────────────────
-export default function EventCatalog({ events, trendingEvents, categories, filters }: Props) {
+export default function EventCatalog({ events, trendingEvents, categories, filters, savedEventIds = [] }: Props) {
+    const [savedIds, setSavedIds] = useState<(string|number)[]>(savedEventIds);
+
+    const toggleSave = (eventId: string | number) => {
+        setSavedIds(prev => prev.includes(eventId) ? prev.filter(id => id !== eventId) : [...prev, eventId]);
+        router.post('/saved-events/toggle', { event_id: eventId }, { preserveScroll: true, preserveState: true });
+    };
     const [search, setSearch] = useState(filters.search ?? '');
     const [activeTab, setActiveTab] = useState(filters.category ?? 'all');
 
@@ -412,7 +429,7 @@ export default function EventCatalog({ events, trendingEvents, categories, filte
                     <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-8">
                         {events.data.length > 0 ? (
                             events.data.map(event => (
-                                <EventCard key={event.id} event={event} />
+                                <EventCard key={event.id} event={event} isSaved={savedIds.includes(event.id)} onToggleSave={() => toggleSave(event.id)} />
                             ))
                         ) : (
                             <div className="col-span-full py-20 text-center">

@@ -5,8 +5,6 @@ use Illuminate\Database\Eloquent\Model;
 class Wishlist extends Model {
     protected $table = 'wishlists';
 
-    public $incrementing = false;
-
     protected $fillable = [
         'user_id', 
         'event_id'

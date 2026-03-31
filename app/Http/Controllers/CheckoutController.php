@@ -12,6 +12,7 @@ use App\Models\Ticket;
 use App\Models\Attendee;
 use App\Mail\BookingPendingMail;
 use App\Mail\ETicketMail;
+use App\Services\DokuService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -34,9 +35,9 @@ class CheckoutController extends Controller
     }
 
     /**
-     * Store a new booking (lock stock, create pending transaction).
+     * Store a new booking (lock stock, create pending transaction, create DOKU payment).
      */
-    public function store(Request $request)
+    public function store(Request $request, DokuService $dokuService)
     {
         $request->validate([
             'event_id'         => 'required|string|exists:events,id',
@@ -48,7 +49,7 @@ class CheckoutController extends Controller
             'attendees.*.email' => 'required|email|max:100',
         ]);
 
-        $result = DB::transaction(function () use ($request) {
+        $result = DB::transaction(function () use ($request, $dokuService) {
             $totalAmount = 0;
             $resolvedItems = [];
 
@@ -72,18 +73,49 @@ class CheckoutController extends Controller
                 ];
             }
 
+            $transactionId = 'TRX-' . strtoupper(Str::random(12));
+            $expiryMinutes = config('doku.expiry_minutes', 60);
+            $expiresAt = now()->addMinutes($expiryMinutes);
+
+            // Attempt to create DOKU payment
+            $dokuResponse = null;
+            $dokuPaymentUrl = null;
+            $dokuVaNumber = null;
+            $isDokuEnabled = !empty(config('doku.client_id')) && !empty(config('doku.secret_key'));
+
+            if ($isDokuEnabled && $totalAmount > 0) {
+                $user = Auth::user();
+                $dokuResponse = $dokuService->createVirtualAccount([
+                    'invoice_number' => $transactionId,
+                    'amount'         => (int) $totalAmount,
+                    'customer_id'    => (string) $user->id,
+                    'customer_name'  => $user->name,
+                    'customer_email' => $user->email,
+                    'item_name'      => 'EventHive Ticket',
+                ]);
+
+                if ($dokuResponse) {
+                    $dokuPaymentUrl = $dokuResponse['response']['payment']['url'] ?? null;
+                    $dokuVaNumber = $dokuResponse['response']['payment']['virtual_account_number'] 
+                                 ?? $dokuResponse['virtual_account_info']['virtual_account_number'] 
+                                 ?? null;
+                }
+            }
+
             // Create payment record
             $payment = Payment::create([
-                'payment_method'   => 'Transfer',
-                'payment_status'   => 'Pending',
-                'transaction_time' => now(),
+                'payment_method'       => 'Transfer',
+                'payment_status'       => 'Pending',
+                'transaction_time'     => now(),
+                'doku_invoice_number'  => $isDokuEnabled ? $transactionId : null,
+                'doku_payment_url'     => $dokuPaymentUrl,
+                'doku_va_number'       => $dokuVaNumber,
+                'doku_raw_response'    => $dokuResponse,
             ]);
-
-            $expiresAt = now()->addMinutes(15);
 
             // Create transaction
             $transaction = Transaction::create([
-                'id'                 => 'TRX-' . strtoupper(Str::random(12)),
+                'id'                 => $transactionId,
                 'total_amount'       => $totalAmount,
                 'transaction_status' => 'Pending',
                 'user_id'            => Auth::id(),
@@ -128,21 +160,31 @@ class CheckoutController extends Controller
                 }
             }
 
-            // Dispatch auto-cancel job after 15 minutes
+            // Dispatch auto-cancel job
             CancelExpiredBooking::dispatch($transaction->id)->delay($expiresAt);
 
             // Send Booking Pending Email
             $transaction->load('event');
             Mail::to(Auth::user()->email)->send(new BookingPendingMail($transaction));
 
-            return $transaction;
+            return [
+                'transaction'     => $transaction,
+                'doku_payment_url' => $dokuPaymentUrl,
+                'is_doku'          => $isDokuEnabled && $totalAmount > 0,
+            ];
         });
 
-        return redirect()->route('checkout.payment', $result->id);
+        // If DOKU is enabled and we got a payment URL, redirect to DOKU
+        if ($result['is_doku'] && $result['doku_payment_url']) {
+            return Inertia::location($result['doku_payment_url']);
+        }
+
+        // Fallback to manual payment page
+        return redirect()->route('checkout.payment', $result['transaction']->id);
     }
 
     /**
-     * Show the payment page.
+     * Show the payment page (manual / fallback when DOKU URL not available).
      */
     public function payment(string $transactionId)
     {
@@ -159,13 +201,22 @@ class CheckoutController extends Controller
             return redirect()->route('checkout.result', $transactionId);
         }
 
+        // If DOKU payment URL exists, redirect there
+        if ($transaction->payment && $transaction->payment->doku_payment_url) {
+            return Inertia::render('Checkout/Payment', [
+                'transaction' => $transaction,
+                'dokuPaymentUrl' => $transaction->payment->doku_payment_url,
+            ]);
+        }
+
         return Inertia::render('Checkout/Payment', [
             'transaction' => $transaction,
+            'dokuPaymentUrl' => null,
         ]);
     }
 
     /**
-     * Confirm payment by user.
+     * Confirm payment by user (manual fallback).
      */
     public function confirmPayment(Request $request, string $transactionId)
     {

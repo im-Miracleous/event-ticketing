@@ -39,7 +39,7 @@ class AuthController extends Controller
             } elseif ($user->role === 'Organizer') {
                 $defaultRoute = route('organizer.dashboard');
             } else {
-                $defaultRoute = route('dashboard');
+                $defaultRoute = route('events.index');
             }
 
             return redirect()->intended($defaultRoute);
@@ -69,7 +69,7 @@ class AuthController extends Controller
             'name' => $request->name,
             'username' => $request->username,
             'email' => $request->email,
-            'password' => Hash::make($request->password),
+            'password' => $request->password,
             'role' => $request->role ?? 'User',
         ]);
 

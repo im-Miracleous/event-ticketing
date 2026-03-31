@@ -4,7 +4,9 @@ namespace App\Http\Controllers;
 
 use App\Models\Event;
 use App\Models\EventCategory;
+use App\Models\Wishlist;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 
 use Inertia\Inertia;
 
@@ -84,9 +86,9 @@ class EventCatalogController extends Controller
         $sortMapping = [
             'date_asc'   => ['event_date', 'asc'],
             'date_desc'  => ['event_date', 'desc'],
-            'price_asc'  => ['price', 'asc'], // Note: need to handle this specially if it's in ticketTypes
+            'price_asc'  => ['price', 'asc'],
             'price_desc' => ['price', 'desc'],
-            'popular'    => ['total_quota', 'desc'], // placeholder for popularity
+            'popular'    => ['total_quota', 'desc'],
         ];
 
         $sort = $request->input('sort', 'date_asc');
@@ -105,12 +107,20 @@ class EventCatalogController extends Controller
 
         $categories = EventCategory::all();
 
+        // Get user's wishlisted event IDs
+        $savedEventIds = [];
+        if (Auth::check()) {
+            $savedEventIds = Wishlist::where('user_id', Auth::id())
+                ->pluck('event_id')
+                ->toArray();
+        }
+
         return Inertia::render('Events/Index', [
             'events' => $events,
             'trendingEvents' => $trendingEvents,
             'categories' => $categories,
             'filters' => $request->only(['search', 'category', 'location', 'format', 'price_min', 'price_max', 'time', 'date_from', 'date_to', 'sort']),
+            'savedEventIds' => $savedEventIds,
         ]);
     }
 }
-
