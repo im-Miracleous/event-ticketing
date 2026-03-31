@@ -47,10 +47,10 @@ export default function Pagination({
                     <select
                         value={perPage}
                         onChange={(e) => onPerPageChange(Number(e.target.value))}
-                        className="rounded-lg border border-white/10 dark:border-white/10 bg-navy-900 dark:bg-navy-900/5 pl-2 pr-8 py-1 text-xs font-medium text-slate-300 dark:text-slate-300 focus:border-primary-500/40 focus:ring-1 focus:ring-primary-500/20 transition cursor-pointer"
+                        className="rounded-lg border border-slate-200 dark:border-white/10 bg-white dark:bg-navy-900/5 pl-2 pr-8 py-1 text-xs font-medium text-slate-700 dark:text-slate-300 focus:border-primary-500/40 focus:ring-1 focus:ring-primary-500/20 transition cursor-pointer"
                     >
                         {perPageOptions.map((opt) => (
-                            <option key={opt} value={opt}>{opt}</option>
+                            <option key={opt} value={opt} className="bg-white dark:bg-navy-900 text-slate-900 dark:text-white">{opt}</option>
                         ))}
                     </select>
                 </div>
