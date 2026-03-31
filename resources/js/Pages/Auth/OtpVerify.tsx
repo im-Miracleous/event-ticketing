@@ -28,11 +28,11 @@ export default function OtpVerify({ email }: { email: string }) {
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
                     </svg>
                 </div>
-                <h2 className="text-3xl font-black text-white mb-2 italic tracking-tighter uppercase">VERIFY EMAIL</h2>
+                <h2 className="text-3xl font-black text-slate-900 dark:text-white mb-2 italic tracking-tighter uppercase">VERIFY EMAIL</h2>
                 <div className="h-1 w-12 bg-primary-500 mx-auto rounded-full mb-6" />
                 <p className="text-slate-400 text-sm max-w-xs mx-auto">
                     We've sent a 6-digit verification code to <br />
-                    <span className="text-white font-semibold">{email}</span>
+                    <span className="text-slate-900 dark:text-white font-semibold">{email}</span>
                 </p>
             </div>
 
@@ -48,7 +48,7 @@ export default function OtpVerify({ email }: { email: string }) {
                         type="text"
                         name="code"
                         value={data.code}
-                        className="input-field text-center text-4xl tracking-[0.75em] font-black placeholder:text-white/5 py-6"
+                        className="input-field text-center text-4xl tracking-[0.75em] font-black placeholder:text-slate-200 dark:placeholder:text-white/5 py-6"
                         placeholder="000000"
                         maxLength={6}
                         onChange={(e) => setData('code', e.target.value.replace(/\D/g, ''))}
@@ -68,7 +68,7 @@ export default function OtpVerify({ email }: { email: string }) {
                     <button 
                         type="button"
                         onClick={resend}
-                        className="text-sm text-slate-500 hover:text-white transition-colors text-center font-bold uppercase tracking-widest"
+                        className="text-sm text-slate-500 hover:text-slate-900 dark:hover:text-white transition-colors text-center font-bold uppercase tracking-widest"
                         disabled={processing}
                     >
                         Didn't receive a code? <span className="text-primary-400 ml-1">Resend</span>

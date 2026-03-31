@@ -33,18 +33,18 @@ export default function Welcome({ auth }: PageProps) {
                         </Link>
                     ) : (
                         <>
-                            <Link
+                            <a
                                 href={route('login')}
                                 className="text-sm font-bold tracking-widest uppercase text-slate-300 hover:text-white transition-colors"
                             >
                                 Sign In
-                            </Link>
-                            <Link
+                            </a>
+                            <a
                                 href={route('register')}
                                 className="btn-primary px-8 py-3"
                             >
                                 <span className="text-sm font-black tracking-widest uppercase text-white">Get Started</span>
-                            </Link>
+                            </a>
                         </>
                     )}
                 </div>
@@ -67,9 +67,9 @@ export default function Welcome({ auth }: PageProps) {
                 </p>
 
                 <div className="flex flex-col md:flex-row items-center justify-center space-y-4 md:space-y-0 md:space-x-6">
-                    <Link href={route('register')} className="btn-primary px-10 py-5 w-full md:w-auto text-white">
+                    <a href={route('register')} className="btn-primary px-10 py-5 w-full md:w-auto text-white">
                         <span className="font-black text-sm tracking-widest uppercase">Explore Events</span>
-                    </Link>
+                    </a>
                     <button className="px-10 py-5 rounded-2xl bg-white/5 border border-white/10 backdrop-blur-md hover:bg-white/10 transition-all w-full md:w-auto">
                         <span className="font-black text-sm tracking-widest uppercase text-slate-300">How it works</span>
                     </button>
@@ -107,9 +107,9 @@ export default function Welcome({ auth }: PageProps) {
 
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
                         {[
-                            { title: 'Neon Nights Festival', location: 'Tokyo, Japan', date: 'DEC 15, 2026', img: 'https://images.unsplash.com/photo-1492684223066-81342ee5ff30' },
-                            { title: 'Global Tech Summit', location: 'San Francisco, CA', date: 'JAN 22, 2027', img: 'https://globalsummit.tech/assets/uploads/sites/8/2015/12/GTS-2021-Cover-4964x2792.jpg' },
-                            { title: 'Vanguard Art Gala', location: 'Paris, France', date: 'FEB 04, 2027', img: 'https://hips.hearstapps.com/hmg-prod/images/1960f3ac-b094-467f-894c-9b30d40c93df.jpeg' },
+                            { title: 'Neon Nights Festival', location: 'Tokyo, Japan', date: 'DEC 15, 2024', img: 'https://images.unsplash.com/photo-1492684223066-81342ee5ff30' },
+                            { title: 'Women in Tech Global Summit 2024', location: 'Paris, France', date: 'MAY 6-7, 2024', img: 'https://women-in-tech.org/wp-content/uploads/2024/06/womenintech-global-summit-2024-1080x608.jpg' },
+                            { title: 'Vanguard Art Gala', location: 'San Francisco, USA', date: 'FEB 04, 2025', img: 'https://hips.hearstapps.com/hmg-prod/images/1960f3ac-b094-467f-894c-9b30d40c93df.jpeg' },
                         ].map((event, i) => (
                             <div key={i} className="group cursor-pointer">
                                 <div className="relative aspect-[4/5] overflow-hidden rounded-3xl mb-6 ring-1 ring-white/10 group-hover:ring-primary-500/50 transition-all duration-500 shadow-2xl">
@@ -144,9 +144,9 @@ export default function Welcome({ auth }: PageProps) {
                     <p className="text-xl text-slate-400 mb-12 max-w-2xl mx-auto">
                         Experience events like never before. Secure, fast, and exclusive.
                     </p>
-                    <Link href={route('register')} className="btn-primary px-12 py-5 text-white inline-block">
+                    <a href={route('register')} className="btn-primary px-12 py-5 text-white inline-block">
                         <span className="font-black text-sm tracking-widest uppercase">Create Free Account</span>
-                    </Link>
+                    </a>
                 </div>
             </section>
 

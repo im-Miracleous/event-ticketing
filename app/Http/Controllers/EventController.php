@@ -6,74 +6,78 @@ use Illuminate\Http\Request;
 use Inertia\Inertia;
 
 class EventController extends Controller {
-    public function index() {
+    public function dashboard(Request $request) {
+        $organizerId = auth()->user()->organizer?->id ?? 0;
+        $events = Event::where('organizer_id', $organizerId)->get();
+        $eventIds = $events->pluck('id');
+
+        // Total Event Aktif
+        $totalActiveEvents = $events->where('status', 'Active')->count();
+
+        // Transactions related to this organizer's events (successful only)
+        $transactions = \App\Models\Transaction::whereIn('event_id', $eventIds)
+                                ->where('transaction_status', 'success')
+                                ->get();
+                                
+        // Total Pendapatan
+        $totalRevenue = $transactions->sum('total_amount');
+
+        // Total Tiket Terjual
+        $totalTicketsSold = \App\Models\Ticket::whereHas('detail.transaction', function($q) use ($eventIds) {
+            $q->whereIn('event_id', $eventIds)->where('transaction_status', 'success');
+        })->count();
+
+        // Peserta Baru (Number of unique buyers)
+        $newAttendees = $transactions->unique('user_id')->count();
+
+        // Grafik Transaksi: Revenue grouped by date over the last 30 days
+        $thirtyDaysAgo = now()->subDays(30);
+        $recentTransactions = \App\Models\Transaction::whereIn('event_id', $eventIds)
+                                ->where('transaction_status', 'success')
+                                ->where('created_at', '>=', $thirtyDaysAgo)
+                                ->orderBy('created_at')
+                                ->get();
+        
+        $transactionGraph = $recentTransactions->groupBy(function($item) {
+            return $item->created_at->format('d M y');
+        })->map(function($rows) {
+            return $rows->sum('total_amount');
+        })->map(function($amount, $date) {
+            return ['date' => $date, 'revenue' => $amount];
+        })->values();
+
+        // Analisis Performa Event: Tickets sold or Revenue per Event
+        $eventPerformance = $events->map(function ($event) use ($transactions) {
+            // Calculate revenue inside PHP collection for this specific event
+            $eventRevenue = $transactions->where('event_id', $event->id)->sum('total_amount');
+            return [
+                'name' => $event->title,
+                'revenue' => $eventRevenue
+            ];
+        })->sortByDesc('revenue')->take(5)->values(); // Top 5 events by revenue
+
         return Inertia::render('Organizer/Dashboard', [
-            'events' => Event::with(['category', 'organizer'])->get()
-        ]);
-    }
-    
-    public function create() {
-        return Inertia::render('Organizer/Events/Create');
-    }
-
-    public function store(Request $request) {
-        $data = $request->validate([
-            'id' => 'required|string|max:36|unique:events',
-            'title' => 'required|string|max:45',
-            'description' => 'required|string|max:200',
-            'banner_image' => 'nullable|image|mimes:jpeg,png,jpg|max:2048',
-            'event_date' => 'required|date',
-            'total_quota' => 'required|integer',
-            'start_time' => 'required|date',
-            'end_time' => 'required|date',
-            'location' => 'required|string|max:45',
-            'event_category_id' => 'required',
-            'organizer_id' => 'required'
-        ]);
-
-        if ($request->hasFile('banner_image')) {
-            $path = $request->file('banner_image')->store('banners', 'public');
-            $data['banner_image'] = '/storage/' . $path;
-        }
-
-        Event::create($data);
-
-        return redirect()->route('organizer.dashboard')->with('success', 'Event created successfully.');
-    }
-
-    public function edit($id) {
-        $event = Event::findOrFail($id);
-        return Inertia::render('Organizer/Events/Edit', [
-            'event' => $event
+            'stats' => [
+                'totalActiveEvents' => $totalActiveEvents,
+                'totalTicketsSold' => $totalTicketsSold,
+                'totalRevenue' => $totalRevenue,
+                'newAttendees' => $newAttendees,
+            ],
+            'charts' => [
+                'transactionGraph' => $transactionGraph,
+                'eventPerformance' => $eventPerformance,
+            ]
         ]);
     }
 
-    public function update(Request $request, $id) {
-        $event = Event::findOrFail($id);
-        $data = $request->validate([
-            'title' => 'string|max:45',
-            'description' => 'string|max:200',
-            'event_date' => 'date',
-            'total_quota' => 'integer',
-            'start_time' => 'date',
-            'end_time' => 'date',
-            'location' => 'string|max:45'
-        ]);
-
-        if ($request->hasFile('banner_image')) {
-            $request->validate(['banner_image' => 'image|mimes:jpeg,png,jpg|max:2048']);
-            $path = $request->file('banner_image')->store('banners', 'public');
-            $data['banner_image'] = '/storage/' . $path;
-        }
-
-        $event->update($data);
-
-        return redirect()->route('organizer.dashboard')->with('success', 'Event updated successfully.');
+    public function exportSales() {
+        $organizerId = auth()->user()->organizer?->id ?? 0;
+        return \Maatwebsite\Excel\Facades\Excel::download(new \App\Exports\OrganizerSalesExport($organizerId), 'laporan-penjualan-organizer.xlsx');
     }
 
-    public function destroy($id) {
-        $event = Event::findOrFail($id);
-        $event->update(['status' => 'nonaktif']);
-        return redirect()->back()->with('success', 'Event inactive successfully.');
+    public function index() {
+        return Inertia::render('Organizer/Events/Index', [
+            'events' => Event::with(['category'])->where('organizer_id', auth()->user()->organizer?->id ?? 0)->get()
+        ]);
     }
 }

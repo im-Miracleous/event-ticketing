@@ -23,9 +23,9 @@ export default function Login({ status, canResetPassword }: { status?: string; c
         <GuestLayout>
             <Head title="Sign In – EventHive" />
 
-            <div className="mb-8">
-                <h1 className="text-3xl font-bold text-gray-900 mb-2">Welcome back 👋</h1>
-                <p className="text-gray-500 text-sm">
+            <div className="mb-8 p-1">
+                <h1 className="text-3xl font-black text-slate-900 dark:text-white mb-2 tracking-tight">Welcome back <span className="inline-block animate-bounce">👋</span></h1>
+                <p className="text-slate-500 dark:text-slate-400 text-sm font-medium">
                     Sign in to your premium event experience.
                 </p>
             </div>
@@ -47,7 +47,7 @@ export default function Login({ status, canResetPassword }: { status?: string; c
             <form onSubmit={submit} className="space-y-5">
                 {/* Email or Username */}
                 <div>
-                    <label htmlFor="login" className="block text-sm font-medium text-gray-700 mb-1.5">
+                    <label htmlFor="login" className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5 ml-1">
                         Email or Username
                     </label>
                     <div className="relative">
@@ -61,7 +61,7 @@ export default function Login({ status, canResetPassword }: { status?: string; c
                             type="text"
                             name="login"
                             value={data.login}
-                            className="w-full rounded-xl border border-gray-300 bg-white py-3 pl-10 pr-4 text-sm text-gray-900 placeholder-gray-400 shadow-sm transition-all focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 outline-none"
+                            className="w-full rounded-xl border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-white/5 py-3.5 pl-10 pr-4 text-sm text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 shadow-sm transition-all focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 outline-none"
                             autoComplete="username"
                             autoFocus
                             placeholder="you@example.com"
@@ -73,8 +73,8 @@ export default function Login({ status, canResetPassword }: { status?: string; c
 
                 {/* Password */}
                 <div>
-                    <div className="flex items-center justify-between mb-1.5">
-                        <label htmlFor="password" className="block text-sm font-medium text-gray-700">
+                    <div className="flex items-center justify-between mb-1.5 ml-1">
+                        <label htmlFor="password" className="block text-sm font-semibold text-slate-700 dark:text-slate-300">
                             Password
                         </label>
                         {canResetPassword && (
@@ -97,7 +97,7 @@ export default function Login({ status, canResetPassword }: { status?: string; c
                             type={showPassword ? 'text' : 'password'}
                             name="password"
                             value={data.password}
-                            className="w-full rounded-xl border border-gray-300 bg-white py-3 pl-10 pr-10 text-sm text-gray-900 placeholder-gray-400 shadow-sm transition-all focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 outline-none"
+                            className="w-full rounded-xl border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-white/5 py-3.5 pl-10 pr-10 text-sm text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 shadow-sm transition-all focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 outline-none"
                             autoComplete="current-password"
                             placeholder="Enter your password"
                             onChange={(e) => setData('password', e.target.value)}
@@ -133,7 +133,7 @@ export default function Login({ status, canResetPassword }: { status?: string; c
                             onChange={(e) => setData('remember', e.target.checked as any)}
                             className="w-4 h-4 rounded text-primary-600 border-gray-300 focus:ring-primary-500 cursor-pointer"
                         />
-                        <span className="ms-2.5 text-sm text-gray-600 group-hover:text-gray-800 transition-colors">
+                        <span className="ms-2.5 text-sm text-slate-600 dark:text-slate-400 group-hover:text-slate-900 dark:group-hover:text-slate-200 transition-colors">
                             Keep me signed in
                         </span>
                     </label>
@@ -154,14 +154,14 @@ export default function Login({ status, canResetPassword }: { status?: string; c
                         <div className="w-full border-t border-gray-200" />
                     </div>
                     <div className="relative flex justify-center text-xs">
-                        <span className="px-3 bg-white text-gray-400">New here?</span>
+                        <span className="px-3 bg-white dark:bg-navy-950 text-slate-500 dark:text-slate-400 transition-colors">New here?</span>
                     </div>
                 </div>
 
                 {/* Register link */}
                 <Link
                     href={route('register')}
-                    className="flex items-center justify-center gap-2 w-full py-3.5 rounded-xl border-2 border-gray-200 text-gray-700 font-semibold text-sm hover:border-primary-500 hover:text-primary-600 transition-all duration-200"
+                    className="flex items-center justify-center gap-2 w-full py-3.5 rounded-xl border-2 border-gray-200 text-gray font-semibold text-sm hover:border-primary-500 hover:text-primary-600 transition-all duration-200"
                 >
                     Create Account
                 </Link>

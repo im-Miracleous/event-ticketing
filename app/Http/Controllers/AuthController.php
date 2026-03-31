@@ -10,12 +10,13 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Validation\Rules\Password;
+use Inertia\Inertia;
 
 class AuthController extends Controller
 {
     public function showLogin()
     {
-        return \Inertia\Inertia::render('Auth/Login', [
+        return Inertia::render('Auth/Login', [
             'canResetPassword' => \Illuminate\Support\Facades\Route::has('password.request'),
             'status' => session('status'),
         ]);
@@ -55,7 +56,7 @@ class AuthController extends Controller
 
     public function showRegister()
     {
-        return \Inertia\Inertia::render('Auth/Register');
+        return Inertia::render('Auth/Register');
     }
 
     public function register(Request $request)

@@ -58,8 +58,18 @@ Route::middleware(['auth', 'verified', 'role:Organizer'])->prefix('organizer')->
     Route::get('/', function () {
         return redirect()->route('organizer.dashboard');
     });
-    Route::get('/dashboard', [EventController::class, 'index'])->name('dashboard');
-    Route::resource('events', EventController::class);
+    Route::get('/dashboard', [EventController::class, 'dashboard'])->name('dashboard');
+    Route::get('/export-sales', [EventController::class, 'exportSales'])->name('export-sales');
+    Route::get('/events', [EventController::class, 'index'])->name('events.index');
+    
+    // Promotions
+    Route::resource('promotions', \App\Http\Controllers\Organizer\PromotionController::class)->except(['create', 'show', 'edit']);
+    
+    // Attendees
+    Route::get('/attendees', [\App\Http\Controllers\Organizer\AttendeeController::class, 'index'])->name('attendees.index');
+    
+    // Earnings Ledger
+    Route::get('/earnings', [\App\Http\Controllers\Organizer\EarningController::class, 'index'])->name('earnings.index');
     
     Route::get('/events/{event}/tickets', [TicketTypeController::class, 'index'])->name('events.tickets.index');
     Route::post('/events/{event}/tickets', [TicketTypeController::class, 'store'])->name('events.tickets.store');
@@ -69,15 +79,15 @@ Route::middleware(['auth', 'verified', 'role:Organizer'])->prefix('organizer')->
     Route::post('/check-in', [ValidationLogController::class, 'store'])->name('check-in.store');
 });
 
+
 // ─── Admin Routes (middleware to be refined later) ───────────────────
 Route::middleware(['auth', 'verified'])->prefix('admin')->name('admin.')->group(function () {
     // Dashboard
     Route::get('/dashboard', [Admin\DashboardController::class, 'index'])->name('dashboard');
 
     // Events
-    Route::get('/events', [Admin\EventController::class, 'index'])->name('events.index');
-    Route::patch('/events/{id}/status', [Admin\EventController::class, 'updateStatus'])->name('events.updateStatus');
-    Route::delete('/events/{id}', [Admin\EventController::class, 'destroy'])->name('events.destroy');
+    Route::patch('/events/{event}/status', [Admin\EventController::class, 'updateStatus'])->name('events.updateStatus');
+    Route::resource('events', Admin\EventController::class);
 
     // Categories
     Route::get('/categories', [Admin\CategoryController::class, 'index'])->name('categories.index');
@@ -108,5 +118,6 @@ Route::middleware(['auth', 'verified'])->prefix('admin')->name('admin.')->group(
         return Inertia::render('Admin/Settings/Index');
     })->name('settings.index');
 });
+
 
 require __DIR__.'/auth.php';

@@ -25,7 +25,7 @@ const gradients = [
     'from-amber-500 to-orange-400',
     'from-teal-500 to-cyan-400',
     'from-red-500 to-orange-400',
-    'from-indigo-500 to-blue-400',
+    'from-primary-500 to-blue-400',
 ];
 
 /* ─── Component ─────────────────────────────────────────────────────── */

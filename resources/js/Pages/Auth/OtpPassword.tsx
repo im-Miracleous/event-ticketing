@@ -29,11 +29,11 @@ export default function OtpPassword({ email }: { email: string }) {
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 15v2m0 0v2m0-2h2m-2 0H10m11-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                     </svg>
                 </div>
-                <h2 className="text-3xl font-black text-white mb-2 italic tracking-tighter uppercase">SECURITY CODE</h2>
+                <h2 className="text-3xl font-black text-slate-900 dark:text-white mb-2 italic tracking-tighter uppercase">SECURITY CODE</h2>
                 <div className="h-1 w-12 bg-red-500 mx-auto rounded-full mb-6" />
                 <p className="text-slate-400 text-sm max-w-xs mx-auto">
                     Enter the multi-factor authentication code sent to <br />
-                    <span className="text-white font-semibold">{email}</span>
+                    <span className="text-slate-900 dark:text-white font-semibold">{email}</span>
                 </p>
             </div>
 
@@ -49,7 +49,7 @@ export default function OtpPassword({ email }: { email: string }) {
                         type="text"
                         name="code"
                         value={data.code}
-                        className="input-field text-center text-4xl tracking-[0.75em] font-black placeholder:text-white/5 py-6 border-red-500/20 focus:ring-red-500/40 focus:border-red-500/40"
+                        className="input-field text-center text-4xl tracking-[0.75em] font-black placeholder:text-slate-200 dark:placeholder:text-white/5 py-6 border-red-500/20 focus:ring-red-500/40 focus:border-red-500/40"
                         placeholder="000000"
                         maxLength={6}
                         onChange={(e) => setData('code', e.target.value.replace(/\D/g, ''))}
@@ -69,7 +69,7 @@ export default function OtpPassword({ email }: { email: string }) {
                     <button 
                         type="button"
                         onClick={resend}
-                        className="text-sm text-slate-500 hover:text-white transition-colors text-center font-bold uppercase tracking-widest"
+                        className="text-sm text-slate-500 hover:text-slate-900 dark:hover:text-white transition-colors text-center font-bold uppercase tracking-widest"
                         disabled={processing}
                     >
                         Resend security code

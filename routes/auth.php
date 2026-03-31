@@ -38,6 +38,7 @@ Route::middleware('guest')->group(function () {
         ->name('otp.password.resend');
 
 
+
     Route::get('reset-password/{token}', [NewPasswordController::class, 'create'])
         ->name('password.reset');
 
@@ -50,7 +51,7 @@ Route::middleware('guest')->group(function () {
     Route::post('otp-verify', [OtpVerificationController::class, 'verify'])
         ->name('otp.verify.submit');
     Route::post('otp-verify/resend', [OtpVerificationController::class, 'resend'])
-        ->name('otp.resend');
+        ->name('otp.verify.resend');
 });
 
 Route::middleware('auth')->group(function () {

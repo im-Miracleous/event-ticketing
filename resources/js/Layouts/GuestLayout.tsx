@@ -1,9 +1,31 @@
 import { Link } from '@inertiajs/react';
 import { PropsWithChildren } from 'react';
+import { useTheme } from '@/hooks/useTheme';
 
 export default function Guest({ children }: PropsWithChildren) {
+    const { isDark, toggleTheme } = useTheme();
+
     return (
-        <div className="min-h-screen flex font-sans antialiased">
+        <div className="min-h-screen flex font-sans antialiased selection:bg-primary-500/30">
+            {/* ── Theme Toggle ─────────────────────────────────── */}
+            <div className="absolute top-6 right-6 z-50">
+                <button
+                    onClick={toggleTheme}
+                    className="p-3 rounded-xl bg-white/10 dark:bg-navy-900/50 backdrop-blur-md border border-white/20 dark:border-white/5 text-slate-900 dark:text-white hover:scale-110 transition-all duration-300 shadow-xl"
+                    title={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
+                >
+                    {isDark ? (
+                        <svg className="w-5 h-5 transition-transform group-hover:rotate-12 outline-none" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M12 3v2.25m6.364.386-1.591 1.591M21 12h-2.25m-.386 6.364-1.591-1.591M12 18.75V21m-4.773-4.227-1.591 1.591M5.25 12H3m4.227-4.773L5.636 5.636M15.75 12a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0Z" />
+                        </svg>
+                    ) : (
+                        <svg className="w-5 h-5 transition-transform group-hover:-rotate-12 outline-none" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M21.752 15.002A9.72 9.72 0 0 1 18 15.75c-5.385 0-9.75-4.365-9.75-9.75 0-1.33.266-2.597.748-3.752A9.753 9.753 0 0 0 3 11.25C3 16.635 7.365 21 12.75 21a9.753 9.753 0 0 0 9.002-5.998Z" />
+                        </svg>
+                    )}
+                </button>
+            </div>
+
             {/* ── Left decorative panel ────────────────────────── */}
             <div
                 className="hidden lg:flex lg:w-1/2 xl:w-3/5 relative overflow-hidden"
@@ -47,7 +69,7 @@ export default function Guest({ children }: PropsWithChildren) {
                             <span className="w-2 h-2 bg-primary-400 rounded-full animate-pulse" />
                             Discover Extraordinary Events
                         </div>
-                        <h1 className="text-4xl xl:text-5xl font-bold text-white leading-tight">
+                        <h1 className="text-4xl xl:text-5xl font-bold text-white leading-tight font-display">
                             Your gateway to<br />
                             <span className="bg-clip-text text-transparent bg-gradient-to-r from-primary-400 to-pink-400">
                                 unforgettable
@@ -108,20 +130,24 @@ export default function Guest({ children }: PropsWithChildren) {
             </div>
 
             {/* ── Right form panel ─────────────────────────────── */}
-            <div className="flex-1 flex flex-col items-center justify-center px-6 py-12 bg-white relative">
+            <div className="flex-1 flex flex-col items-center justify-center px-6 py-12 bg-white dark:bg-navy-950 transition-colors duration-500 relative overflow-hidden">
+                {/* Background glow effects for right panel */}
+                <div className="absolute top-0 right-0 w-64 h-64 bg-primary-600/10 rounded-full blur-[100px]" />
+                <div className="absolute bottom-0 left-0 w-64 h-64 bg-secondary-500/5 rounded-full blur-[100px]" />
+
                 {/* Mobile logo */}
                 <div className="lg:hidden flex items-center gap-3 mb-10">
-                    <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary-500 to-primary-700 flex items-center justify-center">
+                    <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary-500 to-primary-700 flex items-center justify-center shadow-lg shadow-primary-500/20">
                         <svg className="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 20 20">
                             <path d="M5 3a2 2 0 00-2 2v2a2 2 0 002 2h2a2 2 0 002-2V5a2 2 0 00-2-2H5zM5 11a2 2 0 00-2 2v2a2 2 0 002 2h2a2 2 0 002-2v-2a2 2 0 00-2-2H5zM11 5a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V5zM14 11a1 1 0 011 1v1h1a1 1 0 110 2h-1v1a1 1 0 11-2 0v-1h-1a1 1 0 110-2h1v-1a1 1 0 011-1z" />
                         </svg>
                     </div>
-                    <span className="text-2xl font-bold text-gray-900">
+                    <span className="text-2xl font-bold text-gray-900 dark:text-white tracking-tight">
                         Event<span className="text-primary-600">Hive</span>
                     </span>
                 </div>
 
-                <div className="w-full max-w-md animate-slide-up">
+                <div className="w-full max-w-md animate-slide-up relative z-10">
                     {children}
                 </div>
             </div>

@@ -19,6 +19,7 @@ return new class extends Migration
             $table->unsignedBigInteger('payment_id')->index('fk_trx_payments_idx');
             $table->char('event_id', 36)->index('fk_trx_events_idx');
             $table->unsignedBigInteger('promotion_id')->nullable()->index('fk_trx_promotions_idx');
+            $table->timestamp('transaction_date')->nullable();
             $table->timestamp('created_at')->nullable()->useCurrent();
             $table->timestamp('updated_at')->useCurrentOnUpdate()->nullable()->useCurrent();
         });

@@ -44,9 +44,9 @@ export default function Register() {
         <GuestLayout>
             <Head title="Create Account – EventHive" />
 
-            <div className="mb-8">
-                <h1 className="text-3xl font-bold text-gray-900 mb-2">Create your account ✨</h1>
-                <p className="text-gray-500 text-sm">
+            <div className="mb-8 p-1">
+                <h1 className="text-3xl font-black text-slate-900 dark:text-white mb-2 tracking-tight">Create your account <span className="inline-block animate-pulse">✨</span></h1>
+                <p className="text-slate-500 dark:text-slate-400 text-sm font-medium leading-relaxed">
                     Join 50,000+ event lovers on EventHive. It's free forever.
                 </p>
             </div>
@@ -63,7 +63,7 @@ export default function Register() {
             <form onSubmit={submit} className="space-y-4">
                 {/* Full Name */}
                 <div>
-                    <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-1.5">
+                    <label htmlFor="name" className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5 ml-1">
                         Full Name
                     </label>
                     <div className="relative">
@@ -77,7 +77,7 @@ export default function Register() {
                             type="text"
                             name="name"
                             value={data.name}
-                            className={`w-full rounded-xl border bg-white py-3 pl-10 pr-4 text-sm text-gray-900 placeholder-gray-400 shadow-sm transition-all focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 outline-none ${errors.name ? 'border-red-400 focus:ring-red-400/20' : 'border-gray-300'}`}
+                            className={`w-full rounded-xl border bg-slate-50 dark:bg-white/5 py-3.5 pl-10 pr-4 text-sm text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 shadow-sm transition-all focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 outline-none ${errors.name ? 'border-red-400 focus:ring-red-400/20' : 'border-slate-200 dark:border-white/10'}`}
                             autoComplete="name"
                             placeholder="Your full name"
                             onChange={(e) => setData('name', e.target.value)}
@@ -89,7 +89,7 @@ export default function Register() {
 
                 {/* Username */}
                 <div>
-                    <label htmlFor="username" className="block text-sm font-medium text-gray-700 mb-1.5">
+                    <label htmlFor="username" className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5 ml-1">
                         Username
                     </label>
                     <div className="relative">
@@ -103,7 +103,7 @@ export default function Register() {
                             type="text"
                             name="username"
                             value={data.username}
-                            className={`w-full rounded-xl border bg-white py-3 pl-10 pr-4 text-sm text-gray-900 placeholder-gray-400 shadow-sm transition-all focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 outline-none ${errors.username ? 'border-red-400 focus:ring-red-400/20' : 'border-gray-300'}`}
+                            className={`w-full rounded-xl border bg-slate-50 dark:bg-white/5 py-3.5 pl-10 pr-4 text-sm text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 shadow-sm transition-all focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 outline-none ${errors.username ? 'border-red-400 focus:ring-red-400/20' : 'border-slate-200 dark:border-white/10'}`}
                             placeholder="Unique username"
                             onChange={(e) => setData('username', e.target.value)}
                             required
@@ -113,7 +113,7 @@ export default function Register() {
 
                 {/* Email Address */}
                 <div>
-                    <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1.5">
+                    <label htmlFor="email" className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5 ml-1">
                         Email Address
                     </label>
                     <div className="relative">
@@ -127,7 +127,7 @@ export default function Register() {
                             type="email"
                             name="email"
                             value={data.email}
-                            className={`w-full rounded-xl border bg-white py-3 pl-10 pr-4 text-sm text-gray-900 placeholder-gray-400 shadow-sm transition-all focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 outline-none ${errors.email ? 'border-red-400 focus:ring-red-400/20' : 'border-gray-300'}`}
+                            className={`w-full rounded-xl border bg-slate-50 dark:bg-white/5 py-3.5 pl-10 pr-4 text-sm text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 shadow-sm transition-all focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 outline-none ${errors.email ? 'border-red-400 focus:ring-red-400/20' : 'border-slate-200 dark:border-white/10'}`}
                             autoComplete="username"
                             placeholder="you@example.com"
                             onChange={(e) => setData('email', e.target.value)}
@@ -138,7 +138,7 @@ export default function Register() {
 
                 {/* Password */}
                 <div>
-                    <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1.5">
+                    <label htmlFor="password" className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5 ml-1">
                         Password
                     </label>
                     <div className="relative">
@@ -152,7 +152,7 @@ export default function Register() {
                             type={showPassword ? 'text' : 'password'}
                             name="password"
                             value={data.password}
-                            className={`w-full rounded-xl border bg-white py-3 pl-10 pr-10 text-sm text-gray-900 placeholder-gray-400 shadow-sm transition-all focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 outline-none ${errors.password ? 'border-red-400 focus:ring-red-400/20' : 'border-gray-300'}`}
+                            className={`w-full rounded-xl border bg-slate-50 dark:bg-white/5 py-3.5 pl-10 pr-10 text-sm text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 shadow-sm transition-all focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 outline-none ${errors.password ? 'border-red-400 focus:ring-red-400/20' : 'border-slate-200 dark:border-white/10'}`}
                             autoComplete="new-password"
                             placeholder="Min. 8 characters"
                             onChange={(e) => setData('password', e.target.value)}
@@ -182,11 +182,10 @@ export default function Register() {
                                 {[1, 2, 3, 4].map((i) => (
                                     <div
                                         key={i}
-                                        className={`h-1 flex-1 rounded-full transition-colors duration-300 ${
-                                            i <= strength
+                                        className={`h-1 flex-1 rounded-full transition-colors duration-300 ${i <= strength
                                                 ? strengthConfigs[strength - 1].color
                                                 : 'bg-gray-200'
-                                        }`}
+                                            }`}
                                     />
                                 ))}
                             </div>
@@ -201,7 +200,7 @@ export default function Register() {
 
                 {/* Confirm Password */}
                 <div>
-                    <label htmlFor="password_confirmation" className="block text-sm font-medium text-gray-700 mb-1.5">
+                    <label htmlFor="password_confirmation" className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5 ml-1">
                         Confirm Password
                     </label>
                     <div className="relative">
@@ -215,7 +214,7 @@ export default function Register() {
                             type={showConfirm ? 'text' : 'password'}
                             name="password_confirmation"
                             value={data.password_confirmation}
-                            className="w-full rounded-xl border border-gray-300 bg-white py-3 pl-10 pr-10 text-sm text-gray-900 placeholder-gray-400 shadow-sm transition-all focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 outline-none"
+                            className="w-full rounded-xl border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-white/5 py-3.5 pl-10 pr-10 text-sm text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 shadow-sm transition-all focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 outline-none"
                             autoComplete="new-password"
                             placeholder="Re-enter your password"
                             onChange={(e) => setData('password_confirmation', e.target.value)}
@@ -248,11 +247,11 @@ export default function Register() {
                         required
                         className="mt-0.5 w-4 h-4 rounded text-primary-600 border-gray-300 focus:ring-primary-500 cursor-pointer"
                     />
-                    <label htmlFor="terms" className="text-sm text-gray-600 cursor-pointer leading-relaxed">
+                    <label htmlFor="terms" className="text-sm text-slate-600 dark:text-slate-400 cursor-pointer leading-relaxed">
                         I agree to EventHive's{' '}
-                        <a href="#" className="text-primary-600 hover:text-primary-700 font-medium">Terms of Service</a>{' '}
+                        <a href="#" className="text-primary-600 hover:text-primary-700 font-bold">Terms of Service</a>{' '}
                         and{' '}
-                        <a href="#" className="text-primary-600 hover:text-primary-700 font-medium">Privacy Policy</a>
+                        <a href="#" className="text-primary-600 hover:text-primary-700 font-bold">Privacy Policy</a>
                     </label>
                 </div>
 
@@ -271,14 +270,14 @@ export default function Register() {
                         <div className="w-full border-t border-gray-200" />
                     </div>
                     <div className="relative flex justify-center text-xs">
-                        <span className="px-3 bg-white text-gray-400">Already have an account?</span>
+                        <span className="px-3 bg-white dark:bg-navy-950 text-slate-500 dark:text-slate-400 transition-colors">Already have an account?</span>
                     </div>
                 </div>
 
                 {/* Login link */}
                 <Link
                     href={route('login')}
-                    className="flex items-center justify-center gap-2 w-full py-3.5 rounded-xl border-2 border-gray-200 text-gray-700 font-semibold text-sm hover:border-primary-500 hover:text-primary-600 transition-all duration-200"
+                    className="flex items-center justify-center gap-2 w-full py-3.5 rounded-xl border-2 border-gray-200 text-gray font-semibold text-sm hover:border-primary-500 hover:text-primary-600 transition-all duration-200"
                 >
                     Sign in instead
                 </Link>
