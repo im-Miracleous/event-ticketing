@@ -135,7 +135,7 @@ const adminNavItems: NavItem[] = [
     { label: 'System Dashboard', href: '/admin/dashboard', routeName: 'admin.dashboard', icon: DashboardIcon },
     { label: 'Discover Events', href: '/events', routeName: 'events.index', icon: SearchIcon },
     { label: 'All Events', href: '/admin/events', routeName: 'admin.events.index', icon: EventsIcon },
-    { label: 'Create Event', href: '/admin/events/create', routeName: 'admin.events.create', icon: CreateIcon },
+    // { label: 'Create Event', href: '/admin/events/create', routeName: 'admin.events.create', icon: CreateIcon },
     { label: 'Event Categories', href: '/admin/categories', routeName: 'admin.categories.*', icon: CategoryIcon },
     { label: 'User Management', href: '/admin/users', routeName: 'admin.users.*', icon: UsersIcon },
     { label: 'Financial Overview', href: '/admin/finance', routeName: 'admin.finance.*', icon: FinanceIcon },

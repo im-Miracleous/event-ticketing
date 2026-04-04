@@ -33,6 +33,7 @@ Route::get('/dashboard', function () {
 
 Route::middleware('auth')->group(function () {
     Route::get('/events', [App\Http\Controllers\EventCatalogController::class, 'index'])->name('events.index');
+    Route::get('/search', [App\Http\Controllers\SearchController::class, 'index'])->name('search.index');
 
     // Checkout & Booking
     Route::get('/events/{event}/checkout', [App\Http\Controllers\CheckoutController::class, 'show'])->name('checkout.show');
