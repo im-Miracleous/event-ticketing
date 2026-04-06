@@ -37,7 +37,46 @@ class EventController extends Controller
             });
         }
 
-        $events = $query->orderByDesc('created_at')
+        // ── Advanced filters ──────────────────────────────────────
+        if ($request->filled('date_from')) {
+            $query->whereDate('event_date', '>=', $request->date_from);
+        }
+        if ($request->filled('date_to')) {
+            $query->whereDate('event_date', '<=', $request->date_to);
+        }
+        if ($request->filled('category') && $request->category !== 'All') {
+            $query->whereHas('category', fn ($q) => $q->where('name', $request->category));
+        }
+
+        // ── Sorting ───────────────────────────────────────────────
+        $sortColumn = $request->input('sort', 'created_at');
+        $sortDirection = $request->input('direction', 'desc');
+
+        // Map frontend column keys → actual DB columns / joins
+        $sortMap = [
+            'name'      => 'title',
+            'date'      => 'event_date',
+            'status'    => 'status',
+            'organizer' => 'organizer',   // handled separately
+            'category'  => 'category',    // handled separately
+            'tickets'   => 'total_quota', // approximate – sort by quota
+        ];
+
+        $dbColumn = $sortMap[$sortColumn] ?? 'created_at';
+
+        if ($dbColumn === 'organizer') {
+            $query->leftJoin('organizers', 'events.organizer_id', '=', 'organizers.id')
+                  ->orderBy('organizers.name', $sortDirection)
+                  ->select('events.*');
+        } elseif ($dbColumn === 'category') {
+            $query->leftJoin('event_category', 'events.event_category_id', '=', 'event_category.id')
+                  ->orderBy('event_category.name', $sortDirection)
+                  ->select('events.*');
+        } else {
+            $query->orderBy($dbColumn, $sortDirection);
+        }
+
+        $events = $query
             ->paginate($request->input('per_page', 10))
             ->through(fn ($e) => [
                 'id' => $e->id,
@@ -53,7 +92,8 @@ class EventController extends Controller
 
         return Inertia::render('Admin/Events/Index', [
             'events' => $events,
-            'filters' => $request->only(['status', 'search', 'per_page']),
+            'filters' => $request->only(['status', 'search', 'per_page', 'sort', 'direction', 'date_from', 'date_to', 'category']),
+            'categories' => EventCategory::orderBy('name')->pluck('name'),
         ]);
     }
 
@@ -80,7 +120,45 @@ class EventController extends Controller
             });
         }
 
-        $events = $query->orderByDesc('created_at')
+        // ── Advanced filters ──────────────────────────────────────
+        if ($request->filled('date_from')) {
+            $query->whereDate('event_date', '>=', $request->date_from);
+        }
+        if ($request->filled('date_to')) {
+            $query->whereDate('event_date', '<=', $request->date_to);
+        }
+        if ($request->filled('archive_status') && $request->archive_status !== 'All') {
+            $query->where('status', $request->archive_status);
+        }
+
+        // ── Sorting ───────────────────────────────────────────────
+        $sortColumn = $request->input('sort', 'created_at');
+        $sortDirection = $request->input('direction', 'desc');
+
+        $sortMap = [
+            'name'           => 'title',
+            'date'           => 'event_date',
+            'organizer'      => 'organizer',
+            'category'       => 'category',
+            'tickets'        => 'total_quota',
+            'deactivated_at' => 'updated_at',
+        ];
+
+        $dbColumn = $sortMap[$sortColumn] ?? 'created_at';
+
+        if ($dbColumn === 'organizer') {
+            $query->leftJoin('organizers', 'events.organizer_id', '=', 'organizers.id')
+                  ->orderBy('organizers.name', $sortDirection)
+                  ->select('events.*');
+        } elseif ($dbColumn === 'category') {
+            $query->leftJoin('event_category', 'events.event_category_id', '=', 'event_category.id')
+                  ->orderBy('event_category.name', $sortDirection)
+                  ->select('events.*');
+        } else {
+            $query->orderBy($dbColumn, $sortDirection);
+        }
+
+        $events = $query
             ->paginate($request->input('per_page', 10))
             ->through(fn ($e) => [
                 'id' => $e->id,
@@ -97,7 +175,7 @@ class EventController extends Controller
 
         return Inertia::render('Admin/Events/Archive', [
             'events' => $events,
-            'filters' => $request->only(['search', 'per_page']),
+            'filters' => $request->only(['search', 'per_page', 'sort', 'direction', 'date_from', 'date_to', 'archive_status']),
             'isRoot' => $user->role === 'Root',
         ]);
     }

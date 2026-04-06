@@ -30,7 +30,32 @@ class UserController extends Controller
             });
         }
 
-        $users = $query->orderByDesc('created_at')
+        // ── Advanced filters ──────────────────────────────────────
+        if ($request->filled('registered_from')) {
+            $query->whereDate('created_at', '>=', $request->registered_from);
+        }
+        if ($request->filled('registered_to')) {
+            $query->whereDate('created_at', '<=', $request->registered_to);
+        }
+        if ($request->filled('user_status') && $request->user_status !== 'All') {
+            $query->where('status', $request->user_status);
+        }
+
+        // ── Sorting ───────────────────────────────────────────────
+        $sortColumn = $request->input('sort', 'created_at');
+        $sortDirection = $request->input('direction', 'desc');
+
+        $sortMap = [
+            'name'     => 'name',
+            'role'     => 'role',
+            'status'   => 'status',
+            'joinedAt' => 'created_at',
+        ];
+
+        $dbColumn = $sortMap[$sortColumn] ?? 'created_at';
+        $query->orderBy($dbColumn, $sortDirection);
+
+        $users = $query
             ->paginate($request->input('per_page', 10))
             ->through(fn($u) => [
                 'id'       => $u->id,
@@ -43,7 +68,7 @@ class UserController extends Controller
 
         return Inertia::render('Admin/Users/Index', [
             'users'   => $users,
-            'filters' => $request->only(['role', 'search', 'per_page']),
+            'filters' => $request->only(['role', 'search', 'per_page', 'sort', 'direction', 'registered_from', 'registered_to', 'user_status']),
         ]);
     }
 

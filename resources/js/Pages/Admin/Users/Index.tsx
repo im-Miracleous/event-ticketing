@@ -1,5 +1,7 @@
 import DashboardLayout from '@/Layouts/DashboardLayout';
 import Pagination from '@/Components/Dashboard/Pagination';
+import SortableHeader from '@/Components/Dashboard/SortableHeader';
+import AdvancedFilter, { FilterField, FilterSelect, FilterDateRange } from '@/Components/Dashboard/AdvancedFilter';
 import { Head, router } from '@inertiajs/react';
 import { useState, useEffect } from 'react';
 import type { UserRole } from '@/config/navigation';
@@ -29,6 +31,11 @@ interface Props {
         role?: string;
         search?: string;
         per_page?: number;
+        sort?: string;
+        direction?: 'asc' | 'desc';
+        registered_from?: string;
+        registered_to?: string;
+        user_status?: string;
     };
 }
 
@@ -39,6 +46,15 @@ const roleFilters = ['All', 'Root', 'Admin', 'Organizer', 'User'];
 export default function AdminUsers({ users, filters }: Props) {
     const [search, setSearch] = useState(filters.search || '');
     const activeFilter = filters.role || 'All';
+
+    // Sort state
+    const sort = filters.sort || '';
+    const direction = filters.direction || 'desc';
+
+    // Advanced filter local state
+    const [filterRegFrom, setFilterRegFrom] = useState(filters.registered_from || '');
+    const [filterRegTo, setFilterRegTo] = useState(filters.registered_to || '');
+    const [filterUserStatus, setFilterUserStatus] = useState(filters.user_status || '');
 
     // Read the mock role from localStorage to hide Root users when viewed as Admin
     const [activeRole, setActiveRole] = useState<UserRole>('admin');
@@ -68,38 +84,61 @@ export default function AdminUsers({ users, filters }: Props) {
     // Filter out Root users client-side when not Root
     const visibleUsers = activeRole === 'root' ? users.data : users.data.filter(u => u.role !== 'Root');
 
-    const handleFilterChange = (filter: string) => {
-        router.get(route('admin.users.index'), {
-            role: filter === 'All' ? undefined : filter,
+    /* ── Param builder ────────────────────────────────────────────── */
+
+    const buildParams = (overrides: Record<string, any> = {}) => {
+        const params: Record<string, any> = {
+            role: activeFilter === 'All' ? undefined : activeFilter,
             search: search || undefined,
             per_page: users.per_page,
-        }, { preserveState: true, replace: true });
+            sort: sort || undefined,
+            direction: sort ? direction : undefined,
+            registered_from: filterRegFrom || undefined,
+            registered_to: filterRegTo || undefined,
+            user_status: filterUserStatus || undefined,
+            ...overrides,
+        };
+        Object.keys(params).forEach((k) => params[k] === undefined && delete params[k]);
+        return params;
+    };
+
+    /* ── Handlers ─────────────────────────────────────────────────── */
+
+    const handleFilterChange = (filter: string) => {
+        router.get(route('admin.users.index'), buildParams({
+            role: filter === 'All' ? undefined : filter,
+            page: undefined,
+        }), { preserveState: true, replace: true });
     };
 
     const handleSearchChange = (value: string) => {
         setSearch(value);
-        router.get(route('admin.users.index'), {
-            role: activeFilter === 'All' ? undefined : activeFilter,
+        router.get(route('admin.users.index'), buildParams({
             search: value || undefined,
-            per_page: users.per_page,
-        }, { preserveState: true, replace: true });
+            page: undefined,
+        }), { preserveState: true, replace: true });
+    };
+
+    const handleSort = (column: string, dir: 'asc' | 'desc') => {
+        router.get(route('admin.users.index'), buildParams({
+            sort: column,
+            direction: dir,
+            page: undefined,
+        }), { preserveState: true, replace: true });
     };
 
     const handlePageChange = (page: number) => {
-        router.get(route('admin.users.index'), {
-            page,
-            role: activeFilter === 'All' ? undefined : activeFilter,
-            search: search || undefined,
-            per_page: users.per_page,
-        }, { preserveState: true, replace: true });
+        router.get(route('admin.users.index'), buildParams({ page }), {
+            preserveState: true,
+            replace: true,
+        });
     };
 
     const handlePerPageChange = (value: number) => {
-        router.get(route('admin.users.index'), {
-            role: activeFilter === 'All' ? undefined : activeFilter,
-            search: search || undefined,
+        router.get(route('admin.users.index'), buildParams({
             per_page: value,
-        }, { preserveState: true, replace: true });
+            page: undefined,
+        }), { preserveState: true, replace: true });
     };
 
     const handleStatusUpdate = (userId: string, status: string) => {
@@ -107,6 +146,31 @@ export default function AdminUsers({ users, filters }: Props) {
             preserveState: true,
         });
     };
+
+    /* ── Advanced filter actions ──────────────────────────────────── */
+
+    const activeAdvancedFilterCount = [filterRegFrom, filterRegTo, filterUserStatus].filter(Boolean).length;
+
+    const handleApplyFilters = () => {
+        router.get(route('admin.users.index'), buildParams({ page: undefined }), {
+            preserveState: true,
+            replace: true,
+        });
+    };
+
+    const handleClearFilters = () => {
+        setFilterRegFrom('');
+        setFilterRegTo('');
+        setFilterUserStatus('');
+        router.get(route('admin.users.index'), buildParams({
+            registered_from: undefined,
+            registered_to: undefined,
+            user_status: undefined,
+            page: undefined,
+        }), { preserveState: true, replace: true });
+    };
+
+    /* ── Color helpers ────────────────────────────────────────────── */
 
     const roleColor = (role: string) => {
         switch (role) {
@@ -171,6 +235,34 @@ export default function AdminUsers({ users, filters }: Props) {
                         </button>
                     ))}
                 </div>
+
+                {/* Advanced Filter */}
+                <AdvancedFilter
+                    activeCount={activeAdvancedFilterCount}
+                    onApply={handleApplyFilters}
+                    onClear={handleClearFilters}
+                >
+                    <FilterField label="Registration Date Range">
+                        <FilterDateRange
+                            from={filterRegFrom}
+                            to={filterRegTo}
+                            onFromChange={setFilterRegFrom}
+                            onToChange={setFilterRegTo}
+                        />
+                    </FilterField>
+                    <FilterField label="Account Status">
+                        <FilterSelect
+                            value={filterUserStatus}
+                            onChange={setFilterUserStatus}
+                            options={[
+                                { label: 'Active', value: 'Active' },
+                                { label: 'Suspended', value: 'Suspended' },
+                                { label: 'Banned', value: 'Banned' },
+                            ]}
+                            placeholder="All Statuses"
+                        />
+                    </FilterField>
+                </AdvancedFilter>
             </div>
 
             {/* Users Table */}
@@ -179,10 +271,10 @@ export default function AdminUsers({ users, filters }: Props) {
                     <table className="w-full text-sm">
                         <thead>
                             <tr className="text-left text-xs font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider border-b border-slate-100 dark:border-white/5">
-                                <th className="px-5 py-3.5">User</th>
-                                <th className="px-5 py-3.5">Role</th>
-                                <th className="px-5 py-3.5">Status</th>
-                                <th className="px-5 py-3.5">Joined</th>
+                                <SortableHeader label="User" column="name" currentSort={sort} currentDirection={direction} onSort={handleSort} />
+                                <SortableHeader label="Role" column="role" currentSort={sort} currentDirection={direction} onSort={handleSort} />
+                                <SortableHeader label="Status" column="status" currentSort={sort} currentDirection={direction} onSort={handleSort} />
+                                <SortableHeader label="Joined" column="joinedAt" currentSort={sort} currentDirection={direction} onSort={handleSort} />
                                 <th className="px-5 py-3.5 text-right">Actions</th>
                             </tr>
                         </thead>

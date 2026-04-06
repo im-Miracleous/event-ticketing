@@ -1,11 +1,13 @@
 import DashboardLayout from '@/Layouts/DashboardLayout';
 import Pagination from '@/Components/Dashboard/Pagination';
+import SortableHeader from '@/Components/Dashboard/SortableHeader';
+import AdvancedFilter, { FilterField, FilterSelect, FilterDateRange } from '@/Components/Dashboard/AdvancedFilter';
 import Modal from '@/Components/Modal';
 import DangerButton from '@/Components/DangerButton';
 import SecondaryButton from '@/Components/SecondaryButton';
 import { Head, router, Link } from '@inertiajs/react';
 import { useState, Fragment } from 'react';
-import { Dialog, Menu, Transition } from '@headlessui/react';
+import { Menu, Transition } from '@headlessui/react';
 
 interface EventItem {
     id: string;
@@ -31,13 +33,27 @@ interface Props {
     filters: {
         search?: string;
         per_page?: number;
+        sort?: string;
+        direction?: 'asc' | 'desc';
+        date_from?: string;
+        date_to?: string;
+        archive_status?: string;
     };
     isRoot: boolean;
 }
 
 export default function ArchiveEvents({ events, filters, isRoot }: Props) {
     const [search, setSearch] = useState(filters.search || '');
-    
+
+    // Sort state
+    const sort = filters.sort || '';
+    const direction = filters.direction || 'desc';
+
+    // Advanced filter state
+    const [filterDateFrom, setFilterDateFrom] = useState(filters.date_from || '');
+    const [filterDateTo, setFilterDateTo] = useState(filters.date_to || '');
+    const [filterStatus, setFilterStatus] = useState(filters.archive_status || '');
+
     const [confirmModal, setConfirmModal] = useState<{
         isOpen: boolean;
         title: string;
@@ -54,28 +70,79 @@ export default function ArchiveEvents({ events, filters, isRoot }: Props) {
         eventName: null,
     });
 
+    /* ── Param builder ────────────────────────────────────────────── */
+
+    const buildParams = (overrides: Record<string, any> = {}) => {
+        const params: Record<string, any> = {
+            search: search || undefined,
+            per_page: events.per_page,
+            sort: sort || undefined,
+            direction: sort ? direction : undefined,
+            date_from: filterDateFrom || undefined,
+            date_to: filterDateTo || undefined,
+            archive_status: filterStatus || undefined,
+            ...overrides,
+        };
+        Object.keys(params).forEach((k) => params[k] === undefined && delete params[k]);
+        return params;
+    };
+
+    /* ── Handlers ─────────────────────────────────────────────────── */
+
     const handleSearchChange = (value: string) => {
         setSearch(value);
-        router.get(route('admin.events.archive'), {
+        router.get(route('admin.events.archive'), buildParams({
             search: value || undefined,
-            per_page: events.per_page,
-        }, { preserveState: true, replace: true });
+            page: undefined,
+        }), { preserveState: true, replace: true });
+    };
+
+    const handleSort = (column: string, dir: 'asc' | 'desc') => {
+        router.get(route('admin.events.archive'), buildParams({
+            sort: column,
+            direction: dir,
+            page: undefined,
+        }), { preserveState: true, replace: true });
     };
 
     const handlePageChange = (page: number) => {
-        router.get(route('admin.events.archive'), {
-            page,
-            search: search || undefined,
-            per_page: events.per_page,
-        }, { preserveState: true, replace: true });
+        router.get(route('admin.events.archive'), buildParams({ page }), {
+            preserveState: true,
+            replace: true,
+        });
     };
 
     const handlePerPageChange = (value: number) => {
-        router.get(route('admin.events.archive'), {
-            search: search || undefined,
+        router.get(route('admin.events.archive'), buildParams({
             per_page: value,
-        }, { preserveState: true, replace: true });
+            page: undefined,
+        }), { preserveState: true, replace: true });
     };
+
+    /* ── Advanced filter actions ──────────────────────────────────── */
+
+    const activeAdvancedFilterCount = [filterDateFrom, filterDateTo, filterStatus].filter(Boolean).length;
+
+    const handleApplyFilters = () => {
+        router.get(route('admin.events.archive'), buildParams({ page: undefined }), {
+            preserveState: true,
+            replace: true,
+        });
+    };
+
+    const handleClearFilters = () => {
+        setFilterDateFrom('');
+        setFilterDateTo('');
+        setFilterStatus('');
+        router.get(route('admin.events.archive'), buildParams({
+            date_from: undefined,
+            date_to: undefined,
+            archive_status: undefined,
+            page: undefined,
+        }), { preserveState: true, replace: true });
+    };
+
+    /* ── Modal helpers ────────────────────────────────────────────── */
 
     const openRestoreModal = (eventId: string, eventName: string) => {
         setConfirmModal({
@@ -92,7 +159,7 @@ export default function ArchiveEvents({ events, filters, isRoot }: Props) {
         setConfirmModal({
             isOpen: true,
             title: isRoot ? 'Permanently Delete Event' : 'Delete Event',
-            message: isRoot 
+            message: isRoot
                 ? `Are you sure you want to permanently delete "${eventName}"? This action cannot be undone and all associated data will be lost forever.`
                 : `Are you sure you want to delete "${eventName}"? This action cannot be undone.`,
             action: 'delete',
@@ -126,13 +193,6 @@ export default function ArchiveEvents({ events, filters, isRoot }: Props) {
         }
     };
 
-    const statusColor = (status: string) => {
-        switch (status) {
-            case 'Deactivated': return 'bg-amber-50 dark:bg-amber-500/10 text-amber-600 dark:text-amber-400 ring-1 ring-amber-500/20';
-            default:            return '';
-        }
-    };
-
     return (
         <DashboardLayout>
             <Head title="Archive - Deactivated Events" />
@@ -161,7 +221,7 @@ export default function ArchiveEvents({ events, filters, isRoot }: Props) {
                 </Link>
             </div>
 
-            {/* Toolbar: Search */}
+            {/* Toolbar: Search + Advanced Filter */}
             <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 mb-6">
                 {/* Search */}
                 <div className="relative w-full sm:w-80">
@@ -176,27 +236,53 @@ export default function ArchiveEvents({ events, filters, isRoot }: Props) {
                         className="w-full rounded-xl border border-slate-200 dark:border-white/10 bg-white dark:bg-white/5 pl-10 pr-4 py-2.5 text-sm text-slate-700 dark:text-slate-300 placeholder-slate-400 dark:placeholder-slate-500 focus:border-primary-500/40 focus:ring-2 focus:ring-primary-500/20 transition"
                     />
                 </div>
+
+                {/* Advanced Filter */}
+                <AdvancedFilter
+                    activeCount={activeAdvancedFilterCount}
+                    onApply={handleApplyFilters}
+                    onClear={handleClearFilters}
+                >
+                    <FilterField label="Event Date Range">
+                        <FilterDateRange
+                            from={filterDateFrom}
+                            to={filterDateTo}
+                            onFromChange={setFilterDateFrom}
+                            onToChange={setFilterDateTo}
+                        />
+                    </FilterField>
+                    <FilterField label="Archive Status">
+                        <FilterSelect
+                            value={filterStatus}
+                            onChange={setFilterStatus}
+                            options={[
+                                { label: 'Deactivated', value: 'Deactivated' },
+                                { label: 'Cancelled', value: 'Cancelled' },
+                            ]}
+                            placeholder="All Statuses"
+                        />
+                    </FilterField>
+                </AdvancedFilter>
             </div>
 
-            {/* Table wrapper - Overflow allowed for dropdowns to show */}
+            {/* Table wrapper */}
             <div className="rounded-2xl bg-white dark:bg-white/[0.03] border border-slate-200 dark:border-white/5 shadow-sm dark:shadow-none">
                 <div className="min-w-full rounded-2xl">
                     <table className="w-full text-sm">
                         <thead>
                             <tr className="text-left text-xs font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider border-b border-slate-100 dark:border-white/5">
-                                <th className="px-5 py-3.5">Event</th>
-                                <th className="px-5 py-3.5">Organizer</th>
-                                <th className="px-5 py-3.5">Category</th>
-                                <th className="px-5 py-3.5">Date</th>
-                                <th className="px-5 py-3.5">Tickets</th>
-                                <th className="px-5 py-3.5">Deactivated</th>
+                                <SortableHeader label="Event" column="name" currentSort={sort} currentDirection={direction} onSort={handleSort} />
+                                <SortableHeader label="Organizer" column="organizer" currentSort={sort} currentDirection={direction} onSort={handleSort} />
+                                <SortableHeader label="Category" column="category" currentSort={sort} currentDirection={direction} onSort={handleSort} />
+                                <SortableHeader label="Date" column="date" currentSort={sort} currentDirection={direction} onSort={handleSort} />
+                                <SortableHeader label="Tickets" column="tickets" currentSort={sort} currentDirection={direction} onSort={handleSort} />
+                                <SortableHeader label="Deactivated" column="deactivated_at" currentSort={sort} currentDirection={direction} onSort={handleSort} />
                                 <th className="px-5 py-3.5 text-right">Actions</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-100 dark:divide-white/5">
                             {events.data.map((event, rowIndex) => {
                                 const totalRows = events.data.length;
-                                // If 2 or fewer rows, or if we're at the very bottom of a larger list, render upward
                                 const isNearBottom = totalRows <= 2 || rowIndex >= totalRows - 2;
 
                                 return (

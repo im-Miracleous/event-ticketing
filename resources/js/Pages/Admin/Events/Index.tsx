@@ -1,5 +1,7 @@
 import DashboardLayout from '@/Layouts/DashboardLayout';
 import Pagination from '@/Components/Dashboard/Pagination';
+import SortableHeader from '@/Components/Dashboard/SortableHeader';
+import AdvancedFilter, { FilterField, FilterSelect, FilterDateRange } from '@/Components/Dashboard/AdvancedFilter';
 import Modal from '@/Components/Modal';
 import SecondaryButton from '@/Components/SecondaryButton';
 import { Head, router, Link } from '@inertiajs/react';
@@ -32,17 +34,32 @@ interface Props {
         status?: string;
         search?: string;
         per_page?: number;
+        sort?: string;
+        direction?: 'asc' | 'desc';
+        date_from?: string;
+        date_to?: string;
+        category?: string;
     };
+    categories: string[];
 }
 
 const statusFilters = ['All', 'Active', 'Draft', 'Completed', 'Cancelled'];
 
 /* ─── Component ─────────────────────────────────────────────────────── */
 
-export default function AdminEvents({ events, filters }: Props) {
+export default function AdminEvents({ events, filters, categories }: Props) {
     const [search, setSearch] = useState(filters.search || '');
     const activeFilter = filters.status || 'All';
-    
+
+    // Sort state (from server)
+    const sort = filters.sort || '';
+    const direction = filters.direction || 'desc';
+
+    // Advanced filter local state
+    const [filterDateFrom, setFilterDateFrom] = useState(filters.date_from || '');
+    const [filterDateTo, setFilterDateTo] = useState(filters.date_to || '');
+    const [filterCategory, setFilterCategory] = useState(filters.category || '');
+
     const [confirmModal, setConfirmModal] = useState<{
         isOpen: boolean;
         title: string;
@@ -59,39 +76,88 @@ export default function AdminEvents({ events, filters }: Props) {
         eventName: null,
     });
 
-    const handleFilterChange = (filter: string) => {
-        router.get(route('admin.events.index'), {
-            status: filter === 'All' ? undefined : filter,
+    /* ── Helpers to build params ──────────────────────────────────── */
+
+    const buildParams = (overrides: Record<string, any> = {}) => {
+        const params: Record<string, any> = {
+            status: activeFilter === 'All' ? undefined : activeFilter,
             search: search || undefined,
             per_page: events.per_page,
-        }, { preserveState: true, replace: true });
+            sort: sort || undefined,
+            direction: sort ? direction : undefined,
+            date_from: filterDateFrom || undefined,
+            date_to: filterDateTo || undefined,
+            category: filterCategory || undefined,
+            ...overrides,
+        };
+        // Clean undefined
+        Object.keys(params).forEach((k) => params[k] === undefined && delete params[k]);
+        return params;
+    };
+
+    /* ── Handlers ─────────────────────────────────────────────────── */
+
+    const handleFilterChange = (filter: string) => {
+        router.get(route('admin.events.index'), buildParams({
+            status: filter === 'All' ? undefined : filter,
+            page: undefined, // reset page
+        }), { preserveState: true, replace: true });
     };
 
     const handleSearchChange = (value: string) => {
         setSearch(value);
-        router.get(route('admin.events.index'), {
-            status: activeFilter === 'All' ? undefined : activeFilter,
+        router.get(route('admin.events.index'), buildParams({
             search: value || undefined,
-            per_page: events.per_page,
-        }, { preserveState: true, replace: true });
+            page: undefined,
+        }), { preserveState: true, replace: true });
+    };
+
+    const handleSort = (column: string, dir: 'asc' | 'desc') => {
+        router.get(route('admin.events.index'), buildParams({
+            sort: column,
+            direction: dir,
+            page: undefined,
+        }), { preserveState: true, replace: true });
     };
 
     const handlePageChange = (page: number) => {
-        router.get(route('admin.events.index'), {
-            page,
-            status: activeFilter === 'All' ? undefined : activeFilter,
-            search: search || undefined,
-            per_page: events.per_page,
-        }, { preserveState: true, replace: true });
+        router.get(route('admin.events.index'), buildParams({ page }), {
+            preserveState: true,
+            replace: true,
+        });
     };
 
     const handlePerPageChange = (value: number) => {
-        router.get(route('admin.events.index'), {
-            status: activeFilter === 'All' ? undefined : activeFilter,
-            search: search || undefined,
+        router.get(route('admin.events.index'), buildParams({
             per_page: value,
-        }, { preserveState: true, replace: true });
+            page: undefined,
+        }), { preserveState: true, replace: true });
     };
+
+    /* ── Advanced filter actions ──────────────────────────────────── */
+
+    const activeAdvancedFilterCount = [filterDateFrom, filterDateTo, filterCategory].filter(Boolean).length;
+
+    const handleApplyFilters = () => {
+        router.get(route('admin.events.index'), buildParams({ page: undefined }), {
+            preserveState: true,
+            replace: true,
+        });
+    };
+
+    const handleClearFilters = () => {
+        setFilterDateFrom('');
+        setFilterDateTo('');
+        setFilterCategory('');
+        router.get(route('admin.events.index'), buildParams({
+            date_from: undefined,
+            date_to: undefined,
+            category: undefined,
+            page: undefined,
+        }), { preserveState: true, replace: true });
+    };
+
+    /* ── Modal helpers ────────────────────────────────────────────── */
 
     const openDeactivateModal = (eventId: string, eventName: string) => {
         setConfirmModal({
@@ -187,7 +253,7 @@ export default function AdminEvents({ events, filters }: Props) {
                 </Link>
             </div>
 
-            {/* Toolbar: Search + Filter */}
+            {/* Toolbar: Search + Filter Pills + Advanced Filter */}
             <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 mb-6">
                 {/* Search */}
                 <div className="relative w-full sm:w-80">
@@ -219,27 +285,50 @@ export default function AdminEvents({ events, filters }: Props) {
                         </button>
                     ))}
                 </div>
+
+                {/* Advanced Filter */}
+                <AdvancedFilter
+                    activeCount={activeAdvancedFilterCount}
+                    onApply={handleApplyFilters}
+                    onClear={handleClearFilters}
+                >
+                    <FilterField label="Event Date Range">
+                        <FilterDateRange
+                            from={filterDateFrom}
+                            to={filterDateTo}
+                            onFromChange={setFilterDateFrom}
+                            onToChange={setFilterDateTo}
+                        />
+                    </FilterField>
+                    <FilterField label="Category">
+                        <FilterSelect
+                            value={filterCategory}
+                            onChange={setFilterCategory}
+                            options={categories.map((c) => ({ label: c, value: c }))}
+                            placeholder="All Categories"
+                        />
+                    </FilterField>
+                </AdvancedFilter>
             </div>
 
-            {/* Table wrapper - Overflow allowed for dropdowns to show */}
+            {/* Table wrapper */}
             <div className="rounded-2xl bg-white dark:bg-white/[0.03] border border-slate-200 dark:border-white/5 shadow-sm dark:shadow-none">
                 <div className="min-w-full rounded-2xl">
                     <table className="w-full text-sm">
                         <thead>
                             <tr className="text-left text-xs font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider border-b border-slate-100 dark:border-white/5">
-                                <th className="px-5 py-3.5">Event</th>
-                                <th className="px-5 py-3.5">Organizer</th>
-                                <th className="px-5 py-3.5">Category</th>
-                                <th className="px-5 py-3.5">Date</th>
-                                <th className="px-5 py-3.5">Tickets</th>
-                                <th className="px-5 py-3.5">Status</th>
+                                <SortableHeader label="Event" column="name" currentSort={sort} currentDirection={direction} onSort={handleSort} />
+                                <SortableHeader label="Organizer" column="organizer" currentSort={sort} currentDirection={direction} onSort={handleSort} />
+                                <SortableHeader label="Category" column="category" currentSort={sort} currentDirection={direction} onSort={handleSort} />
+                                <SortableHeader label="Date" column="date" currentSort={sort} currentDirection={direction} onSort={handleSort} />
+                                <SortableHeader label="Tickets" column="tickets" currentSort={sort} currentDirection={direction} onSort={handleSort} />
+                                <SortableHeader label="Status" column="status" currentSort={sort} currentDirection={direction} onSort={handleSort} />
                                 <th className="px-5 py-3.5 text-right">Actions</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-100 dark:divide-white/5">
                             {events.data.map((event, rowIndex) => {
                                 const totalRows = events.data.length;
-                                // If 2 or fewer rows, or if we're at the very bottom of a larger list, render upward
                                 const isNearBottom = totalRows <= 2 || rowIndex >= totalRows - 2;
 
                                 return (
