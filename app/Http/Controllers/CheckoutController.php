@@ -40,12 +40,12 @@ class CheckoutController extends Controller
     public function store(Request $request, DokuService $dokuService)
     {
         $request->validate([
-            'event_id'         => 'required|string|exists:events,id',
-            'items'            => 'required|array|min:1',
+            'event_id' => 'required|string|exists:events,id',
+            'items' => 'required|array|min:1',
             'items.*.ticket_type_id' => 'required|integer|exists:tickets_types,id',
             'items.*.quantity' => 'required|integer|min:1|max:10',
-            'attendees'        => 'required|array',
-            'attendees.*.name'  => 'required|string|max:100',
+            'attendees' => 'required|array',
+            'attendees.*.name' => 'required|string|max:100',
             'attendees.*.email' => 'required|email|max:100',
         ]);
 
@@ -67,9 +67,9 @@ class CheckoutController extends Controller
                 $totalAmount += $subtotal;
 
                 $resolvedItems[] = [
-                    'ticket_type'  => $ticketType,
-                    'quantity'     => $item['quantity'],
-                    'subtotal'     => $subtotal,
+                    'ticket_type' => $ticketType,
+                    'quantity' => $item['quantity'],
+                    'subtotal' => $subtotal,
                 ];
             }
 
@@ -87,41 +87,41 @@ class CheckoutController extends Controller
                 $user = Auth::user();
                 $dokuResponse = $dokuService->createVirtualAccount([
                     'invoice_number' => $transactionId,
-                    'amount'         => (int) $totalAmount,
-                    'customer_id'    => (string) $user->id,
-                    'customer_name'  => $user->name,
+                    'amount' => (int) $totalAmount,
+                    'customer_id' => (string) $user->id,
+                    'customer_name' => $user->name,
                     'customer_email' => $user->email,
-                    'item_name'      => 'EventHive Ticket',
+                    'item_name' => 'EventHive Ticket',
                 ]);
 
                 if ($dokuResponse) {
                     $dokuPaymentUrl = $dokuResponse['response']['payment']['url'] ?? null;
-                    $dokuVaNumber = $dokuResponse['response']['payment']['virtual_account_number'] 
-                                 ?? $dokuResponse['virtual_account_info']['virtual_account_number'] 
-                                 ?? null;
+                    $dokuVaNumber = $dokuResponse['response']['payment']['virtual_account_number']
+                        ?? $dokuResponse['virtual_account_info']['virtual_account_number']
+                        ?? null;
                 }
             }
 
             // Create payment record
             $payment = Payment::create([
-                'payment_method'       => 'Transfer',
-                'payment_status'       => 'Pending',
-                'transaction_time'     => now(),
-                'doku_invoice_number'  => $isDokuEnabled ? $transactionId : null,
-                'doku_payment_url'     => $dokuPaymentUrl,
-                'doku_va_number'       => $dokuVaNumber,
-                'doku_raw_response'    => $dokuResponse,
+                'payment_method' => 'Transfer',
+                'payment_status' => 'Pending',
+                'transaction_time' => now(),
+                'doku_invoice_number' => $isDokuEnabled ? $transactionId : null,
+                'doku_payment_url' => $dokuPaymentUrl,
+                'doku_va_number' => $dokuVaNumber,
+                'doku_raw_response' => $dokuResponse,
             ]);
 
             // Create transaction
             $transaction = Transaction::create([
-                'id'                 => $transactionId,
-                'total_amount'       => $totalAmount,
+                'id' => $transactionId,
+                'total_amount' => $totalAmount,
                 'transaction_status' => 'Pending',
-                'user_id'            => Auth::id(),
-                'payment_id'         => $payment->id,
-                'event_id'           => $request->event_id,
-                'expires_at'         => $expiresAt,
+                'user_id' => Auth::id(),
+                'payment_id' => $payment->id,
+                'event_id' => $request->event_id,
+                'expires_at' => $expiresAt,
             ]);
 
             $attendeeIdx = 0;
@@ -129,30 +129,30 @@ class CheckoutController extends Controller
             // Create TransactionDetails, Tickets, and Attendees
             foreach ($resolvedItems as $item) {
                 $detail = TransactionDetail::create([
-                    'subtotal'       => $item['subtotal'],
-                    'quantity'       => $item['quantity'],
+                    'subtotal' => $item['subtotal'],
+                    'quantity' => $item['quantity'],
                     'transaction_id' => $transaction->id,
                     'ticket_type_id' => $item['ticket_type']->id,
                 ]);
 
                 for ($i = 0; $i < $item['quantity']; $i++) {
                     $ticket = Ticket::create([
-                        'id'                  => 'TKT-' . strtoupper(Str::random(12)),
-                        'qr_code'             => Str::uuid(),
-                        'ticket_status'       => 'Pending',
-                        'issued_at'           => now(),
+                        'id' => 'TKT-' . strtoupper(Str::random(12)),
+                        'qr_code' => Str::uuid(),
+                        'ticket_status' => 'Pending',
+                        'issued_at' => now(),
                         'transaction_detail_id' => $detail->id,
-                        'ticket_type_id'      => $item['ticket_type']->id,
+                        'ticket_type_id' => $item['ticket_type']->id,
                     ]);
 
                     $attendeeData = $request->attendees[$attendeeIdx] ?? [
-                        'name'  => Auth::user()->name,
+                        'name' => Auth::user()->name,
                         'email' => Auth::user()->email,
                     ];
 
                     Attendee::create([
-                        'name'      => $attendeeData['name'],
-                        'email'     => $attendeeData['email'],
+                        'name' => $attendeeData['name'],
+                        'email' => $attendeeData['email'],
                         'ticket_id' => $ticket->id,
                     ]);
 
@@ -168,9 +168,9 @@ class CheckoutController extends Controller
             Mail::to(Auth::user()->email)->send(new BookingPendingMail($transaction));
 
             return [
-                'transaction'     => $transaction,
+                'transaction' => $transaction,
                 'doku_payment_url' => $dokuPaymentUrl,
-                'is_doku'          => $isDokuEnabled && $totalAmount > 0,
+                'is_doku' => $isDokuEnabled && $totalAmount > 0,
             ];
         });
 
@@ -194,8 +194,8 @@ class CheckoutController extends Controller
             'details.ticketType',
             'details.tickets.attendee',
         ])->where('id', $transactionId)
-          ->where('user_id', Auth::id())
-          ->firstOrFail();
+            ->where('user_id', Auth::id())
+            ->firstOrFail();
 
         if ($transaction->transaction_status !== 'Pending') {
             return redirect()->route('checkout.result', $transactionId);
@@ -298,8 +298,8 @@ class CheckoutController extends Controller
             'details.ticketType',
             'details.tickets.attendee',
         ])->where('id', $transactionId)
-          ->where('user_id', Auth::id())
-          ->firstOrFail();
+            ->where('user_id', Auth::id())
+            ->firstOrFail();
 
         return Inertia::render('Checkout/Result', [
             'transaction' => $transaction,

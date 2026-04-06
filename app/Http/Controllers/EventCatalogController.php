@@ -25,9 +25,9 @@ class EventCatalogController extends Controller
         // Search by title or description
         if ($request->filled('search')) {
             $search = $request->input('search');
-            $query->where(function($q) use ($search) {
+            $query->where(function ($q) use ($search) {
                 $q->where('title', 'like', "%{$search}%")
-                  ->orWhere('description', 'like', "%{$search}%");
+                    ->orWhere('description', 'like', "%{$search}%");
             });
         }
 
@@ -48,12 +48,12 @@ class EventCatalogController extends Controller
 
         // Filter by price range
         if ($request->filled('price_min')) {
-            $query->whereHas('ticketTypes', function($q) use ($request) {
+            $query->whereHas('ticketTypes', function ($q) use ($request) {
                 $q->where('price', '>=', $request->input('price_min'));
             });
         }
         if ($request->filled('price_max')) {
-            $query->whereHas('ticketTypes', function($q) use ($request) {
+            $query->whereHas('ticketTypes', function ($q) use ($request) {
                 $q->where('price', '<=', $request->input('price_max'));
             });
         }
@@ -84,11 +84,11 @@ class EventCatalogController extends Controller
 
         // Sorting
         $sortMapping = [
-            'date_asc'   => ['event_date', 'asc'],
-            'date_desc'  => ['event_date', 'desc'],
-            'price_asc'  => ['price', 'asc'],
+            'date_asc' => ['event_date', 'asc'],
+            'date_desc' => ['event_date', 'desc'],
+            'price_asc' => ['price', 'asc'],
             'price_desc' => ['price', 'desc'],
-            'popular'    => ['total_quota', 'desc'],
+            'popular' => ['total_quota', 'desc'],
         ];
 
         $sort = $request->input('sort', 'date_asc');
@@ -97,7 +97,7 @@ class EventCatalogController extends Controller
         }
 
         $events = $query->paginate(12)->withQueryString();
-        
+
         // Fetch trending events for carousel
         $trendingEvents = Event::where('status', 'Active')
             ->with(['category', 'ticketTypes'])
