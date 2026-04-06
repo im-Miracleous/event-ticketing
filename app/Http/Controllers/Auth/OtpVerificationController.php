@@ -27,7 +27,7 @@ class OtpVerificationController extends Controller
             return redirect()->route('register');
         }
 
-        return Inertia::render('Auth/OtpVerify', [
+        return view('auth.otp-verify', [
             'email' => $pending['email'],
         ]);
     }
