@@ -2,6 +2,7 @@ import DashboardLayout from '@/Layouts/DashboardLayout';
 import Pagination from '@/Components/Dashboard/Pagination';
 import SortableHeader from '@/Components/Dashboard/SortableHeader';
 import AdvancedFilter, { FilterField, FilterSelect, FilterDateRange } from '@/Components/Dashboard/AdvancedFilter';
+import Tooltip from '@/Components/Dashboard/Tooltip';
 import { Head, router } from '@inertiajs/react';
 import { useState, useEffect } from 'react';
 import type { UserRole } from '@/config/navigation';
@@ -267,9 +268,9 @@ export default function AdminUsers({ users, filters }: Props) {
 
             {/* Users Table */}
             <div className="rounded-2xl bg-white dark:bg-white/[0.03] border border-slate-200 dark:border-white/5 shadow-sm dark:shadow-none overflow-hidden">
-                <div className="overflow-x-auto">
-                    <table className="w-full text-sm">
-                        <thead>
+                <div className="min-w-full rounded-2xl overflow-auto custom-scrollbar max-h-[calc(100vh-28rem)] sm:max-h-[calc(100vh-24rem)]">
+                    <table className="w-full text-sm border-collapse">
+                        <thead className="sticky top-0 z-10 bg-white dark:bg-[#0f172a] shadow-[0_1px_0_0_rgba(0,0,0,0.05)] dark:shadow-[0_1px_0_0_rgba(255,255,255,0.05)]">
                             <tr className="text-left text-xs font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider border-b border-slate-100 dark:border-white/5">
                                 <SortableHeader label="User" column="name" currentSort={sort} currentDirection={direction} onSort={handleSort} />
                                 <SortableHeader label="Role" column="role" currentSort={sort} currentDirection={direction} onSort={handleSort} />
@@ -287,8 +288,12 @@ export default function AdminUsers({ users, filters }: Props) {
                                                 <span className="text-xs font-bold text-primary-600 dark:text-primary-400">{user.name.charAt(0).toUpperCase()}</span>
                                             </div>
                                             <div className="min-w-0">
-                                                <p className="font-medium text-slate-800 dark:text-slate-200 truncate">{user.name}</p>
-                                                <p className="text-xs text-slate-400 dark:text-slate-500 truncate">{user.email}</p>
+                                                <Tooltip content={user.name}>
+                                                    <p className="font-medium text-slate-800 dark:text-slate-200 truncate max-w-[150px]">{user.name}</p>
+                                                </Tooltip>
+                                                <Tooltip content={user.email}>
+                                                    <p className="text-xs text-slate-400 dark:text-slate-500 truncate max-w-[150px]">{user.email}</p>
+                                                </Tooltip>
                                             </div>
                                         </div>
                                     </td>

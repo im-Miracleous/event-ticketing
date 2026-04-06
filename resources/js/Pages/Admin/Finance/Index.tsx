@@ -3,6 +3,7 @@ import Pagination from '@/Components/Dashboard/Pagination';
 import StatisticsCard from '@/Components/Dashboard/StatisticsCard';
 import SortableHeader from '@/Components/Dashboard/SortableHeader';
 import AdvancedFilter, { FilterField, FilterSelect, FilterDateRange } from '@/Components/Dashboard/AdvancedFilter';
+import Tooltip from '@/Components/Dashboard/Tooltip';
 import { Head, router } from '@inertiajs/react';
 import { useState } from 'react';
 
@@ -223,9 +224,9 @@ export default function AdminFinance({ financeStats, recentTransactions, monthly
                         </AdvancedFilter>
                     </div>
 
-                    <div className="overflow-x-auto">
-                        <table className="w-full text-sm">
-                            <thead>
+                    <div className="min-w-full rounded-2xl overflow-auto custom-scrollbar max-h-[calc(100vh-36rem)] lg:max-h-[calc(100vh-32rem)]">
+                        <table className="w-full text-sm border-collapse">
+                            <thead className="sticky top-0 z-10 bg-white dark:bg-[#0f172a] shadow-[0_1px_0_0_rgba(0,0,0,0.05)] dark:shadow-[0_1px_0_0_rgba(255,255,255,0.05)]">
                                 <tr className="text-left text-xs font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider border-b border-slate-100 dark:border-white/5">
                                     <th className="px-5 py-3">ID</th>
                                     <SortableHeader label="User" column="user" currentSort={sort} currentDirection={direction} onSort={handleSort} />
@@ -239,7 +240,11 @@ export default function AdminFinance({ financeStats, recentTransactions, monthly
                             <tbody className="divide-y divide-slate-100 dark:divide-white/5">
                                 {recentTransactions.data.map((txn) => (
                                     <tr key={txn.id} className="hover:bg-slate-50 dark:hover:bg-white/[0.02] transition-colors">
-                                        <td className="px-5 py-3 font-mono text-xs text-slate-500 dark:text-slate-400 whitespace-nowrap">{typeof txn.id === 'string' ? txn.id.substring(0, 8) : txn.id}…</td>
+                                        <td className="px-5 py-3 font-mono text-xs text-slate-500 dark:text-slate-400 whitespace-nowrap">
+                                            <Tooltip content={txn.id}>
+                                                {typeof txn.id === 'string' && txn.id.length > 18 ? `${txn.id.substring(0, 16)}…` : txn.id}
+                                            </Tooltip>
+                                        </td>
                                         <td className="px-5 py-3 text-slate-700 dark:text-slate-300 whitespace-nowrap">{txn.user}</td>
                                         <td className="px-5 py-3 text-slate-500 dark:text-slate-400 whitespace-nowrap">{txn.event}</td>
                                         <td className="px-5 py-3 font-medium text-slate-800 dark:text-white whitespace-nowrap">{txn.amount}</td>

@@ -2,6 +2,7 @@ import DashboardLayout from '@/Layouts/DashboardLayout';
 import Pagination from '@/Components/Dashboard/Pagination';
 import SortableHeader from '@/Components/Dashboard/SortableHeader';
 import AdvancedFilter, { FilterField, FilterSelect, FilterDateRange } from '@/Components/Dashboard/AdvancedFilter';
+import Tooltip from '@/Components/Dashboard/Tooltip';
 import { Head, router } from '@inertiajs/react';
 import { useState } from 'react';
 
@@ -167,13 +168,13 @@ export default function AdminPromotions({ promotions, filters }: Props) {
             </div>
 
             {/* Discount Codes Table */}
-            <div className="rounded-2xl bg-white dark:bg-white/[0.03] border border-slate-200 dark:border-white/5 shadow-sm dark:shadow-none mb-8">
+            <div className="rounded-2xl bg-white dark:bg-white/[0.03] border border-slate-200 dark:border-white/5 shadow-sm dark:shadow-none mb-8 overflow-hidden">
                 <div className="px-5 py-4 border-b border-slate-100 dark:border-white/5">
                     <h2 className="text-base font-semibold text-slate-900 dark:text-white">Discount Codes</h2>
                 </div>
-                <div className="overflow-x-auto">
-                    <table className="w-full text-sm">
-                        <thead>
+                <div className="min-w-full rounded-2xl overflow-auto custom-scrollbar max-h-[calc(100vh-32rem)] sm:max-h-[calc(100vh-28rem)]">
+                    <table className="w-full text-sm border-collapse">
+                        <thead className="sticky top-0 z-10 bg-white dark:bg-[#0f172a] shadow-[0_1px_0_0_rgba(0,0,0,0.05)] dark:shadow-[0_1px_0_0_rgba(255,255,255,0.05)]">
                             <tr className="text-left text-xs font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider border-b border-slate-100 dark:border-white/5">
                                 <SortableHeader label="Code" column="code" currentSort={sort} currentDirection={direction} onSort={handleSort} />
                                 <th className="px-5 py-3.5">Type</th>
@@ -188,7 +189,9 @@ export default function AdminPromotions({ promotions, filters }: Props) {
                             {promotions.data.map((promo) => (
                                 <tr key={promo.id} className="hover:bg-slate-50 dark:hover:bg-white/[0.02] transition-colors">
                                     <td className="px-5 py-3.5 whitespace-nowrap">
-                                        <span className="font-mono text-sm font-semibold text-slate-800 dark:text-white bg-slate-100 dark:bg-white/5 px-2 py-0.5 rounded-lg">{promo.code}</span>
+                                        <Tooltip content={promo.code}>
+                                            <span className="font-mono text-sm font-semibold text-slate-800 dark:text-white bg-slate-100 dark:bg-white/5 px-2 py-0.5 rounded-lg truncate max-w-[120px] inline-block">{promo.code}</span>
+                                        </Tooltip>
                                     </td>
                                     <td className="px-5 py-3.5 text-slate-500 dark:text-slate-400 whitespace-nowrap">{promo.type}</td>
                                     <td className="px-5 py-3.5 font-medium text-slate-700 dark:text-slate-300 whitespace-nowrap">{promo.value}</td>

@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import DashboardLayout from '@/Layouts/DashboardLayout';
 import { Head, Link, router } from '@inertiajs/react';
 import Modal from '@/Components/Modal';
+import Tooltip from '@/Components/Dashboard/Tooltip';
 import SecondaryButton from '@/Components/SecondaryButton';
 
 const STATUS_TABS = [
@@ -161,10 +162,10 @@ export default function Index({ events, filters }: any) {
                 </div>
 
                 {/* Table */}
-                <div className="rounded-2xl bg-white dark:bg-white/[0.03] border border-slate-200 dark:border-white/5 shadow-sm dark:shadow-none">
-                    <div className="min-w-full rounded-2xl">
-                        <table className="w-full text-sm">
-                            <thead>
+                <div className="rounded-2xl bg-white dark:bg-white/[0.03] border border-slate-200 dark:border-white/5 shadow-sm dark:shadow-none overflow-hidden">
+                    <div className="min-w-full rounded-2xl overflow-auto custom-scrollbar max-h-[calc(100vh-32rem)] sm:max-h-[calc(100vh-28rem)]">
+                        <table className="w-full text-sm border-collapse">
+                            <thead className="sticky top-0 z-10 bg-white dark:bg-[#0f172a] shadow-[0_1px_0_0_rgba(0,0,0,0.05)] dark:shadow-[0_1px_0_0_rgba(255,255,255,0.05)]">
                                 <tr className="text-left text-xs font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider border-b border-slate-100 dark:border-white/5">
                                     <th className="px-5 py-3">Event Name</th>
                                     <th className="px-5 py-3">Category</th>
@@ -181,9 +182,11 @@ export default function Index({ events, filters }: any) {
                                     return (
                                         <tr key={event.id} className="hover:bg-slate-50/50 dark:hover:bg-white/[0.02] transition-colors">
                                             <td className="px-5 py-4">
-                                                <Link href={route('organizer.events.show', event.id)} className="font-semibold text-slate-800 dark:text-white hover:text-primary-600 dark:hover:text-primary-400 transition-colors">
-                                                    {event.name}
-                                                </Link>
+                                                <Tooltip content={event.name}>
+                                                    <Link href={route('organizer.events.show', event.id)} className="font-semibold text-slate-800 dark:text-white hover:text-primary-600 dark:hover:text-primary-400 transition-colors block truncate max-w-[200px]">
+                                                        {event.name}
+                                                    </Link>
+                                                </Tooltip>
                                             </td>
                                             <td className="px-5 py-4 text-slate-500 dark:text-slate-400">{event.category}</td>
                                             <td className="px-5 py-4 text-slate-500 dark:text-slate-400">{event.date}</td>

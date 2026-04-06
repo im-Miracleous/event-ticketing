@@ -2,6 +2,7 @@ import DashboardLayout from '@/Layouts/DashboardLayout';
 import Pagination from '@/Components/Dashboard/Pagination';
 import SortableHeader from '@/Components/Dashboard/SortableHeader';
 import AdvancedFilter, { FilterField, FilterSelect, FilterDateRange } from '@/Components/Dashboard/AdvancedFilter';
+import Tooltip from '@/Components/Dashboard/Tooltip';
 import Modal from '@/Components/Modal';
 import SecondaryButton from '@/Components/SecondaryButton';
 import { Head, router, Link } from '@inertiajs/react';
@@ -323,10 +324,10 @@ export default function AdminEvents({ events, filters, categories }: Props) {
             </div>
 
             {/* Table wrapper */}
-            <div className="rounded-2xl bg-white dark:bg-white/[0.03] border border-slate-200 dark:border-white/5 shadow-sm dark:shadow-none">
-                <div className="min-w-full rounded-2xl">
-                    <table className="w-full text-sm">
-                        <thead>
+            <div className="rounded-2xl bg-white dark:bg-white/[0.03] border border-slate-200 dark:border-white/5 shadow-sm dark:shadow-none overflow-hidden">
+                <div className="min-w-full rounded-2xl overflow-auto custom-scrollbar max-h-[calc(100vh-28rem)] sm:max-h-[calc(100vh-24rem)]">
+                    <table className="w-full text-sm border-collapse">
+                        <thead className="sticky top-0 z-10 bg-white dark:bg-[#0f172a] shadow-[0_1px_0_0_rgba(0,0,0,0.05)] dark:shadow-[0_1px_0_0_rgba(255,255,255,0.05)]">
                             <tr className="text-left text-xs font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider border-b border-slate-100 dark:border-white/5">
                                 <SortableHeader label="Event" column="name" currentSort={sort} currentDirection={direction} onSort={handleSort} />
                                 <SortableHeader label="Organizer" column="organizer" currentSort={sort} currentDirection={direction} onSort={handleSort} />
@@ -344,8 +345,16 @@ export default function AdminEvents({ events, filters, categories }: Props) {
 
                                 return (
                                 <tr key={event.id} className="hover:bg-slate-50 dark:hover:bg-white/[0.02] transition-colors">
-                                    <td className="px-5 py-3.5 font-medium text-slate-800 dark:text-slate-200 whitespace-nowrap">{event.name}</td>
-                                    <td className="px-5 py-3.5 text-slate-500 dark:text-slate-400 whitespace-nowrap">{event.organizer}</td>
+                                    <td className="px-5 py-3.5 font-medium text-slate-800 dark:text-slate-200">
+                                        <Tooltip content={event.name}>
+                                            <div className="truncate max-w-[180px]">{event.name}</div>
+                                        </Tooltip>
+                                    </td>
+                                    <td className="px-5 py-3.5 text-slate-500 dark:text-slate-400">
+                                        <Tooltip content={event.organizer}>
+                                            <div className="truncate max-w-[150px]">{event.organizer}</div>
+                                        </Tooltip>
+                                    </td>
                                     <td className="px-5 py-3.5 whitespace-nowrap">
                                         <span className="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium bg-primary-50 dark:bg-primary-500/10 text-primary-600 dark:text-primary-400 ring-1 ring-primary-500/20">
                                             {event.category}
