@@ -42,7 +42,7 @@ export default function OtpVerify({ email }: { email: string }) {
 
     const submit: FormEventHandler = (e) => {
         e.preventDefault();
-        post(route('otp.verify'));
+        post(route('otp.verify.submit'));
     };
 
     const resend: FormEventHandler = (e) => {
