@@ -61,6 +61,8 @@ Route::middleware(['auth', 'verified', 'role:Organizer'])->prefix('organizer')->
     Route::get('/dashboard', [EventController::class, 'dashboard'])->name('dashboard');
     Route::get('/export-sales', [EventController::class, 'exportSales'])->name('export-sales');
     Route::get('/events', [EventController::class, 'index'])->name('events.index');
+    Route::get('/events/{event}/detail', [EventController::class, 'show'])->name('events.show');
+    Route::get('/transactions', [EventController::class, 'transactions'])->name('transactions.index');
     
     // Promotions
     Route::resource('promotions', \App\Http\Controllers\Organizer\PromotionController::class)->except(['create', 'show', 'edit']);

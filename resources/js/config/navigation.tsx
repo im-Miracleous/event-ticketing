@@ -155,6 +155,7 @@ const organizerNavItems: NavItem[] = [
     { label: 'Validate Tickets', href: '/organizer/check-in', routeName: 'organizer.check-in', icon: ValidationIcon },
     { label: 'Attendee Management', href: '/organizer/attendees', routeName: 'organizer.attendees.*', icon: UsersIcon },
     { label: 'Promotions', href: '/organizer/promotions', routeName: 'organizer.promotions.*', icon: PromotionIcon },
+    { label: 'Monitor Transaksi', href: '/organizer/transactions', routeName: 'organizer.transactions.*', icon: TicketIcon },
     { label: 'Earnings', href: '/organizer/earnings', routeName: 'organizer.earnings.*', icon: EarningsIcon },
 ];
 
