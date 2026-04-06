@@ -52,23 +52,27 @@ const Trigger = ({ children }: PropsWithChildren) => {
 
 const Content = ({
     align = 'right',
+    vertical = 'bottom',
     width = '48',
     contentClasses = 'py-1 bg-white dark:bg-navy-900',
     children,
 }: PropsWithChildren<{
     align?: 'left' | 'right';
+    vertical?: 'top' | 'bottom';
     width?: '48';
     contentClasses?: string;
 }>) => {
     const { open, setOpen } = useContext(DropDownContext);
 
-    let alignmentClasses = 'origin-top';
+    let alignmentClasses = vertical === 'top' ? 'origin-bottom' : 'origin-top';
 
     if (align === 'left') {
-        alignmentClasses = 'ltr:origin-top-left rtl:origin-top-right start-0';
+        alignmentClasses += ' ltr:origin-top-left rtl:origin-top-right start-0';
     } else if (align === 'right') {
-        alignmentClasses = 'ltr:origin-top-right rtl:origin-top-left end-0';
+        alignmentClasses += ' ltr:origin-top-right rtl:origin-top-left end-0';
     }
+
+    let positionClasses = vertical === 'top' ? 'bottom-full mb-2' : 'mt-2';
 
     let widthClasses = '';
 
@@ -88,7 +92,7 @@ const Content = ({
                 leaveTo="opacity-0 scale-95"
             >
                 <div
-                    className={`absolute z-50 mt-2 rounded-md shadow-lg ${alignmentClasses} ${widthClasses}`}
+                    className={`absolute z-50 rounded-md shadow-lg ${alignmentClasses} ${widthClasses} ${positionClasses}`}
                     onClick={() => setOpen(false)}
                 >
                     <div

@@ -44,8 +44,27 @@ class LoginRequest extends FormRequest
 
         $loginType = filter_var($this->input('login'), FILTER_VALIDATE_EMAIL) ? 'email' : 'username';
 
+        $user = \App\Models\User::where($loginType, $this->input('login'))->first();
+        if ($user && in_array($user->status, ['Suspended', 'Banned'])) {
+            throw ValidationException::withMessages([
+                'login' => 'Your account has been ' . strtolower($user->status) . '. Please contact support.',
+            ]);
+        }
+
         if (! Auth::attempt([$loginType => $this->input('login'), 'password' => $this->input('password')], $this->boolean('remember'))) {
             RateLimiter::hit($this->throttleKey());
+
+            if (RateLimiter::tooManyAttempts($this->throttleKey(), 5)) {
+                $lockoutKey = 'lockouts:' . $this->throttleKey();
+                $lockouts = \Illuminate\Support\Facades\Cache::increment($lockoutKey);
+                
+                if ($lockouts >= 2 && $user && $user->role !== 'Root') {
+                    $user->update(['status' => 'Suspended']);
+                    throw ValidationException::withMessages([
+                        'login' => 'Too many failed attempts. Your account has been suspended for security reasons.',
+                    ]);
+                }
+            }
 
             throw ValidationException::withMessages([
                 'login' => trans('auth.failed'),
@@ -53,6 +72,7 @@ class LoginRequest extends FormRequest
         }
 
         RateLimiter::clear($this->throttleKey());
+        \Illuminate\Support\Facades\Cache::forget('lockouts:' . $this->throttleKey());
     }
 
     /**

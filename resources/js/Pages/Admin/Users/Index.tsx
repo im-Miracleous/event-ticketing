@@ -3,8 +3,15 @@ import Pagination from '@/Components/Dashboard/Pagination';
 import SortableHeader from '@/Components/Dashboard/SortableHeader';
 import AdvancedFilter, { FilterField, FilterSelect, FilterDateRange } from '@/Components/Dashboard/AdvancedFilter';
 import Tooltip from '@/Components/Dashboard/Tooltip';
-import { Head, router } from '@inertiajs/react';
-import { useState, useEffect } from 'react';
+import Dropdown from '@/Components/Dropdown';
+import Modal from '@/Components/Modal';
+import InputLabel from '@/Components/InputLabel';
+import TextInput from '@/Components/TextInput';
+import InputError from '@/Components/InputError';
+import PrimaryButton from '@/Components/PrimaryButton';
+import SecondaryButton from '@/Components/SecondaryButton';
+import { Head, router, useForm, Link } from '@inertiajs/react';
+import { useState, useEffect, FormEventHandler } from 'react';
 import type { UserRole } from '@/config/navigation';
 
 /* ─── Types ─────────────────────────────────────────────────────────── */
@@ -48,17 +55,33 @@ export default function AdminUsers({ users, filters }: Props) {
     const [search, setSearch] = useState(filters.search || '');
     const activeFilter = filters.role || 'All';
 
-    // Sort state
     const sort = filters.sort || '';
     const direction = filters.direction || 'desc';
 
-    // Advanced filter local state
     const [filterRegFrom, setFilterRegFrom] = useState(filters.registered_from || '');
     const [filterRegTo, setFilterRegTo] = useState(filters.registered_to || '');
     const [filterUserStatus, setFilterUserStatus] = useState(filters.user_status || '');
 
-    // Read the mock role from localStorage to hide Root users when viewed as Admin
     const [activeRole, setActiveRole] = useState<UserRole>('admin');
+    
+    // Modals state
+    const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+    const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+    const [editingUser, setEditingUser] = useState<UserItem | null>(null);
+
+    const { data: createData, setData: setCreateData, post: postCreate, processing: createProcessing, errors: createErrors, reset: resetCreate } = useForm({
+        name: '',
+        email: '',
+        password: '',
+        role: 'User',
+    });
+
+    const { data: editData, setData: setEditData, put: putEdit, processing: editProcessing, errors: editErrors, reset: resetEdit } = useForm({
+        name: '',
+        email: '',
+        role: 'User',
+    });
+
     useEffect(() => {
         const saved = localStorage.getItem('mock_role');
         if (saved === 'root' || saved === 'admin' || saved === 'organizer' || saved === 'user') {
@@ -79,10 +102,7 @@ export default function AdminUsers({ users, filters }: Props) {
         };
     }, []);
 
-    // Also hide Root from the filter chips when not Root
     const visibleRoleFilters = activeRole === 'root' ? roleFilters : roleFilters.filter((f) => f !== 'Root');
-
-    // Filter out Root users client-side when not Root
     const visibleUsers = activeRole === 'root' ? users.data : users.data.filter(u => u.role !== 'Root');
 
     /* ── Param builder ────────────────────────────────────────────── */
@@ -147,8 +167,12 @@ export default function AdminUsers({ users, filters }: Props) {
             preserveState: true,
         });
     };
-
-    /* ── Advanced filter actions ──────────────────────────────────── */
+    
+    const handleDelete = (userId: string) => {
+        if(confirm('Are you sure you want to delete this user?')) {
+            router.delete(route('admin.users.destroy', { id: userId }), { preserveState: true });
+        }
+    }
 
     const activeAdvancedFilterCount = [filterRegFrom, filterRegTo, filterUserStatus].filter(Boolean).length;
 
@@ -169,6 +193,40 @@ export default function AdminUsers({ users, filters }: Props) {
             user_status: undefined,
             page: undefined,
         }), { preserveState: true, replace: true });
+    };
+
+    /* ── Forms ────────────────────────────────────────────── */
+
+    const submitCreate: FormEventHandler = (e) => {
+        e.preventDefault();
+        postCreate(route('admin.users.store'), {
+            onSuccess: () => {
+                setIsCreateModalOpen(false);
+                resetCreate();
+            },
+        });
+    };
+
+    const openEditModal = (user: UserItem) => {
+        setEditingUser(user);
+        setEditData({
+            name: user.name,
+            email: user.email,
+            role: user.role,
+        });
+        setIsEditModalOpen(true);
+    };
+
+    const submitEdit: FormEventHandler = (e) => {
+        e.preventDefault();
+        if (editingUser) {
+            putEdit(route('admin.users.update', { id: editingUser.id }), {
+                onSuccess: () => {
+                    setIsEditModalOpen(false);
+                    resetEdit();
+                },
+            });
+        }
     };
 
     /* ── Color helpers ────────────────────────────────────────────── */
@@ -197,11 +255,16 @@ export default function AdminUsers({ users, filters }: Props) {
             <Head title="User Management" />
 
             {/* Page heading */}
-            <div className="mb-8">
-                <h1 className="text-2xl font-bold text-slate-900 dark:text-white">User Management</h1>
-                <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
-                    View and manage all accounts registered on the platform.
-                </p>
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mb-8">
+                <div>
+                    <h1 className="text-2xl font-bold text-slate-900 dark:text-white">User Management</h1>
+                    <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
+                        View and manage all accounts registered on the platform.
+                    </p>
+                </div>
+                <PrimaryButton onClick={() => setIsCreateModalOpen(true)}>
+                    + Create User
+                </PrimaryButton>
             </div>
 
             {/* Toolbar */}
@@ -267,33 +330,37 @@ export default function AdminUsers({ users, filters }: Props) {
             </div>
 
             {/* Users Table */}
-            <div className="rounded-2xl bg-white dark:bg-white/[0.03] border border-slate-200 dark:border-white/5 shadow-sm dark:shadow-none overflow-hidden">
-                <div className="min-w-full rounded-2xl overflow-auto custom-scrollbar max-h-[calc(100vh-28rem)] sm:max-h-[calc(100vh-24rem)]">
+            <div className="rounded-2xl bg-white dark:bg-white/[0.03] border border-slate-200 dark:border-white/5 shadow-sm dark:shadow-none">
+                <div className="min-w-full rounded-2xl">
                     <table className="w-full text-sm border-collapse">
-                        <thead className="sticky top-0 z-10 bg-white dark:bg-[#0f172a] shadow-[0_1px_0_0_rgba(0,0,0,0.05)] dark:shadow-[0_1px_0_0_rgba(255,255,255,0.05)]">
+                        <thead>
                             <tr className="text-left text-xs font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider border-b border-slate-100 dark:border-white/5">
                                 <SortableHeader label="User" column="name" currentSort={sort} currentDirection={direction} onSort={handleSort} />
                                 <SortableHeader label="Role" column="role" currentSort={sort} currentDirection={direction} onSort={handleSort} />
                                 <SortableHeader label="Status" column="status" currentSort={sort} currentDirection={direction} onSort={handleSort} />
                                 <SortableHeader label="Joined" column="joinedAt" currentSort={sort} currentDirection={direction} onSort={handleSort} />
-                                <th className="px-5 py-3.5 text-right">Actions</th>
+                                <th className="px-5 py-3.5 text-right w-24">Actions</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-100 dark:divide-white/5">
                             {visibleUsers.map((user) => (
                                 <tr key={user.id} className="hover:bg-slate-50 dark:hover:bg-white/[0.02] transition-colors">
-                                    <td className="px-5 py-3.5 whitespace-nowrap">
+                                    <td className="px-5 py-3.5 whitespace-nowrap max-w-[200px]">
                                         <div className="flex items-center gap-3">
                                             <div className="h-9 w-9 rounded-full bg-primary-100 dark:bg-primary-600/20 flex items-center justify-center ring-1 ring-primary-300 dark:ring-primary-500/30 shrink-0">
                                                 <span className="text-xs font-bold text-primary-600 dark:text-primary-400">{user.name.charAt(0).toUpperCase()}</span>
                                             </div>
-                                            <div className="min-w-0">
-                                                <Tooltip content={user.name}>
-                                                    <p className="font-medium text-slate-800 dark:text-slate-200 truncate max-w-[150px]">{user.name}</p>
-                                                </Tooltip>
-                                                <Tooltip content={user.email}>
-                                                    <p className="text-xs text-slate-400 dark:text-slate-500 truncate max-w-[150px]">{user.email}</p>
-                                                </Tooltip>
+                                            <div className="min-w-0 flex flex-col items-start overflow-hidden w-full">
+                                                <div className="inline-block max-w-full">
+                                                    <Tooltip content={user.name}>
+                                                        <span className="font-medium text-slate-800 dark:text-slate-200 truncate block max-w-[160px]">{user.name}</span>
+                                                    </Tooltip>
+                                                </div>
+                                                <div className="inline-block max-w-full -mt-0.5">
+                                                    <Tooltip content={user.email}>
+                                                        <span className="text-[11px] text-slate-400 dark:text-slate-500 truncate block max-w-[160px]">{user.email}</span>
+                                                    </Tooltip>
+                                                </div>
                                             </div>
                                         </div>
                                     </td>
@@ -312,17 +379,54 @@ export default function AdminUsers({ users, filters }: Props) {
                                     </td>
                                     <td className="px-5 py-3.5 text-slate-500 dark:text-slate-400 whitespace-nowrap">{user.joinedAt}</td>
                                     <td className="px-5 py-3.5 text-right whitespace-nowrap">
-                                        <button className="text-xs font-medium text-primary-600 dark:text-primary-400 hover:text-primary-700 dark:hover:text-primary-300 transition-colors mr-3">
-                                            View
-                                        </button>
-                                        {user.role !== 'Root' && (
-                                            <button
-                                                onClick={() => handleStatusUpdate(user.id, user.status === 'Active' ? 'Suspended' : 'Active')}
-                                                className="text-xs font-medium text-red-500 dark:text-red-400 hover:text-red-600 dark:hover:text-red-300 transition-colors"
-                                            >
-                                                {user.status === 'Active' ? 'Suspend' : 'Reactivate'}
-                                            </button>
-                                        )}
+                                        <Dropdown>
+                                            <Dropdown.Trigger>
+                                                <button className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 hover:bg-slate-100 dark:hover:bg-white/10 transition-colors">
+                                                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z"></path>
+                                                    </svg>
+                                                </button>
+                                            </Dropdown.Trigger>
+                                            <Dropdown.Content align="right" vertical={users.data.indexOf(user) >= users.data.length - 2 ? "top" : "bottom"} width="48">
+                                                <Dropdown.Link href={route('admin.users.show', { id: user.id })}>
+                                                    View Details
+                                                </Dropdown.Link>
+                                                
+                                                <button 
+                                                    className="block w-full px-4 py-2 text-left text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-white/5 transition-colors"
+                                                    onClick={() => openEditModal(user)}
+                                                >
+                                                    Edit Details
+                                                </button>
+                                                
+                                                {user.role !== 'Root' && (
+                                                    <>
+                                                        <button 
+                                                            className="block w-full px-4 py-2 text-left text-sm text-amber-600 dark:text-amber-400 hover:bg-slate-100 dark:hover:bg-white/5 transition-colors"
+                                                            onClick={() => handleStatusUpdate(user.id, user.status === 'Active' ? 'Suspended' : 'Active')}
+                                                        >
+                                                            {user.status === 'Active' ? 'Suspend User' : 'Reactivate User'}
+                                                        </button>
+                                                        
+                                                        {user.status !== 'Banned' && (
+                                                            <button 
+                                                                className="block w-full px-4 py-2 text-left text-sm text-red-600 dark:text-red-400 hover:bg-slate-100 dark:hover:bg-white/5 transition-colors"
+                                                                onClick={() => handleStatusUpdate(user.id, 'Banned')}
+                                                            >
+                                                                Ban User
+                                                            </button>
+                                                        )}
+
+                                                        <button 
+                                                            className="block w-full px-4 py-2 text-left text-sm text-red-600 dark:text-red-400 hover:bg-slate-100 dark:hover:bg-white/5 transition-colors font-semibold"
+                                                            onClick={() => handleDelete(user.id)}
+                                                        >
+                                                            Delete User
+                                                        </button>
+                                                    </>
+                                                )}
+                                            </Dropdown.Content>
+                                        </Dropdown>
                                     </td>
                                 </tr>
                             ))}
@@ -346,6 +450,131 @@ export default function AdminUsers({ users, filters }: Props) {
                     onPerPageChange={handlePerPageChange}
                 />
             </div>
+            
+            {/* Create Modal */}
+            <Modal show={isCreateModalOpen} onClose={() => setIsCreateModalOpen(false)} maxWidth="md">
+                <form onSubmit={submitCreate} className="p-6 bg-white dark:bg-navy-800 rounded-xl">
+                    <h2 className="text-lg font-medium text-slate-900 dark:text-white mb-6">Create New User</h2>
+                    
+                    <div className="space-y-4">
+                        <div>
+                            <InputLabel htmlFor="create-name" value="Name" />
+                            <TextInput
+                                id="create-name"
+                                type="text"
+                                className="mt-1 block w-full"
+                                value={createData.name}
+                                onChange={(e: any) => setCreateData('name', e.target.value)}
+                                required
+                            />
+                            <InputError message={createErrors.name} className="mt-2" />
+                        </div>
+                        
+                        <div>
+                            <InputLabel htmlFor="create-email" value="Email" />
+                            <TextInput
+                                id="create-email"
+                                type="email"
+                                className="mt-1 block w-full"
+                                value={createData.email}
+                                onChange={(e: any) => setCreateData('email', e.target.value)}
+                                required
+                            />
+                            <InputError message={createErrors.email} className="mt-2" />
+                        </div>
+
+                        <div>
+                            <InputLabel htmlFor="create-password" value="Password" />
+                            <TextInput
+                                id="create-password"
+                                type="password"
+                                className="mt-1 block w-full"
+                                value={createData.password}
+                                onChange={(e: any) => setCreateData('password', e.target.value)}
+                                required
+                            />
+                            <InputError message={createErrors.password} className="mt-2" />
+                        </div>
+                        
+                        <div>
+                            <InputLabel htmlFor="create-role" value="Role" />
+                            <select
+                                id="create-role"
+                                className="mt-1 block w-full border-slate-300 dark:border-navy-600 dark:bg-navy-700 dark:text-slate-300 focus:border-primary-500 focus:ring-primary-500 rounded-md shadow-sm"
+                                value={createData.role}
+                                onChange={(e) => setCreateData('role', e.target.value)}
+                            >
+                                <option value="User">User</option>
+                                <option value="Organizer">Organizer</option>
+                                {activeRole === 'root' && <option value="Admin">Admin</option>}
+                            </select>
+                            <InputError message={createErrors.role} className="mt-2" />
+                        </div>
+                    </div>
+                    
+                    <div className="mt-8 flex justify-end gap-3">
+                        <SecondaryButton onClick={() => setIsCreateModalOpen(false)}>Cancel</SecondaryButton>
+                        <PrimaryButton disabled={createProcessing}>Create User</PrimaryButton>
+                    </div>
+                </form>
+            </Modal>
+
+            {/* Edit Modal */}
+            <Modal show={isEditModalOpen} onClose={() => setIsEditModalOpen(false)} maxWidth="md">
+                <form onSubmit={submitEdit} className="p-6 bg-white dark:bg-navy-800 rounded-xl">
+                    <h2 className="text-lg font-medium text-slate-900 dark:text-white mb-6">Edit User Details</h2>
+                    
+                    <div className="space-y-4">
+                        <div>
+                            <InputLabel htmlFor="edit-name" value="Name" />
+                            <TextInput
+                                id="edit-name"
+                                type="text"
+                                className="mt-1 block w-full"
+                                value={editData.name}
+                                onChange={(e: any) => setEditData('name', e.target.value)}
+                                required
+                            />
+                            <InputError message={editErrors.name} className="mt-2" />
+                        </div>
+                        
+                        <div>
+                            <InputLabel htmlFor="edit-email" value="Email" />
+                            <TextInput
+                                id="edit-email"
+                                type="email"
+                                className="mt-1 block w-full"
+                                value={editData.email}
+                                onChange={(e: any) => setEditData('email', e.target.value)}
+                                required
+                            />
+                            <InputError message={editErrors.email} className="mt-2" />
+                        </div>
+
+                        <div>
+                            <InputLabel htmlFor="edit-role" value="Role" />
+                            <select
+                                id="edit-role"
+                                className="mt-1 block w-full border-slate-300 dark:border-navy-600 dark:bg-navy-700 dark:text-slate-300 focus:border-primary-500 focus:ring-primary-500 rounded-md shadow-sm"
+                                value={editData.role}
+                                onChange={(e) => setEditData('role', e.target.value)}
+                                disabled={editingUser === null || editingUser.role === 'Root' || activeRole !== 'root' && editData.role === 'Admin'}
+                            >
+                                <option value="User">User</option>
+                                <option value="Organizer">Organizer</option>
+                                <option value="Admin">Admin</option>
+                                {editingUser?.role === 'Root' && <option value="Root">Root</option>}
+                            </select>
+                            <InputError message={editErrors.role} className="mt-2" />
+                        </div>
+                    </div>
+                    
+                    <div className="mt-8 flex justify-end gap-3">
+                        <SecondaryButton onClick={() => setIsEditModalOpen(false)}>Cancel</SecondaryButton>
+                        <PrimaryButton disabled={editProcessing}>Save Changes</PrimaryButton>
+                    </div>
+                </form>
+            </Modal>
         </DashboardLayout>
     );
 }
