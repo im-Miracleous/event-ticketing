@@ -1,6 +1,8 @@
 import DashboardLayout from '@/Layouts/DashboardLayout';
 import Pagination from '@/Components/Dashboard/Pagination';
-import { Head, router, useForm } from '@inertiajs/react';
+import SortableHeader from '@/Components/Dashboard/SortableHeader';
+import AdvancedFilter, { FilterField, FilterSelect, FilterDateRange } from '@/Components/Dashboard/AdvancedFilter';
+import { Head, router } from '@inertiajs/react';
 import { useState } from 'react';
 
 /* ─── Types ─────────────────────────────────────────────────────────── */
@@ -28,31 +30,86 @@ interface Props {
     promotions: PaginatedPromotions;
     filters: {
         per_page?: number;
+        search?: string;
+        sort?: string;
+        direction?: 'asc' | 'desc';
+        valid_from?: string;
+        valid_to?: string;
     };
 }
+
+const statusOptions = [
+    { label: 'Active', value: 'Active' },
+    { label: 'Expired', value: 'Expired' },
+];
 
 /* ─── Component ─────────────────────────────────────────────────────── */
 
 export default function AdminPromotions({ promotions, filters }: Props) {
     const [showModal, setShowModal] = useState(false);
+    const [search, setSearch] = useState(filters.search || '');
+
+    // Sort state
+    const sort = filters.sort || '';
+    const direction = filters.direction || 'desc';
+
+    // Advanced filter local state
+    const [filterValidFrom, setFilterValidFrom] = useState(filters.valid_from || '');
+    const [filterValidTo, setFilterValidTo] = useState(filters.valid_to || '');
+
+    /* ── Helpers ──────────────────────────────────────────────────── */
+
+    const buildParams = (overrides: Record<string, any> = {}) => {
+        const params: Record<string, any> = {
+            search: search || undefined,
+            per_page: promotions.per_page,
+            sort: sort || undefined,
+            direction: sort ? direction : undefined,
+            valid_from: filterValidFrom || undefined,
+            valid_to: filterValidTo || undefined,
+            ...overrides,
+        };
+        Object.keys(params).forEach((k) => params[k] === undefined && delete params[k]);
+        return params;
+    };
+
+    const handleSearchChange = (value: string) => {
+        setSearch(value);
+        router.get(route('admin.promotions.index'), buildParams({ search: value || undefined, page: undefined }), { preserveState: true, replace: true });
+    };
+
+    const handleSort = (column: string, dir: 'asc' | 'desc') => {
+        router.get(route('admin.promotions.index'), buildParams({ sort: column, direction: dir, page: undefined }), { preserveState: true, replace: true });
+    };
 
     const handlePageChange = (page: number) => {
-        router.get(route('admin.promotions.index'), {
-            page,
-            per_page: promotions.per_page,
-        }, { preserveState: true, replace: true });
+        router.get(route('admin.promotions.index'), buildParams({ page }), { preserveState: true, replace: true });
     };
 
     const handlePerPageChange = (value: number) => {
-        router.get(route('admin.promotions.index'), {
-            per_page: value,
-        }, { preserveState: true, replace: true });
+        router.get(route('admin.promotions.index'), buildParams({ per_page: value, page: undefined }), { preserveState: true, replace: true });
     };
 
     const handleDelete = (id: number) => {
         if (confirm('Are you sure you want to delete this promotion?')) {
             router.delete(route('admin.promotions.destroy', { id }));
         }
+    };
+
+    const activeAdvancedFilterCount = [filterValidFrom, filterValidTo].filter(Boolean).length;
+
+    const handleApplyFilters = () => {
+        router.get(route('admin.promotions.index'), buildParams({ page: undefined }), { preserveState: true, replace: true });
+    };
+
+    const handleClearFilters = () => {
+        setFilterValidFrom('');
+        setFilterValidTo('');
+        router.get(route('admin.promotions.index'), buildParams({
+            valid_from: undefined,
+            valid_to: undefined,
+            page: undefined,
+        }), { preserveState: true, replace: true });
     };
 
     const statusColor = (status: string) => {
@@ -88,8 +145,29 @@ export default function AdminPromotions({ promotions, filters }: Props) {
                 </button>
             </div>
 
+            {/* Toolbar: Search + AdvancedFilter */}
+            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 mb-6">
+                <div className="relative w-full sm:w-80">
+                    <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 dark:text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z" />
+                    </svg>
+                    <input
+                        type="text"
+                        placeholder="Search codes or events…"
+                        value={search}
+                        onChange={(e) => handleSearchChange(e.target.value)}
+                        className="w-full rounded-xl border border-slate-200 dark:border-white/10 bg-white dark:bg-white/5 pl-10 pr-4 py-2.5 text-sm text-slate-700 dark:text-slate-300 placeholder-slate-400 dark:placeholder-slate-500 focus:border-primary-500/40 focus:ring-2 focus:ring-primary-500/20 transition"
+                    />
+                </div>
+                <AdvancedFilter activeCount={activeAdvancedFilterCount} onApply={handleApplyFilters} onClear={handleClearFilters}>
+                    <FilterField label="Valid Until Date Range">
+                        <FilterDateRange from={filterValidFrom} to={filterValidTo} onFromChange={setFilterValidFrom} onToChange={setFilterValidTo} />
+                    </FilterField>
+                </AdvancedFilter>
+            </div>
+
             {/* Discount Codes Table */}
-            <div className="rounded-2xl bg-white dark:bg-white/[0.03] border border-slate-200 dark:border-white/5 shadow-sm dark:shadow-none overflow-hidden mb-8">
+            <div className="rounded-2xl bg-white dark:bg-white/[0.03] border border-slate-200 dark:border-white/5 shadow-sm dark:shadow-none mb-8">
                 <div className="px-5 py-4 border-b border-slate-100 dark:border-white/5">
                     <h2 className="text-base font-semibold text-slate-900 dark:text-white">Discount Codes</h2>
                 </div>
@@ -97,12 +175,12 @@ export default function AdminPromotions({ promotions, filters }: Props) {
                     <table className="w-full text-sm">
                         <thead>
                             <tr className="text-left text-xs font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider border-b border-slate-100 dark:border-white/5">
-                                <th className="px-5 py-3.5">Code</th>
+                                <SortableHeader label="Code" column="code" currentSort={sort} currentDirection={direction} onSort={handleSort} />
                                 <th className="px-5 py-3.5">Type</th>
-                                <th className="px-5 py-3.5">Value</th>
-                                <th className="px-5 py-3.5">Usage</th>
-                                <th className="px-5 py-3.5">Valid Until</th>
-                                <th className="px-5 py-3.5">Status</th>
+                                <SortableHeader label="Value" column="value" currentSort={sort} currentDirection={direction} onSort={handleSort} />
+                                <SortableHeader label="Usage" column="usage" currentSort={sort} currentDirection={direction} onSort={handleSort} />
+                                <SortableHeader label="Valid Until" column="validUntil" currentSort={sort} currentDirection={direction} onSort={handleSort} />
+                                <SortableHeader label="Status" column="status" currentSort={sort} currentDirection={direction} onSort={handleSort} />
                                 <th className="px-5 py-3.5 text-right">Actions</th>
                             </tr>
                         </thead>
@@ -132,6 +210,13 @@ export default function AdminPromotions({ promotions, filters }: Props) {
                                     </td>
                                 </tr>
                             ))}
+                            {promotions.data.length === 0 && (
+                                <tr>
+                                    <td colSpan={7} className="px-5 py-12 text-center text-sm text-slate-400 dark:text-slate-500">
+                                        No promotions found.
+                                    </td>
+                                </tr>
+                            )}
                         </tbody>
                     </table>
                 </div>

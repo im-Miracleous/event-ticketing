@@ -55,7 +55,34 @@ class CategoryController extends Controller
             });
         }
 
-        $events = $query->orderByDesc('created_at')
+        // Date-range filters
+        if ($request->filled('date_from')) {
+            $query->whereDate('event_date', '>=', $request->date_from);
+        }
+        if ($request->filled('date_to')) {
+            $query->whereDate('event_date', '<=', $request->date_to);
+        }
+
+        // Dynamic sorting
+        $sortMap = [
+            'name'      => 'title',
+            'organizer' => 'organizer',
+            'date'      => 'event_date',
+            'tickets'   => 'total_quota',
+            'status'    => 'status',
+        ];
+        $sortCol = $sortMap[$request->input('sort')] ?? 'created_at';
+        $sortDir = $request->input('direction', 'desc') === 'asc' ? 'asc' : 'desc';
+
+        if ($sortCol === 'organizer') {
+            $query->leftJoin('organizers', 'events.organizer_id', '=', 'organizers.id')
+                  ->orderBy('organizers.name', $sortDir)
+                  ->select('events.*');
+        } else {
+            $query->orderBy($sortCol, $sortDir);
+        }
+
+        $events = $query
             ->paginate($request->input('per_page', 10))
             ->through(fn ($e) => [
                 'id' => $e->id,
@@ -76,7 +103,7 @@ class CategoryController extends Controller
                 'description' => $category->description,
             ],
             'events' => $events,
-            'filters' => $request->only(['status', 'search', 'per_page']),
+            'filters' => $request->only(['status', 'search', 'per_page', 'sort', 'direction', 'date_from', 'date_to']),
         ]);
     }
 

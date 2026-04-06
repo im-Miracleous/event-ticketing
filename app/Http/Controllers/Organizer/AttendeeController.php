@@ -23,7 +23,6 @@ class AttendeeController extends Controller
 
         $query = Ticket::with(['attendee', 'ticketType', 'detail.transaction'])
             ->whereHas('detail.transaction', function($q) use ($eventIds) {
-                // Only successful transactions for events this organizer owns
                 $q->whereIn('event_id', $eventIds)->where('transaction_status', 'success');
             });
 
@@ -34,7 +33,40 @@ class AttendeeController extends Controller
             });
         }
 
-        $tickets = $query->latest('issued_at')->paginate(20)->withQueryString();
+        // Status filter (ticket_status)
+        if ($request->filled('status') && $request->status !== 'All') {
+            $query->where('ticket_status', $request->status);
+        }
+
+        // Search
+        if ($request->filled('search')) {
+            $s = $request->search;
+            $query->where(function ($q) use ($s) {
+                $q->whereHas('attendee', fn($aq) => $aq->where('name', 'like', "%{$s}%")->orWhere('email', 'like', "%{$s}%"))
+                  ->orWhere('id', 'like', "%{$s}%");
+            });
+        }
+
+        // Date range
+        if ($request->filled('date_from')) {
+            $query->whereDate('issued_at', '>=', $request->date_from);
+        }
+        if ($request->filled('date_to')) {
+            $query->whereDate('issued_at', '<=', $request->date_to);
+        }
+
+        // Dynamic sorting
+        $sortMap = [
+            'attendee_name' => 'issued_at',
+            'ticket_type'   => 'issued_at',
+            'status'        => 'ticket_status',
+            'issued_at'     => 'issued_at',
+        ];
+        $sortCol = $sortMap[$request->input('sort')] ?? 'issued_at';
+        $sortDir = $request->input('direction', 'desc') === 'asc' ? 'asc' : 'desc';
+        $query->orderBy($sortCol, $sortDir);
+
+        $tickets = $query->paginate(20)->withQueryString();
 
         // Transform the data for the frontend table
         $attendees = $tickets->through(function ($ticket) {
@@ -56,7 +88,7 @@ class AttendeeController extends Controller
         return Inertia::render('Organizer/Attendees/Index', [
             'attendees' => $attendees,
             'events' => $events,
-            'filters' => $request->only(['event_id']),
+            'filters' => $request->only(['event_id', 'search', 'status', 'sort', 'direction', 'date_from', 'date_to']),
         ]);
     }
 }

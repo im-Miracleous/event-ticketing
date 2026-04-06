@@ -1,12 +1,25 @@
 import React, { useState } from 'react';
 import DashboardLayout from '@/Layouts/DashboardLayout';
+import SortableHeader from '@/Components/Dashboard/SortableHeader';
+import AdvancedFilter, { FilterField, FilterDateRange } from '@/Components/Dashboard/AdvancedFilter';
 import { Head, useForm, router } from '@inertiajs/react';
 import Modal from '@/Components/Modal';
 
-export default function PromotionsIndex({ auth, promotions, events }: any) {
+/* ─── Component ─────────────────────────────────────────────────────── */
+
+export default function PromotionsIndex({ promotions, events }: any) {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [isEditMode, setIsEditMode] = useState(false);
     const [editId, setEditId] = useState<number | null>(null);
+    const [search, setSearch] = useState('');
+
+    // Sort state (client-side since data isn't paginated)
+    const [sort, setSort] = useState('');
+    const [direction, setDirection] = useState<'asc' | 'desc'>('desc');
+
+    // Advanced filter local state
+    const [filterDateFrom, setFilterDateFrom] = useState('');
+    const [filterDateTo, setFilterDateTo] = useState('');
 
     const { data, setData, post, put, delete: destroy, processing, errors, reset, clearErrors } = useForm({
         event_id: '',
@@ -33,7 +46,7 @@ export default function PromotionsIndex({ auth, promotions, events }: any) {
             code: promo.code,
             discount_amount: promo.discount_amount,
             quota: promo.quota,
-            start_date: promo.start_date.split(' ')[0], // Format for date input if datetime
+            start_date: promo.start_date.split(' ')[0],
             end_date: promo.end_date.split(' ')[0],
         });
         clearErrors();
@@ -68,6 +81,60 @@ export default function PromotionsIndex({ auth, promotions, events }: any) {
         return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(value);
     };
 
+    const handleSort = (column: string, dir: 'asc' | 'desc') => {
+        setSort(column);
+        setDirection(dir);
+    };
+
+    // Client-side filtering and sorting
+    let filteredPromos = [...promotions];
+
+    // Search filter
+    if (search) {
+        const s = search.toLowerCase();
+        filteredPromos = filteredPromos.filter((p: any) =>
+            p.code.toLowerCase().includes(s) || (p.event?.title || '').toLowerCase().includes(s)
+        );
+    }
+
+    // Date range filter
+    if (filterDateFrom) {
+        filteredPromos = filteredPromos.filter((p: any) => p.end_date.split(' ')[0] >= filterDateFrom);
+    }
+    if (filterDateTo) {
+        filteredPromos = filteredPromos.filter((p: any) => p.end_date.split(' ')[0] <= filterDateTo);
+    }
+
+    // Sort
+    if (sort) {
+        const sortKeyMap: Record<string, (p: any) => any> = {
+            'code': (p) => p.code,
+            'event': (p) => p.event?.title || '',
+            'discount': (p) => p.discount_amount,
+            'quota': (p) => p.quota,
+            'end_date': (p) => p.end_date,
+        };
+        const getKey = sortKeyMap[sort] || (() => 0);
+        filteredPromos.sort((a: any, b: any) => {
+            const aVal = getKey(a);
+            const bVal = getKey(b);
+            if (aVal < bVal) return direction === 'asc' ? -1 : 1;
+            if (aVal > bVal) return direction === 'asc' ? 1 : -1;
+            return 0;
+        });
+    }
+
+    const activeAdvancedFilterCount = [filterDateFrom, filterDateTo].filter(Boolean).length;
+
+    const handleApplyFilters = () => {
+        // Client-side: filters already applied reactively
+    };
+
+    const handleClearFilters = () => {
+        setFilterDateFrom('');
+        setFilterDateTo('');
+    };
+
     return (
         <DashboardLayout>
             <Head title="Manajemen Promo" />
@@ -88,28 +155,49 @@ export default function PromotionsIndex({ auth, promotions, events }: any) {
                 </button>
             </div>
 
-            <div className="bg-white dark:bg-navy-900 rounded-2xl shadow-sm border border-slate-200 dark:border-white/5 overflow-hidden">
+            {/* Toolbar: Search + AdvancedFilter */}
+            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 mb-6">
+                <div className="relative w-full sm:w-80">
+                    <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 dark:text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z" />
+                    </svg>
+                    <input
+                        type="text"
+                        placeholder="Cari kode promo atau event…"
+                        value={search}
+                        onChange={(e) => setSearch(e.target.value)}
+                        className="w-full rounded-xl border border-slate-200 dark:border-white/10 bg-white dark:bg-white/5 pl-10 pr-4 py-2.5 text-sm text-slate-700 dark:text-slate-300 placeholder-slate-400 dark:placeholder-slate-500 focus:border-primary-500/40 focus:ring-2 focus:ring-primary-500/20 transition"
+                    />
+                </div>
+                <AdvancedFilter activeCount={activeAdvancedFilterCount} onApply={handleApplyFilters} onClear={handleClearFilters}>
+                    <FilterField label="Masa Berlaku">
+                        <FilterDateRange from={filterDateFrom} to={filterDateTo} onFromChange={setFilterDateFrom} onToChange={setFilterDateTo} />
+                    </FilterField>
+                </AdvancedFilter>
+            </div>
+
+            <div className="bg-white dark:bg-navy-900 rounded-2xl shadow-sm border border-slate-200 dark:border-white/5">
                 <div className="overflow-x-auto">
                     <table className="w-full text-left border-collapse">
                         <thead>
                             <tr className="bg-slate-50 dark:bg-navy-950/50 border-b border-slate-200 dark:border-white/5 text-slate-500 dark:text-slate-400">
-                                <th className="py-4 px-6 text-xs font-bold uppercase tracking-wider">KODE PROMO</th>
-                                <th className="py-4 px-6 text-xs font-bold uppercase tracking-wider">NAMA EVENT</th>
-                                <th className="py-4 px-6 text-xs font-bold uppercase tracking-wider">DISKON</th>
-                                <th className="py-4 px-6 text-xs font-bold uppercase tracking-wider">KUOTA</th>
-                                <th className="py-4 px-6 text-xs font-bold uppercase tracking-wider">MASA BERLAKU</th>
-                                <th className="py-4 px-6 text-xs font-bold uppercase tracking-wider text-right">AKSI</th>
+                                <SortableHeader label="Kode Promo" column="code" currentSort={sort} currentDirection={direction} onSort={handleSort} className="py-4 px-6 text-xs font-bold uppercase tracking-wider" />
+                                <SortableHeader label="Nama Event" column="event" currentSort={sort} currentDirection={direction} onSort={handleSort} className="py-4 px-6 text-xs font-bold uppercase tracking-wider" />
+                                <SortableHeader label="Diskon" column="discount" currentSort={sort} currentDirection={direction} onSort={handleSort} className="py-4 px-6 text-xs font-bold uppercase tracking-wider" />
+                                <SortableHeader label="Kuota" column="quota" currentSort={sort} currentDirection={direction} onSort={handleSort} className="py-4 px-6 text-xs font-bold uppercase tracking-wider" />
+                                <SortableHeader label="Masa Berlaku" column="end_date" currentSort={sort} currentDirection={direction} onSort={handleSort} className="py-4 px-6 text-xs font-bold uppercase tracking-wider" />
+                                <th className="py-4 px-6 text-xs font-bold uppercase tracking-wider text-right">Aksi</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-200 dark:divide-white/5">
-                            {promotions.length === 0 ? (
+                            {filteredPromos.length === 0 ? (
                                 <tr>
                                     <td colSpan={6} className="py-12 text-center text-slate-500 dark:text-slate-400">
                                         Belum ada kode promo yang dibuat.
                                     </td>
                                 </tr>
                             ) : (
-                                promotions.map((promo: any) => (
+                                filteredPromos.map((promo: any) => (
                                     <tr key={promo.id} className="hover:bg-slate-50 dark:hover:bg-white/5 transition-colors">
                                         <td className="py-4 px-6">
                                             <span className="inline-block px-3 py-1 bg-primary-500/10 dark:bg-primary-500/20 text-primary-600 dark:text-primary-400 font-bold rounded-lg tracking-wider border border-primary-500/20">
@@ -119,7 +207,7 @@ export default function PromotionsIndex({ auth, promotions, events }: any) {
                                         <td className="py-4 px-6 text-slate-700 dark:text-slate-300 font-medium">
                                             {promo.event?.title || '-'}
                                         </td>
-                                        <td className="py-4 px-6 text-slate-700 dark:text-slate-300 font-bold text-emerald-500">
+                                        <td className="py-4 px-6 font-bold text-emerald-500 dark:text-emerald-400">
                                             {formatCurrency(promo.discount_amount)}
                                         </td>
                                         <td className="py-4 px-6 text-slate-700 dark:text-slate-300">
@@ -129,13 +217,13 @@ export default function PromotionsIndex({ auth, promotions, events }: any) {
                                             {promo.start_date.split(' ')[0]} s/d <br/> {promo.end_date.split(' ')[0]}
                                         </td>
                                         <td className="py-4 px-6 text-right space-x-3">
-                                            <button 
+                                            <button
                                                 onClick={() => openEditModal(promo)}
                                                 className="text-blue-500 hover:text-blue-400 font-medium text-sm transition-colors"
                                             >
                                                 Edit
                                             </button>
-                                            <button 
+                                            <button
                                                 onClick={() => handleDelete(promo.id)}
                                                 className="text-red-500 hover:text-red-400 font-medium text-sm transition-colors"
                                             >
@@ -156,7 +244,7 @@ export default function PromotionsIndex({ auth, promotions, events }: any) {
                     <h2 className="text-xl font-bold text-slate-900 dark:text-white mb-6">
                         {isEditMode ? 'Edit Kode Promo' : 'Buat Kode Promo Baru'}
                     </h2>
-                    
+
                     <form onSubmit={handleSubmit} className="space-y-4">
                         <div>
                             <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Pilih Event</label>

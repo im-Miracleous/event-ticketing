@@ -15,8 +15,47 @@ class PromotionController extends Controller
      */
     public function index(Request $request)
     {
-        $promotions = Promotion::with('event')
-            ->orderByDesc('created_at')
+        $query = Promotion::with('event');
+
+        // Search
+        if ($request->filled('search')) {
+            $s = $request->search;
+            $query->where(function ($q) use ($s) {
+                $q->where('code', 'like', "%{$s}%")
+                  ->orWhereHas('event', fn ($eq) => $eq->where('title', 'like', "%{$s}%"));
+            });
+        }
+
+        // Status filter (computed, so we filter after fetch — or approximate via date)
+        // Date range on end_date
+        if ($request->filled('valid_from')) {
+            $query->whereDate('end_date', '>=', $request->valid_from);
+        }
+        if ($request->filled('valid_to')) {
+            $query->whereDate('end_date', '<=', $request->valid_to);
+        }
+
+        // Dynamic sorting
+        $sortMap = [
+            'code'       => 'code',
+            'event'      => 'event',
+            'value'      => 'discount_amount',
+            'usage'      => 'quota',
+            'validUntil' => 'end_date',
+            'status'     => 'end_date',
+        ];
+        $sortCol = $sortMap[$request->input('sort')] ?? 'created_at';
+        $sortDir = $request->input('direction', 'desc') === 'asc' ? 'asc' : 'desc';
+
+        if ($sortCol === 'event') {
+            $query->leftJoin('events', 'promotions.event_id', '=', 'events.id')
+                  ->orderBy('events.title', $sortDir)
+                  ->select('promotions.*');
+        } else {
+            $query->orderBy($sortCol, $sortDir);
+        }
+
+        $promotions = $query
             ->paginate($request->input('per_page', 5))
             ->through(function ($p) {
                 $usedCount = $p->transactions_count ?? 0;
@@ -43,7 +82,7 @@ class PromotionController extends Controller
 
         return Inertia::render('Admin/Promotions/Index', [
             'promotions' => $promotions,
-            'filters'    => $request->only(['per_page']),
+            'filters'    => $request->only(['per_page', 'search', 'sort', 'direction', 'valid_from', 'valid_to']),
         ]);
     }
 

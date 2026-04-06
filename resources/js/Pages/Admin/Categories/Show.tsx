@@ -1,5 +1,7 @@
 import DashboardLayout from '@/Layouts/DashboardLayout';
 import Pagination from '@/Components/Dashboard/Pagination';
+import SortableHeader from '@/Components/Dashboard/SortableHeader';
+import AdvancedFilter, { FilterField, FilterSelect, FilterDateRange } from '@/Components/Dashboard/AdvancedFilter';
 import { Head, router, Link } from '@inertiajs/react';
 import { useState } from 'react';
 
@@ -36,49 +38,87 @@ interface Props {
         status?: string;
         search?: string;
         per_page?: number;
+        sort?: string;
+        direction?: 'asc' | 'desc';
+        date_from?: string;
+        date_to?: string;
     };
 }
 
-const statusFilters = ['All', 'Active', 'Draft', 'Completed', 'Cancelled', 'Deactivated'];
+const statusOptions = [
+    { label: 'Active', value: 'Active' },
+    { label: 'Draft', value: 'Draft' },
+    { label: 'Completed', value: 'Completed' },
+    { label: 'Cancelled', value: 'Cancelled' },
+    { label: 'Deactivated', value: 'Deactivated' },
+];
 
 /* ─── Component ─────────────────────────────────────────────────────── */
 
 export default function CategoryShow({ category, events, filters }: Props) {
     const [search, setSearch] = useState(filters.search || '');
-    const activeFilter = filters.status || 'All';
 
-    const handleFilterChange = (filter: string) => {
-        router.get(route('admin.categories.show', { id: category.id }), {
-            status: filter === 'All' ? undefined : filter,
+    // Sort state
+    const sort = filters.sort || '';
+    const direction = filters.direction || 'desc';
+
+    // Advanced filter local state
+    const [filterDateFrom, setFilterDateFrom] = useState(filters.date_from || '');
+    const [filterDateTo, setFilterDateTo] = useState(filters.date_to || '');
+    const [filterStatus, setFilterStatus] = useState(filters.status || '');
+
+    /* ── Helpers ──────────────────────────────────────────────────── */
+
+    const buildParams = (overrides: Record<string, any> = {}) => {
+        const params: Record<string, any> = {
+            status: filterStatus || undefined,
             search: search || undefined,
             per_page: events.per_page,
-        }, { preserveState: true, replace: true });
+            sort: sort || undefined,
+            direction: sort ? direction : undefined,
+            date_from: filterDateFrom || undefined,
+            date_to: filterDateTo || undefined,
+            ...overrides,
+        };
+        Object.keys(params).forEach((k) => params[k] === undefined && delete params[k]);
+        return params;
     };
+
+    const routeName = route('admin.categories.show', { id: category.id });
 
     const handleSearchChange = (value: string) => {
         setSearch(value);
-        router.get(route('admin.categories.show', { id: category.id }), {
-            status: activeFilter === 'All' ? undefined : activeFilter,
-            search: value || undefined,
-            per_page: events.per_page,
-        }, { preserveState: true, replace: true });
+        router.get(routeName, buildParams({ search: value || undefined, page: undefined }), { preserveState: true, replace: true });
+    };
+
+    const handleSort = (column: string, dir: 'asc' | 'desc') => {
+        router.get(routeName, buildParams({ sort: column, direction: dir, page: undefined }), { preserveState: true, replace: true });
     };
 
     const handlePageChange = (page: number) => {
-        router.get(route('admin.categories.show', { id: category.id }), {
-            page,
-            status: activeFilter === 'All' ? undefined : activeFilter,
-            search: search || undefined,
-            per_page: events.per_page,
-        }, { preserveState: true, replace: true });
+        router.get(routeName, buildParams({ page }), { preserveState: true, replace: true });
     };
 
     const handlePerPageChange = (value: number) => {
-        router.get(route('admin.categories.show', { id: category.id }), {
-            status: activeFilter === 'All' ? undefined : activeFilter,
-            search: search || undefined,
-            per_page: value,
-        }, { preserveState: true, replace: true });
+        router.get(routeName, buildParams({ per_page: value, page: undefined }), { preserveState: true, replace: true });
+    };
+
+    const activeAdvancedFilterCount = [filterDateFrom, filterDateTo, filterStatus].filter(Boolean).length;
+
+    const handleApplyFilters = () => {
+        router.get(routeName, buildParams({ page: undefined }), { preserveState: true, replace: true });
+    };
+
+    const handleClearFilters = () => {
+        setFilterDateFrom('');
+        setFilterDateTo('');
+        setFilterStatus('');
+        router.get(routeName, buildParams({
+            status: undefined,
+            date_from: undefined,
+            date_to: undefined,
+            page: undefined,
+        }), { preserveState: true, replace: true });
     };
 
     const statusColor = (status: string) => {
@@ -120,7 +160,7 @@ export default function CategoryShow({ category, events, filters }: Props) {
                 </p>
             </div>
 
-            {/* Toolbar: Search + Filter */}
+            {/* Toolbar: Search + AdvancedFilter */}
             <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 mb-6">
                 {/* Search */}
                 <div className="relative w-full sm:w-80">
@@ -136,35 +176,32 @@ export default function CategoryShow({ category, events, filters }: Props) {
                     />
                 </div>
 
-                {/* Status Filter Pills */}
-                <div className="flex items-center gap-1 p-1 rounded-xl bg-slate-100 dark:bg-white/5 border border-slate-200 dark:border-white/5 flex-wrap">
-                    {statusFilters.map((filter) => (
-                        <button
-                            key={filter}
-                            onClick={() => handleFilterChange(filter)}
-                            className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-all duration-200 ${
-                                activeFilter === filter
-                                    ? 'bg-white dark:bg-primary-600 text-slate-900 dark:text-white shadow-sm'
-                                    : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-white'
-                            }`}
-                        >
-                            {filter}
-                        </button>
-                    ))}
-                </div>
+                {/* Advanced Filter */}
+                <AdvancedFilter
+                    activeCount={activeAdvancedFilterCount}
+                    onApply={handleApplyFilters}
+                    onClear={handleClearFilters}
+                >
+                    <FilterField label="Event Date Range">
+                        <FilterDateRange from={filterDateFrom} to={filterDateTo} onFromChange={setFilterDateFrom} onToChange={setFilterDateTo} />
+                    </FilterField>
+                    <FilterField label="Status">
+                        <FilterSelect value={filterStatus} onChange={setFilterStatus} options={statusOptions} placeholder="All Statuses" />
+                    </FilterField>
+                </AdvancedFilter>
             </div>
 
-            {/* Table wrapper - Overflow allowed for dropdowns to show */}
+            {/* Table */}
             <div className="rounded-2xl bg-white dark:bg-white/[0.03] border border-slate-200 dark:border-white/5 shadow-sm dark:shadow-none">
                 <div className="min-w-full rounded-2xl">
                     <table className="w-full text-sm">
                         <thead>
                             <tr className="text-left text-xs font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider border-b border-slate-100 dark:border-white/5">
-                                <th className="px-5 py-3.5">Event</th>
-                                <th className="px-5 py-3.5">Organizer</th>
-                                <th className="px-5 py-3.5">Date</th>
-                                <th className="px-5 py-3.5">Tickets</th>
-                                <th className="px-5 py-3.5">Status</th>
+                                <SortableHeader label="Event" column="name" currentSort={sort} currentDirection={direction} onSort={handleSort} />
+                                <SortableHeader label="Organizer" column="organizer" currentSort={sort} currentDirection={direction} onSort={handleSort} />
+                                <SortableHeader label="Date" column="date" currentSort={sort} currentDirection={direction} onSort={handleSort} />
+                                <SortableHeader label="Tickets" column="tickets" currentSort={sort} currentDirection={direction} onSort={handleSort} />
+                                <SortableHeader label="Status" column="status" currentSort={sort} currentDirection={direction} onSort={handleSort} />
                                 <th className="px-5 py-3.5 text-right">Actions</th>
                             </tr>
                         </thead>
