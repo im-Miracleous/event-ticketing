@@ -1,12 +1,11 @@
 import DashboardLayout from '@/Layouts/DashboardLayout';
 import Pagination from '@/Components/Dashboard/Pagination';
 import Modal from '@/Components/Modal';
+import DangerButton from '@/Components/DangerButton';
 import SecondaryButton from '@/Components/SecondaryButton';
 import { Head, router, Link } from '@inertiajs/react';
 import { useState, Fragment } from 'react';
-import { Menu, Transition } from '@headlessui/react';
-
-/* ─── Types ─────────────────────────────────────────────────────────── */
+import { Dialog, Menu, Transition } from '@headlessui/react';
 
 interface EventItem {
     id: string;
@@ -16,6 +15,7 @@ interface EventItem {
     date: string;
     tickets: string;
     status: string;
+    deactivated_at: string;
 }
 
 interface PaginatedEvents {
@@ -29,25 +29,20 @@ interface PaginatedEvents {
 interface Props {
     events: PaginatedEvents;
     filters: {
-        status?: string;
         search?: string;
         per_page?: number;
     };
+    isRoot: boolean;
 }
 
-const statusFilters = ['All', 'Active', 'Draft', 'Completed', 'Cancelled'];
-
-/* ─── Component ─────────────────────────────────────────────────────── */
-
-export default function AdminEvents({ events, filters }: Props) {
+export default function ArchiveEvents({ events, filters, isRoot }: Props) {
     const [search, setSearch] = useState(filters.search || '');
-    const activeFilter = filters.status || 'All';
     
     const [confirmModal, setConfirmModal] = useState<{
         isOpen: boolean;
         title: string;
         message: string;
-        action: 'deactivate' | 'complete' | 'cancel' | null;
+        action: 'restore' | 'delete' | null;
         eventId: string | null;
         eventName: string | null;
     }>({
@@ -59,68 +54,48 @@ export default function AdminEvents({ events, filters }: Props) {
         eventName: null,
     });
 
-    const handleFilterChange = (filter: string) => {
-        router.get(route('admin.events.index'), {
-            status: filter === 'All' ? undefined : filter,
-            search: search || undefined,
-            per_page: events.per_page,
-        }, { preserveState: true, replace: true });
-    };
-
     const handleSearchChange = (value: string) => {
         setSearch(value);
-        router.get(route('admin.events.index'), {
-            status: activeFilter === 'All' ? undefined : activeFilter,
+        router.get(route('admin.events.archive'), {
             search: value || undefined,
             per_page: events.per_page,
         }, { preserveState: true, replace: true });
     };
 
     const handlePageChange = (page: number) => {
-        router.get(route('admin.events.index'), {
+        router.get(route('admin.events.archive'), {
             page,
-            status: activeFilter === 'All' ? undefined : activeFilter,
             search: search || undefined,
             per_page: events.per_page,
         }, { preserveState: true, replace: true });
     };
 
     const handlePerPageChange = (value: number) => {
-        router.get(route('admin.events.index'), {
-            status: activeFilter === 'All' ? undefined : activeFilter,
+        router.get(route('admin.events.archive'), {
             search: search || undefined,
             per_page: value,
         }, { preserveState: true, replace: true });
     };
 
-    const openDeactivateModal = (eventId: string, eventName: string) => {
+    const openRestoreModal = (eventId: string, eventName: string) => {
         setConfirmModal({
             isOpen: true,
-            title: 'Deactivate Event',
-            message: `Are you sure you want to deactivate "${eventName}"? The event will be moved to the Archive and will no longer be visible in the All Events page.`,
-            action: 'deactivate',
+            title: 'Restore Event',
+            message: `Are you sure you want to restore "${eventName}"? The event will become active again and visible in the All Events page.`,
+            action: 'restore',
             eventId,
             eventName,
         });
     };
 
-    const openCompleteModal = (eventId: string, eventName: string) => {
+    const openDeleteModal = (eventId: string, eventName: string) => {
         setConfirmModal({
             isOpen: true,
-            title: 'Mark as Completed',
-            message: `Are you sure you want to mark "${eventName}" as completed?`,
-            action: 'complete',
-            eventId,
-            eventName,
-        });
-    };
-
-    const openCancelModal = (eventId: string, eventName: string) => {
-        setConfirmModal({
-            isOpen: true,
-            title: 'Cancel Event',
-            message: `Are you sure you want to cancel "${eventName}"? The event will be moved to the Archive.`,
-            action: 'cancel',
+            title: isRoot ? 'Permanently Delete Event' : 'Delete Event',
+            message: isRoot 
+                ? `Are you sure you want to permanently delete "${eventName}"? This action cannot be undone and all associated data will be lost forever.`
+                : `Are you sure you want to delete "${eventName}"? This action cannot be undone.`,
+            action: 'delete',
             eventId,
             eventName,
         });
@@ -134,31 +109,25 @@ export default function AdminEvents({ events, filters }: Props) {
     };
 
     const handleConfirmAction = () => {
-        if (!confirmModal.action || !confirmModal.eventId) return;
-
-        const statusMap: Record<string, string> = {
-            deactivate: 'Deactivated',
-            complete: 'Completed',
-            cancel: 'Cancelled',
-        };
-
-        router.patch(route('admin.events.updateStatus', { event: confirmModal.eventId }), {
-            status: statusMap[confirmModal.action],
-        }, {
-            onSuccess: () => closeConfirmModal(),
-            onError: (errors) => {
-                console.error('Failed to update status:', errors);
-                closeConfirmModal();
-            },
-        });
+        if (confirmModal.action === 'restore' && confirmModal.eventId) {
+            router.patch(route('admin.events.restore', { event: confirmModal.eventId }), {}, {
+                onSuccess: () => closeConfirmModal(),
+            });
+        } else if (confirmModal.action === 'delete' && confirmModal.eventId) {
+            if (isRoot) {
+                router.delete(route('admin.events.forceDelete', { event: confirmModal.eventId }), {
+                    onSuccess: () => closeConfirmModal(),
+                });
+            } else {
+                router.delete(route('admin.events.destroy', { event: confirmModal.eventId }), {
+                    onSuccess: () => closeConfirmModal(),
+                });
+            }
+        }
     };
 
     const statusColor = (status: string) => {
         switch (status) {
-            case 'Active':      return 'bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 ring-1 ring-emerald-500/20';
-            case 'Draft':       return 'bg-slate-100 dark:bg-white/5 text-slate-500 dark:text-slate-400 ring-1 ring-slate-200 dark:ring-white/10';
-            case 'Cancelled':   return 'bg-red-50 dark:bg-red-500/10 text-red-500 dark:text-red-400 ring-1 ring-red-500/20';
-            case 'Completed':   return 'bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400 ring-1 ring-blue-500/20';
             case 'Deactivated': return 'bg-amber-50 dark:bg-amber-500/10 text-amber-600 dark:text-amber-400 ring-1 ring-amber-500/20';
             default:            return '';
         }
@@ -166,28 +135,33 @@ export default function AdminEvents({ events, filters }: Props) {
 
     return (
         <DashboardLayout>
-            <Head title="All Events" />
+            <Head title="Archive - Deactivated Events" />
 
             {/* Page heading */}
             <div className="mb-8 flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
                 <div>
-                    <h1 className="text-2xl font-bold text-slate-900 dark:text-white">All Events</h1>
+                    <div className="flex items-center gap-3">
+                        <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Archive</h1>
+                        <span className="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold bg-amber-50 dark:bg-amber-500/10 text-amber-600 dark:text-amber-400 ring-1 ring-amber-500/20">
+                            Deactivated
+                        </span>
+                    </div>
                     <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
-                        Manage every event across all organizers on the platform.
+                        Manage deactivated events. Restore them to active or permanently delete.
                     </p>
                 </div>
                 <Link
-                    href={route('admin.events.archive')}
+                    href={route('admin.events.index')}
                     className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-slate-600 dark:text-slate-400 bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-xl hover:bg-slate-50 dark:hover:bg-white/10 transition-colors"
                 >
                     <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4" />
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
                     </svg>
-                    Archive
+                    Back to Events
                 </Link>
             </div>
 
-            {/* Toolbar: Search + Filter */}
+            {/* Toolbar: Search */}
             <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 mb-6">
                 {/* Search */}
                 <div className="relative w-full sm:w-80">
@@ -202,23 +176,6 @@ export default function AdminEvents({ events, filters }: Props) {
                         className="w-full rounded-xl border border-slate-200 dark:border-white/10 bg-white dark:bg-white/5 pl-10 pr-4 py-2.5 text-sm text-slate-700 dark:text-slate-300 placeholder-slate-400 dark:placeholder-slate-500 focus:border-primary-500/40 focus:ring-2 focus:ring-primary-500/20 transition"
                     />
                 </div>
-
-                {/* Status Filter Pills */}
-                <div className="flex items-center gap-1 p-1 rounded-xl bg-slate-100 dark:bg-white/5 border border-slate-200 dark:border-white/5">
-                    {statusFilters.map((filter) => (
-                        <button
-                            key={filter}
-                            onClick={() => handleFilterChange(filter)}
-                            className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-all duration-200 ${
-                                activeFilter === filter
-                                    ? 'bg-white dark:bg-primary-600 text-slate-900 dark:text-white shadow-sm'
-                                    : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-white'
-                            }`}
-                        >
-                            {filter}
-                        </button>
-                    ))}
-                </div>
             </div>
 
             {/* Table wrapper - Overflow allowed for dropdowns to show */}
@@ -232,7 +189,7 @@ export default function AdminEvents({ events, filters }: Props) {
                                 <th className="px-5 py-3.5">Category</th>
                                 <th className="px-5 py-3.5">Date</th>
                                 <th className="px-5 py-3.5">Tickets</th>
-                                <th className="px-5 py-3.5">Status</th>
+                                <th className="px-5 py-3.5">Deactivated</th>
                                 <th className="px-5 py-3.5 text-right">Actions</th>
                             </tr>
                         </thead>
@@ -254,9 +211,7 @@ export default function AdminEvents({ events, filters }: Props) {
                                     <td className="px-5 py-3.5 text-slate-500 dark:text-slate-400 whitespace-nowrap">{event.date}</td>
                                     <td className="px-5 py-3.5 text-slate-500 dark:text-slate-400 whitespace-nowrap">{event.tickets}</td>
                                     <td className="px-5 py-3.5 whitespace-nowrap">
-                                        <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-semibold ${statusColor(event.status)}`}>
-                                            {event.status}
-                                        </span>
+                                        <span className="text-xs text-slate-500 dark:text-slate-400">{event.deactivated_at}</span>
                                     </td>
                                     <td className="px-5 py-3.5 text-right whitespace-nowrap">
                                         <Menu as="div" className="relative inline-block text-left">
@@ -296,57 +251,36 @@ export default function AdminEvents({ events, filters }: Props) {
                                                                 </Link>
                                                             )}
                                                         </Menu.Item>
-                                                        {event.status === 'Active' && (
-                                                            <Menu.Item>
-                                                                {({ active }) => (
-                                                                    <button
-                                                                        onClick={() => openCompleteModal(event.id, event.name)}
-                                                                        className={`${
-                                                                            active ? 'bg-blue-50 dark:bg-blue-500/10' : ''
-                                                                        } flex items-center gap-2 px-4 py-2 text-sm text-blue-600 dark:text-blue-400 w-full`}
-                                                                    >
-                                                                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                                                                            <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                                                        </svg>
-                                                                        Mark as Completed
-                                                                    </button>
-                                                                )}
-                                                            </Menu.Item>
-                                                        )}
-                                                        {['Active', 'Draft'].includes(event.status) && (
-                                                            <Menu.Item>
-                                                                {({ active }) => (
-                                                                    <button
-                                                                        onClick={() => openCancelModal(event.id, event.name)}
-                                                                        className={`${
-                                                                            active ? 'bg-red-50 dark:bg-red-500/10' : ''
-                                                                        } flex items-center gap-2 px-4 py-2 text-sm text-red-600 dark:text-red-400 w-full`}
-                                                                    >
-                                                                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                                                                            <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-                                                                        </svg>
-                                                                        Cancel Event
-                                                                    </button>
-                                                                )}
-                                                            </Menu.Item>
-                                                        )}
-                                                        {['Active', 'Draft'].includes(event.status) && (
-                                                            <Menu.Item>
-                                                                {({ active }) => (
-                                                                    <button
-                                                                        onClick={() => openDeactivateModal(event.id, event.name)}
-                                                                        className={`${
-                                                                            active ? 'bg-amber-50 dark:bg-amber-500/10' : ''
-                                                                        } flex items-center gap-2 px-4 py-2 text-sm text-amber-600 dark:text-amber-400 w-full`}
-                                                                    >
-                                                                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                                                                            <path strokeLinecap="round" strokeLinejoin="round" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
-                                                                        </svg>
-                                                                        Deactivate
-                                                                    </button>
-                                                                )}
-                                                            </Menu.Item>
-                                                        )}
+                                                        <Menu.Item>
+                                                            {({ active }) => (
+                                                                <button
+                                                                    onClick={() => openRestoreModal(event.id, event.name)}
+                                                                    className={`${
+                                                                        active ? 'bg-emerald-50 dark:bg-emerald-500/10' : ''
+                                                                    } flex items-center gap-2 px-4 py-2 text-sm text-emerald-600 dark:text-emerald-400 w-full`}
+                                                                >
+                                                                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                                                        <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                                                                    </svg>
+                                                                    Restore
+                                                                </button>
+                                                            )}
+                                                        </Menu.Item>
+                                                        <Menu.Item>
+                                                            {({ active }) => (
+                                                                <button
+                                                                    onClick={() => openDeleteModal(event.id, event.name)}
+                                                                    className={`${
+                                                                        active ? 'bg-red-50 dark:bg-red-500/10' : ''
+                                                                    } flex items-center gap-2 px-4 py-2 text-sm text-red-600 dark:text-red-400 w-full`}
+                                                                >
+                                                                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                                                        <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                                                    </svg>
+                                                                    {isRoot ? 'Permanent Delete' : 'Delete'}
+                                                                </button>
+                                                            )}
+                                                        </Menu.Item>
                                                     </div>
                                                 </Menu.Items>
                                             </Transition>
@@ -358,7 +292,7 @@ export default function AdminEvents({ events, filters }: Props) {
                             {events.data.length === 0 && (
                                 <tr>
                                     <td colSpan={7} className="px-5 py-12 text-center text-sm text-slate-400 dark:text-slate-500">
-                                        No events found matching your criteria.
+                                        No deactivated events found.
                                     </td>
                                 </tr>
                             )}
@@ -380,24 +314,14 @@ export default function AdminEvents({ events, filters }: Props) {
             <Modal show={confirmModal.isOpen} onClose={closeConfirmModal} maxWidth="md">
                 <div className="p-6">
                     <div className="flex items-center gap-3 mb-4">
-                        <div className={`p-2 rounded-full ${
-                            confirmModal.action === 'complete' ? 'bg-blue-100 dark:bg-blue-500/20' :
-                            confirmModal.action === 'deactivate' ? 'bg-amber-100 dark:bg-amber-500/20' :
-                            'bg-red-100 dark:bg-red-500/20'
-                        }`}>
-                            {confirmModal.action === 'complete' && (
-                                <svg className="w-5 h-5 text-blue-600 dark:text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                                    <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        <div className={`p-2 rounded-full ${confirmModal.action === 'restore' ? 'bg-emerald-100 dark:bg-emerald-500/20' : 'bg-red-100 dark:bg-red-500/20'}`}>
+                            {confirmModal.action === 'restore' ? (
+                                <svg className="w-5 h-5 text-emerald-600 dark:text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                                 </svg>
-                            )}
-                            {confirmModal.action === 'deactivate' && (
-                                <svg className="w-5 h-5 text-amber-600 dark:text-amber-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                                    <path strokeLinecap="round" strokeLinejoin="round" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
-                                </svg>
-                            )}
-                            {confirmModal.action === 'cancel' && (
+                            ) : (
                                 <svg className="w-5 h-5 text-red-600 dark:text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                                 </svg>
                             )}
                         </div>
@@ -406,18 +330,18 @@ export default function AdminEvents({ events, filters }: Props) {
                     <p className="text-sm font-medium text-slate-700 dark:text-slate-300 mb-6">{confirmModal.message}</p>
                     <div className="flex justify-end gap-3">
                         <SecondaryButton onClick={closeConfirmModal}>Cancel</SecondaryButton>
-                        <button
-                            onClick={handleConfirmAction}
-                            className={`px-4 py-2 text-sm font-medium text-white rounded-xl transition-colors ${
-                                confirmModal.action === 'complete' ? 'bg-blue-600 hover:bg-blue-500' :
-                                confirmModal.action === 'deactivate' ? 'bg-amber-600 hover:bg-amber-500' :
-                                'bg-red-600 hover:bg-red-500'
-                            }`}
-                        >
-                            {confirmModal.action === 'complete' ? 'Mark as Completed' :
-                             confirmModal.action === 'deactivate' ? 'Deactivate Event' :
-                             'Cancel Event'}
-                        </button>
+                        {confirmModal.action === 'restore' ? (
+                            <button
+                                onClick={handleConfirmAction}
+                                className="px-4 py-2 text-sm font-medium text-white bg-emerald-600 hover:bg-emerald-500 rounded-xl transition-colors"
+                            >
+                                Restore Event
+                            </button>
+                        ) : (
+                            <DangerButton onClick={handleConfirmAction}>
+                                {isRoot ? 'Permanent Delete' : 'Delete'}
+                            </DangerButton>
+                        )}
                     </div>
                 </div>
             </Modal>
