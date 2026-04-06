@@ -223,10 +223,10 @@ class EventController extends Controller
                 'promotions' => $event->promotions->map(fn ($p) => [
                     'id' => $p->id,
                     'code' => $p->code,
-                    'discount' => $p->discount,
-                    'type' => $p->type,
-                    'valid_until' => $p->valid_until,
-                    'status' => $p->status,
+                    'discount' => $p->discount_amount,
+                    'type' => $p->discount_amount >= 100 ? 'fixed' : 'percentage',
+                    'valid_until' => $p->end_date ? Carbon::parse($p->end_date)->format('M d, Y') : '—',
+                    'status' => $p->end_date && Carbon::parse($p->end_date)->isPast() ? 'Expired' : 'Active',
                 ]),
             ],
             'canEdit' => in_array($user->role, ['Root', 'Admin']) ||
@@ -267,6 +267,10 @@ class EventController extends Controller
             'format' => 'required|in:Online,Offline',
             'event_category_id' => 'required|exists:event_category,id',
             'organizer_id' => 'required|exists:organizers,id',
+            'ticket_types' => 'nullable|array',
+            'ticket_types.*.name' => 'required_with:ticket_types|string|max:50',
+            'ticket_types.*.price' => 'required_with:ticket_types|numeric|min:0',
+            'ticket_types.*.quota' => 'required_with:ticket_types|integer|min:1',
         ]);
 
         if ($request->hasFile('banner_image')) {
@@ -276,19 +280,33 @@ class EventController extends Controller
             $data['banner_image'] = '/images/default-event.jpg';
         }
 
-        Event::create($data);
+        $ticketTypesData = $data['ticket_types'] ?? [];
+        unset($data['ticket_types']);
+
+        $event = Event::create($data);
+
+        // Create ticket types
+        foreach ($ticketTypesData as $tt) {
+            $event->ticketTypes()->create([
+                'name' => $tt['name'],
+                'price' => $tt['price'],
+                'quota' => $tt['quota'],
+                'available_stock' => $tt['quota'],
+            ]);
+        }
 
         return redirect()->route('admin.events.index')->with('success', 'Event created successfully.');
     }
 
     public function edit($id)
     {
-        $event = Event::findOrFail($id);
+        $event = Event::with('ticketTypes')->findOrFail($id);
 
         return Inertia::render('Admin/Events/Edit', [
             'event' => $event,
             'categories' => EventCategory::all(),
             'organizers' => Organizer::all(),
+            'existingTicketTypes' => $event->ticketTypes,
         ]);
     }
 
@@ -314,6 +332,11 @@ class EventController extends Controller
             'format' => 'in:Online,Offline',
             'event_category_id' => 'exists:event_category,id',
             'organizer_id' => 'exists:organizers,id',
+            'ticket_types' => 'nullable|array',
+            'ticket_types.*.id' => 'nullable|string',
+            'ticket_types.*.name' => 'required_with:ticket_types|string|max:50',
+            'ticket_types.*.price' => 'required_with:ticket_types|numeric|min:0',
+            'ticket_types.*.quota' => 'required_with:ticket_types|integer|min:1',
         ]);
 
         // Prevent changing organizer_id (except for Root)
@@ -327,7 +350,37 @@ class EventController extends Controller
             $data['banner_image'] = '/storage/'.$path;
         }
 
+        $ticketTypesData = $data['ticket_types'] ?? null;
+        unset($data['ticket_types']);
+
         $event->update($data);
+
+        // Sync ticket types if provided
+        if ($ticketTypesData !== null) {
+            $existingIds = $event->ticketTypes()->pluck('id')->toArray();
+            $incomingIds = array_filter(array_column($ticketTypesData, 'id'));
+
+            // Delete removed ticket types
+            $toDelete = array_diff($existingIds, $incomingIds);
+            \App\Models\TicketType::whereIn('id', $toDelete)->delete();
+
+            foreach ($ticketTypesData as $tt) {
+                if (! empty($tt['id'])) {
+                    \App\Models\TicketType::where('id', $tt['id'])->update([
+                        'name' => $tt['name'],
+                        'price' => $tt['price'],
+                        'quota' => $tt['quota'],
+                    ]);
+                } else {
+                    $event->ticketTypes()->create([
+                        'name' => $tt['name'],
+                        'price' => $tt['price'],
+                        'quota' => $tt['quota'],
+                        'available_stock' => $tt['quota'],
+                    ]);
+                }
+            }
+        }
 
         return redirect()->route('admin.events.show', $id)->with('success', 'Event updated successfully.');
     }

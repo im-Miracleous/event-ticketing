@@ -65,7 +65,15 @@ Route::middleware(['auth', 'verified', 'role:Organizer'])->prefix('organizer')->
     });
     Route::get('/dashboard', [EventController::class, 'dashboard'])->name('dashboard');
     Route::get('/export-sales', [EventController::class, 'exportSales'])->name('export-sales');
+
+    // Organizer Event CRUD
     Route::get('/events', [EventController::class, 'index'])->name('events.index');
+    Route::get('/events/create', [EventController::class, 'create'])->name('events.create');
+    Route::post('/events', [EventController::class, 'store'])->name('events.store');
+    Route::get('/events/{event}', [EventController::class, 'show'])->name('events.show');
+    Route::get('/events/{event}/edit', [EventController::class, 'edit'])->name('events.edit');
+    Route::put('/events/{event}', [EventController::class, 'update'])->name('events.update');
+    Route::patch('/events/{event}/status', [EventController::class, 'updateStatus'])->name('events.updateStatus');
 
     // Promotions
     Route::resource('promotions', PromotionController::class)->except(['create', 'show', 'edit']);
@@ -121,10 +129,10 @@ Route::middleware(['auth', 'verified'])->prefix('admin')->name('admin.')->group(
     // Validation Logs
     Route::get('/validation-logs', [Admin\ValidationLogController::class, 'index'])->name('validation.index');
 
-    // ROOT-only route (middleware to be added in a separate commit)
-    Route::get('/settings', function () {
-        return Inertia::render('Admin/Settings/Index');
-    })->name('settings.index');
+    // ROOT-only Settings
+    Route::get('/settings', [Admin\SettingsController::class, 'index'])->name('settings.index');
+    Route::put('/settings', [Admin\SettingsController::class, 'update'])->name('settings.update');
+    Route::post('/settings/verify-password', [Admin\SettingsController::class, 'verifyPassword'])->name('settings.verifyPassword');
 });
 
 require __DIR__.'/auth.php';

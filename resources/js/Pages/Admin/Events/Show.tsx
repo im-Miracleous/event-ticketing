@@ -1,9 +1,10 @@
 import DashboardLayout from '@/Layouts/DashboardLayout';
-import { Head, useForm, Link, router } from '@inertiajs/react';
+import { Head, useForm, Link, router, usePage } from '@inertiajs/react';
 import { useState, FormEvent } from 'react';
 import Modal from '@/Components/Modal';
 import DangerButton from '@/Components/DangerButton';
 import SecondaryButton from '@/Components/SecondaryButton';
+import { formatCurrency } from '@/utils/currency';
 
 interface EventCategory {
     id: number;
@@ -57,9 +58,11 @@ interface Props {
     event: EventData;
     canEdit: boolean;
     isRoot: boolean;
+    isOrganizer?: boolean;
 }
 
-export default function ShowEvent({ event, canEdit, isRoot }: Props) {
+export default function ShowEvent({ event, canEdit, isRoot, isOrganizer }: Props) {
+    const { currency } = usePage().props as any;
     const [isEditing, setIsEditing] = useState(false);
     const [confirmModal, setConfirmModal] = useState<{
         isOpen: boolean;
@@ -84,7 +87,31 @@ export default function ShowEvent({ event, canEdit, isRoot }: Props) {
         location: event.location || '',
         format: event.format || 'Offline',
         event_category_id: event.category?.id || '',
+        ticket_types: [] as any[],
     });
+
+    const [ticketTypes, setTicketTypes] = useState<any[]>(
+        (event.ticket_types || []).map((tt: any) => ({
+            id: tt.id,
+            name: tt.name,
+            price: tt.price?.toString() || '0',
+            quota: tt.quota?.toString() || '',
+        }))
+    );
+
+    const addTicketType = () => {
+        setTicketTypes([...ticketTypes, { name: '', price: '0', quota: '' }]);
+    };
+
+    const removeTicketType = (index: number) => {
+        setTicketTypes(ticketTypes.filter((_, i) => i !== index));
+    };
+
+    const updateTicketType = (index: number, field: string, value: string) => {
+        const updated = [...ticketTypes];
+        updated[index] = { ...updated[index], [field]: value };
+        setTicketTypes(updated);
+    };
 
     const handleEdit = () => {
         setIsEditing(true);
@@ -108,6 +135,21 @@ export default function ShowEvent({ event, canEdit, isRoot }: Props) {
 
     const submit = (e: FormEvent) => {
         e.preventDefault();
+
+        const totalFromTickets = ticketTypes.reduce((sum, tt) => sum + (parseInt(tt.quota) || 0), 0);
+        
+        const ticketData = ticketTypes.filter(tt => tt.name && tt.quota).map(tt => ({
+            id: tt.id || null,
+            name: tt.name,
+            price: parseFloat(tt.price) || 0,
+            quota: parseInt(tt.quota) || 0,
+        }));
+
+        data.ticket_types = ticketData as any;
+        if (totalFromTickets > 0) {
+            data.total_quota = totalFromTickets.toString();
+        }
+
         put(route('admin.events.update', event.id), {
             onSuccess: () => setIsEditing(false),
         });
@@ -388,10 +430,16 @@ export default function ShowEvent({ event, canEdit, isRoot }: Props) {
                                 <label className="block text-sm font-bold text-slate-700 dark:text-slate-300">Max Attendees</label>
                                 <input
                                     type="number"
-                                    className="w-full px-4 py-3 bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-xl text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500/50 text-sm"
-                                    value={data.total_quota}
+                                    className="w-full px-4 py-3 bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-xl text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-primary-500/50 text-sm"
+                                    placeholder={ticketTypes.length > 0 ? 'Auto-calculated from tickets' : '1000'}
+                                    value={ticketTypes.length > 0 ? ticketTypes.reduce((sum, tt) => sum + (parseInt(tt.quota) || 0), 0) : data.total_quota}
                                     onChange={(e) => setData('total_quota', e.target.value)}
+                                    readOnly={ticketTypes.length > 0}
                                 />
+                                {ticketTypes.length > 0 && (
+                                    <p className="text-xs text-slate-400 dark:text-slate-500">Auto-calculated from ticket quotas below.</p>
+                                )}
+                                {errors.total_quota && <div className="text-red-500 text-xs mt-1">{errors.total_quota}</div>}
                             </div>
                         </div>
 
@@ -432,9 +480,90 @@ export default function ShowEvent({ event, canEdit, isRoot }: Props) {
                             <label className="block text-sm font-bold text-slate-700 dark:text-slate-300">Banner Image</label>
                             <input
                                 type="file"
-                                className="w-full px-4 py-3 bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-xl text-slate-700 dark:text-slate-300 text-sm file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-bold file:bg-primary-500/20 file:text-primary-400"
+                                className="w-full px-4 py-3 bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-xl text-slate-700 dark:text-slate-300 focus:outline-none focus:ring-2 focus:ring-primary-500/50 text-sm file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-bold file:bg-primary-500/20 file:text-primary-400 hover:file:bg-primary-500/30"
                                 onChange={(e) => setData('banner_image', e.target.files ? e.target.files[0] : null)}
                             />
+                            {errors.banner_image && <div className="text-red-500 text-xs mt-1">{errors.banner_image}</div>}
+                        </div>
+
+                        {/* ── Ticket Types ─────────────────────────────────── */}
+                        <div className="pt-6 border-t border-slate-100 dark:border-white/5">
+                            <div className="flex items-center justify-between mb-4">
+                                <div>
+                                    <h3 className="text-base font-bold text-slate-900 dark:text-white">Ticket Types</h3>
+                                    <p className="text-xs text-slate-400 dark:text-slate-500 mt-0.5">Define different tiers for your event tickets.</p>
+                                </div>
+                                <button
+                                    type="button"
+                                    onClick={addTicketType}
+                                    className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-primary-600 dark:text-primary-400 bg-primary-50 dark:bg-primary-500/10 border border-primary-200 dark:border-primary-500/20 rounded-lg hover:bg-primary-100 dark:hover:bg-primary-500/20 transition-colors"
+                                >
+                                    <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                                        <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+                                    </svg>
+                                    Add Ticket Type
+                                </button>
+                            </div>
+
+                            {ticketTypes.length === 0 ? (
+                                <div className="text-center py-8 border-2 border-dashed border-slate-200 dark:border-white/10 rounded-xl">
+                                    <svg className="w-10 h-10 text-slate-300 dark:text-slate-600 mx-auto mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                                        <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 6v.75m0 3v.75m0 3v.75m0 3V18m-9-5.25h5.25M7.5 15h3M3.375 5.25c-.621 0-1.125.504-1.125 1.125v3.026a2.999 2.999 0 0 1 0 5.198v3.026c0 .621.504 1.125 1.125 1.125h17.25c.621 0 1.125-.504 1.125-1.125v-3.026a2.999 2.999 0 0 1 0-5.198V6.375c0-.621-.504-1.125-1.125-1.125H3.375Z" />
+                                    </svg>
+                                    <p className="text-sm text-slate-400 dark:text-slate-500">No ticket types added yet.</p>
+                                    <p className="text-xs text-slate-400 dark:text-slate-500 mt-1">Click "Add Ticket Type" to define tiers like Regular, VIP, etc.</p>
+                                </div>
+                            ) : (
+                                <div className="space-y-3">
+                                    {ticketTypes.map((tt, index) => (
+                                        <div key={index} className="flex items-start gap-3 p-4 bg-slate-50 dark:bg-white/[0.02] border border-slate-200 dark:border-white/5 rounded-xl">
+                                            <div className="flex-1 grid grid-cols-1 md:grid-cols-3 gap-3">
+                                                <div>
+                                                    <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1">Name</label>
+                                                    <input
+                                                        type="text"
+                                                        placeholder="e.g. Regular, VIP"
+                                                        value={tt.name}
+                                                        onChange={(e) => updateTicketType(index, 'name', e.target.value)}
+                                                        className="w-full px-3 py-2 bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-lg text-slate-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-primary-500/50"
+                                                    />
+                                                </div>
+                                                <div>
+                                                    <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1">Price ({currency})</label>
+                                                    <input
+                                                        type="number"
+                                                        placeholder="0"
+                                                        min={0}
+                                                        value={tt.price}
+                                                        onChange={(e) => updateTicketType(index, 'price', e.target.value)}
+                                                        className="w-full px-3 py-2 bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-lg text-slate-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-primary-500/50"
+                                                    />
+                                                </div>
+                                                <div>
+                                                    <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1">Quota</label>
+                                                    <input
+                                                        type="number"
+                                                        placeholder="100"
+                                                        min={1}
+                                                        value={tt.quota}
+                                                        onChange={(e) => updateTicketType(index, 'quota', e.target.value)}
+                                                        className="w-full px-3 py-2 bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-lg text-slate-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-primary-500/50"
+                                                    />
+                                                </div>
+                                            </div>
+                                            <button
+                                                type="button"
+                                                onClick={() => removeTicketType(index)}
+                                                className="mt-5 p-1.5 text-red-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-lg transition-colors"
+                                            >
+                                                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                                    <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                                </svg>
+                                            </button>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
                         </div>
                     </form>
                 </div>
@@ -466,7 +595,7 @@ export default function ShowEvent({ event, canEdit, isRoot }: Props) {
                                                 <tr key={ticket.id}>
                                                     <td className="py-3 font-medium text-slate-800 dark:text-slate-200">{ticket.name}</td>
                                                     <td className="py-3 text-slate-500 dark:text-slate-400">
-                                                        {ticket.price === 0 ? 'Free' : `$${ticket.price}`}
+                                                        {ticket.price === 0 ? 'Free' : formatCurrency(ticket.price, currency)}
                                                     </td>
                                                     <td className="py-3 text-slate-500 dark:text-slate-400">{ticket.quota}</td>
                                                     <td className="py-3 text-slate-500 dark:text-slate-400">{ticket.available_stock}</td>
@@ -501,7 +630,7 @@ export default function ShowEvent({ event, canEdit, isRoot }: Props) {
                                                         </code>
                                                     </td>
                                                     <td className="py-3 text-slate-500 dark:text-slate-400">
-                                                        {promo.type === 'percentage' ? `${promo.discount}%` : `$${promo.discount}`}
+                                                        {promo.type === 'percentage' ? `${promo.discount}%` : formatCurrency(promo.discount, currency)}
                                                     </td>
                                                     <td className="py-3 text-slate-500 dark:text-slate-400">{promo.valid_until}</td>
                                                     <td className="py-3">
@@ -529,12 +658,22 @@ export default function ShowEvent({ event, canEdit, isRoot }: Props) {
                             <div className="space-y-4">
                                 <div>
                                     <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider">Date</label>
-                                    <p className="text-sm text-slate-700 dark:text-slate-300">{event.event_date}</p>
+                                    <p className="text-sm text-slate-700 dark:text-slate-300">
+                                        {event.event_date
+                                            ? new Date(event.event_date).toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })
+                                            : '—'}
+                                    </p>
                                 </div>
                                 <div>
                                     <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider">Time</label>
                                     <p className="text-sm text-slate-700 dark:text-slate-300">
-                                        {event.start_time} - {event.end_time}
+                                        {event.start_time
+                                            ? new Date(event.start_time).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })
+                                            : '—'}
+                                        {' — '}
+                                        {event.end_time
+                                            ? new Date(event.end_time).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })
+                                            : '—'}
                                     </p>
                                 </div>
                                 <div>
