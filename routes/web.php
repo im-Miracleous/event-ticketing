@@ -1,20 +1,29 @@
 <?php
 
-use App\Http\Controllers\Admin;
-use App\Http\Controllers\CheckoutController;
-use App\Http\Controllers\EventCatalogController;
-use App\Http\Controllers\EventController;
-use App\Http\Controllers\MyTicketsController;
-use App\Http\Controllers\Organizer\AttendeeController;
-use App\Http\Controllers\Organizer\EarningController;
-use App\Http\Controllers\Organizer\PromotionController;
-use App\Http\Controllers\ProfileController;
-use App\Http\Controllers\SearchController;
-use App\Http\Controllers\TicketTypeController;
-use App\Http\Controllers\ValidationLogController;
 use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
+
+// General Controllers
+use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\EventCatalogController;
+use App\Http\Controllers\EventController;
+use App\Http\Controllers\SearchController;
+use App\Http\Controllers\CheckoutController;
+use App\Http\Controllers\MyTicketsController;
+use App\Http\Controllers\WishlistController;
+use App\Http\Controllers\WaitingListController;
+use App\Http\Controllers\DokuNotificationController;
+use App\Http\Controllers\TicketTypeController;
+use App\Http\Controllers\ValidationLogController;
+
+// Organizer Controllers
+use App\Http\Controllers\Organizer\AttendeeController as OrganizerAttendeeController;
+use App\Http\Controllers\Organizer\EarningController as OrganizerEarningController;
+use App\Http\Controllers\Organizer\PromotionController as OrganizerPromotionController;
+
+// Admin Controllers
+use App\Http\Controllers\Admin;
 
 Route::get('/', function () {
     return Inertia::render('Welcome', [
@@ -27,7 +36,7 @@ Route::get('/', function () {
 
 Route::get('/dashboard', function () {
     $user = auth()->user();
-
+    
     if (in_array($user->role, ['Root', 'Admin'])) {
         return redirect()->route('admin.dashboard');
     }
@@ -55,14 +64,14 @@ Route::middleware('auth')->group(function () {
     Route::get('/my-tickets', [MyTicketsController::class, 'index'])->name('tickets.my');
 
     // Saved Events (Wishlist)
-    Route::get('/saved-events', [App\Http\Controllers\WishlistController::class, 'index'])->name('wishlists.index');
-    Route::post('/saved-events/toggle', [App\Http\Controllers\WishlistController::class, 'toggle'])->name('wishlists.toggle');
-    Route::get('/saved-events/check', [App\Http\Controllers\WishlistController::class, 'check'])->name('wishlists.check');
+    Route::get('/saved-events', [WishlistController::class, 'index'])->name('wishlists.index');
+    Route::post('/saved-events/toggle', [WishlistController::class, 'toggle'])->name('wishlists.toggle');
+    Route::get('/saved-events/check', [WishlistController::class, 'check'])->name('wishlists.check');
 
     // Waiting List
-    Route::get('/waiting-list', [App\Http\Controllers\WaitingListController::class, 'index'])->name('waiting-list.index');
-    Route::post('/waiting-list', [App\Http\Controllers\WaitingListController::class, 'store'])->name('waiting-list.store');
-    Route::post('/waiting-list/{id}/cancel', [App\Http\Controllers\WaitingListController::class, 'cancel'])->name('waiting-list.cancel');
+    Route::get('/waiting-list', [WaitingListController::class, 'index'])->name('waiting-list.index');
+    Route::post('/waiting-list', [WaitingListController::class, 'store'])->name('waiting-list.store');
+    Route::post('/waiting-list/{id}/cancel', [WaitingListController::class, 'cancel'])->name('waiting-list.cancel');
 
     // Account Settings (Profile)
     Route::get('/settings', [ProfileController::class, 'edit'])->name('settings.edit');
@@ -71,14 +80,16 @@ Route::middleware('auth')->group(function () {
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 });
 
-// DOKU Payment Notification Webhook (no auth, CSRF-exempt via bootstrap/app.php)
-Route::post('/doku/notification', [App\Http\Controllers\DokuNotificationController::class, 'handle'])
+// DOKU Payment Notification Webhook (no auth, CSRF-exempt)
+Route::post('/doku/notification', [DokuNotificationController::class, 'handle'])
     ->name('doku.notification');
 
+// ─── Organizer Routes ───────────────────
 Route::middleware(['auth', 'verified', 'role:Organizer'])->prefix('organizer')->name('organizer.')->group(function () {
     Route::get('/', function () {
         return redirect()->route('organizer.dashboard');
     });
+    
     Route::get('/dashboard', [EventController::class, 'dashboard'])->name('dashboard');
     Route::get('/export-sales', [EventController::class, 'exportSales'])->name('export-sales');
 
@@ -92,24 +103,27 @@ Route::middleware(['auth', 'verified', 'role:Organizer'])->prefix('organizer')->
     Route::patch('/events/{event}/status', [EventController::class, 'updateStatus'])->name('events.updateStatus');
 
     Route::get('/transactions', [EventController::class, 'transactions'])->name('transactions.index');
+    
     // Promotions
-    Route::resource('promotions', PromotionController::class)->except(['create', 'show', 'edit']);
+    Route::resource('promotions', OrganizerPromotionController::class)->except(['create', 'show', 'edit']);
 
     // Attendees
-    Route::get('/attendees', [AttendeeController::class, 'index'])->name('attendees.index');
+    Route::get('/attendees', [OrganizerAttendeeController::class, 'index'])->name('attendees.index');
 
     // Earnings Ledger
-    Route::get('/earnings', [EarningController::class, 'index'])->name('earnings.index');
+    Route::get('/earnings', [OrganizerEarningController::class, 'index'])->name('earnings.index');
 
+    // Tickets
     Route::get('/events/{event}/tickets', [TicketTypeController::class, 'index'])->name('events.tickets.index');
     Route::post('/events/{event}/tickets', [TicketTypeController::class, 'store'])->name('events.tickets.store');
     Route::delete('/events/{event}/tickets/{ticketType}', [TicketTypeController::class, 'destroy'])->name('events.tickets.destroy');
 
+    // Check-In (QR Scanner)
     Route::get('/check-in', [ValidationLogController::class, 'index'])->name('check-in');
     Route::post('/check-in', [ValidationLogController::class, 'store'])->name('check-in.store');
 });
 
-// ─── Admin Routes (middleware to be refined later) ───────────────────
+// ─── Admin Routes ───────────────────
 Route::middleware(['auth', 'verified'])->prefix('admin')->name('admin.')->group(function () {
     // Dashboard
     Route::get('/dashboard', [Admin\DashboardController::class, 'index'])->name('dashboard');
@@ -150,7 +164,7 @@ Route::middleware(['auth', 'verified'])->prefix('admin')->name('admin.')->group(
     // Validation Logs
     Route::get('/validation-logs', [Admin\ValidationLogController::class, 'index'])->name('validation.index');
 
-    // ROOT-only Settings
+    // Settings
     Route::get('/settings', [Admin\SettingsController::class, 'index'])->name('settings.index');
     Route::put('/settings', [Admin\SettingsController::class, 'update'])->name('settings.update');
     Route::post('/settings/verify-password', [Admin\SettingsController::class, 'verifyPassword'])->name('settings.verifyPassword');

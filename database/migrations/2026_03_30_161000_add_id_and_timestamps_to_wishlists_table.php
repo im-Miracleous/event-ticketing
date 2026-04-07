@@ -10,7 +10,7 @@ return new class extends Migration
     public function up(): void
     {
         // Disable FK checks to allow PK modification
-        DB::statement('SET FOREIGN_KEY_CHECKS=0');
+        Schema::disableForeignKeyConstraints();
 
         Schema::table('wishlists', function (Blueprint $table) {
             $table->dropPrimary(['user_id', 'event_id']);
@@ -22,12 +22,12 @@ return new class extends Migration
             $table->unique(['user_id', 'event_id']);
         });
 
-        DB::statement('SET FOREIGN_KEY_CHECKS=1');
+        Schema::enableForeignKeyConstraints();
     }
 
     public function down(): void
     {
-        DB::statement('SET FOREIGN_KEY_CHECKS=0');
+        Schema::disableForeignKeyConstraints();
 
         Schema::table('wishlists', function (Blueprint $table) {
             $table->dropUnique(['user_id', 'event_id']);
@@ -38,6 +38,6 @@ return new class extends Migration
             $table->primary(['user_id', 'event_id']);
         });
 
-        DB::statement('SET FOREIGN_KEY_CHECKS=1');
+        Schema::enableForeignKeyConstraints();
     }
 };

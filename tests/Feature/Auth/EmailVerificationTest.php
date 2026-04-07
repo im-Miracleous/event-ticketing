@@ -45,7 +45,7 @@ class EmailVerificationTest extends TestCase
         $this->assertNotNull($user);
         $this->assertTrue($user->hasVerifiedEmail());
         $this->assertAuthenticatedAs($user);
-        $response->assertRedirect(route('dashboard', absolute: false));
+        $response->assertRedirect(route('events.index', absolute: false));
     }
 
     public function test_email_is_not_verified_with_invalid_otp(): void

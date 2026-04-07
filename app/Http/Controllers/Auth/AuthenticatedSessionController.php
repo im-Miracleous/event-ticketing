@@ -44,7 +44,7 @@ class AuthenticatedSessionController extends Controller
             ? route('admin.dashboard')
             : route('dashboard');
 
-        return Inertia::location(redirect()->intended($defaultRoute)->getTargetUrl());
+        return redirect()->intended($defaultRoute);
     }
 
     /**
