@@ -96,7 +96,7 @@ class OtpVerificationController extends Controller
         } elseif ($user->role === 'Organizer') {
             $defaultRoute = route('organizer.dashboard');
         } else {
-            $defaultRoute = route('dashboard');
+            $defaultRoute = route('events.index');
         }
 
         return redirect()->intended($defaultRoute)
@@ -128,6 +128,6 @@ class OtpVerificationController extends Controller
         $otp = OtpCode::generateFor($email, 'email_verification');
         Mail::to($email)->send(new OtpVerificationMail(null, $otp, $pending['name']));
 
-        return back()->with('status', 'A new verification code has been sent to your email.');
+        return back()->with('status', 'otp-sent');
     }
 }

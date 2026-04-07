@@ -72,12 +72,13 @@ interface Props {
     trendingEvents: EventItem[];
     categories: Category[];
     filters: Filters;
+    savedEventIds: (string | number)[];
 }
 
 const SORT_OPTIONS = [
-    { value: 'date_asc',   label: 'Nearest' },
-    { value: 'popular',    label: 'Most Popular' },
-    { value: 'price_asc',  label: 'Lowest Price' },
+    { value: 'date_asc', label: 'Nearest' },
+    { value: 'popular', label: 'Most Popular' },
+    { value: 'price_asc', label: 'Lowest Price' },
     { value: 'price_desc', label: 'Highest Price' },
 ];
 
@@ -116,15 +117,14 @@ const PinIcon = () => (
 );
 
 // ─── Event Card Component ──────────────────────────────────────────────────
-function EventCard({ event }: { event: EventItem }) {
-    const minPrice = event.ticket_types?.length > 0 
-        ? Math.min(...event.ticket_types.map(t => Number(t.price))) 
+function EventCard({ event, isSaved, onToggleSave }: { event: EventItem; isSaved: boolean; onToggleSave: () => void }) {
+    const minPrice = event.ticket_types?.length > 0
+        ? Math.min(...event.ticket_types.map(t => Number(t.price)))
         : 0;
-    
+
     const fallbackImg = `https://images.unsplash.com/photo-1501281668745-f7f57925c3b4?q=80&w=800&auto=format&fit=crop`;
-    
+
     const isSoldOut = event.ticket_types?.every(t => t.available_stock === 0) ?? false;
-    const isEarlyBird = event.id.includes('early'); // dummy logic for badge
 
     return (
         <div className="group relative bg-white dark:bg-slate-900/40 rounded-[2rem] overflow-hidden border border-slate-200 dark:border-slate-800 hover:border-violet-500/50 shadow-sm hover:shadow-2xl hover:shadow-violet-500/10 transition-all duration-500">
@@ -136,7 +136,7 @@ function EventCard({ event }: { event: EventItem }) {
                     className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
                 />
                 <div className="absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-black/80 to-transparent pointer-events-none" />
-                
+
                 {/* Badges */}
                 <div className="absolute top-4 left-4 flex flex-wrap gap-2">
                     {event.category && (
@@ -144,14 +144,24 @@ function EventCard({ event }: { event: EventItem }) {
                             {event.category.name}
                         </span>
                     )}
-                    {isSoldOut ? (
+                    {isSoldOut && (
                         <span className="px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider bg-red-500 text-white">Sold Out</span>
-                    ) : isEarlyBird ? (
-                        <span className="px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider bg-amber-500 text-white">Early Bird</span>
-                    ) : (
-                        <span className="px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider bg-emerald-500 text-white">New</span>
                     )}
                 </div>
+
+                {/* Save/Bookmark Button */}
+                <button
+                    onClick={(e) => { e.preventDefault(); e.stopPropagation(); onToggleSave(); }}
+                    className={`absolute top-4 right-4 p-2.5 rounded-xl backdrop-blur-md transition-all duration-300 ${isSaved
+                            ? 'bg-violet-600 text-white shadow-lg shadow-violet-500/40'
+                            : 'bg-black/30 text-white/80 hover:bg-violet-600 hover:text-white'
+                        }`}
+                    title={isSaved ? 'Hapus dari simpan' : 'Simpan event'}
+                >
+                    <svg className="w-4 h-4" fill={isSaved ? 'currentColor' : 'none'} viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M17.593 3.322c1.1.128 1.907 1.077 1.907 2.185V21L12 17.25 4.5 21V5.507c0-1.108.806-2.057 1.907-2.185a48.507 48.507 0 0 1 11.186 0Z" />
+                    </svg>
+                </button>
 
                 <div className="absolute bottom-4 left-4 right-4 flex items-center justify-between">
                     <div className="flex items-center gap-1.5 text-white">
@@ -185,7 +195,7 @@ function EventCard({ event }: { event: EventItem }) {
                         </span>
                     </div>
                     <Link
-                        href={`/events/${event.id}`}
+                        href={`/events/${event.id}/checkout`}
                         className="p-3 rounded-2xl bg-slate-900 dark:bg-white text-white dark:text-slate-900 hover:bg-violet-600 dark:hover:bg-violet-400 transition-colors"
                     >
                         <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
@@ -199,7 +209,13 @@ function EventCard({ event }: { event: EventItem }) {
 }
 
 // ─── Main Catalog Page ──────────────────────────────────────────────────────
-export default function EventCatalog({ events, trendingEvents, categories, filters }: Props) {
+export default function EventCatalog({ events, trendingEvents, categories, filters, savedEventIds = [] }: Props) {
+    const [savedIds, setSavedIds] = useState<(string | number)[]>(savedEventIds);
+
+    const toggleSave = (eventId: string | number) => {
+        setSavedIds(prev => prev.includes(eventId) ? prev.filter(id => id !== eventId) : [...prev, eventId]);
+        router.post('/saved-events/toggle', { event_id: eventId }, { preserveScroll: true, preserveState: true });
+    };
     const [search, setSearch] = useState(filters.search ?? '');
     const [activeTab, setActiveTab] = useState(filters.category ?? 'all');
 
@@ -293,7 +309,10 @@ export default function EventCatalog({ events, trendingEvents, categories, filte
                                 />
                             </div>
                             <button 
-                                onClick={() => router.get('/search', { q: search })}
+                                onClick={() => {
+                                    updateFilter({ search });
+                                    router.get('/search', { q: search });
+                                }}
                                 className="bg-slate-900 dark:bg-violet-600 hover:bg-violet-700 text-white px-8 py-3 rounded-[1.5rem] font-bold transition-all transform hover:scale-[1.02] active:scale-[0.98]"
                             >
                                 Search
@@ -312,7 +331,7 @@ export default function EventCatalog({ events, trendingEvents, categories, filte
                             Trending Events
                         </h2>
                     </div>
-                    
+
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 pb-4 overflow-x-auto no-scrollbar">
                         {trendingEvents.slice(0, 2).map(event => (
                             <div key={event.id} className="relative h-[300px] rounded-[2.5rem] overflow-hidden group cursor-pointer border border-white/10 shadow-lg">
@@ -335,26 +354,24 @@ export default function EventCatalog({ events, trendingEvents, categories, filte
             {/* ── CATEGORY QUICK FILTER ── */}
             <section className="mb-12">
                 <div className="flex items-center gap-4 overflow-x-auto no-scrollbar pb-4">
-                    <button 
+                    <button
                         onClick={() => { setActiveTab('all'); updateFilter({ category: undefined }); }}
-                        className={`flex items-center gap-3 px-6 py-4 rounded-3xl font-bold transition-all whitespace-nowrap ${
-                            activeTab === 'all' 
-                            ? 'bg-violet-600 text-white shadow-xl shadow-violet-500/30' 
-                            : 'bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:border-violet-500'
-                        }`}
+                        className={`flex items-center gap-3 px-6 py-4 rounded-3xl font-bold transition-all whitespace-nowrap ${activeTab === 'all'
+                                ? 'bg-violet-600 text-white shadow-xl shadow-violet-500/30'
+                                : 'bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:border-violet-500'
+                            }`}
                     >
                         {CATEGORY_ICONS.Default}
                         All Events
                     </button>
                     {categories.map(cat => (
-                        <button 
+                        <button
                             key={cat.id}
                             onClick={() => { setActiveTab(cat.id); updateFilter({ category: cat.id }); }}
-                            className={`flex items-center gap-3 px-6 py-4 rounded-3xl font-bold transition-all whitespace-nowrap ${
-                                String(activeTab) === String(cat.id)
-                                ? 'bg-violet-600 text-white shadow-xl shadow-violet-500/30' 
-                                : 'bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:border-violet-500'
-                            }`}
+                            className={`flex items-center gap-3 px-6 py-4 rounded-3xl font-bold transition-all whitespace-nowrap ${String(activeTab) === String(cat.id)
+                                    ? 'bg-violet-600 text-white shadow-xl shadow-violet-500/30'
+                                    : 'bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:border-violet-500'
+                                }`}
                         >
                             {CATEGORY_ICONS[cat.name] || CATEGORY_ICONS.Default}
                             {cat.name}
@@ -378,7 +395,7 @@ export default function EventCatalog({ events, trendingEvents, categories, filte
                             <h4 className="text-xs font-black text-slate-400 uppercase tracking-widest mb-4">Event Format</h4>
                             <div className="flex gap-2">
                                 {['Online', 'Offline'].map(f => (
-                                    <button 
+                                    <button
                                         key={f}
                                         onClick={() => updateFilter({ format: currentFilters.format === f ? undefined : f })}
                                         className={`flex-1 py-2 rounded-xl text-xs font-bold transition-all ${
@@ -398,7 +415,7 @@ export default function EventCatalog({ events, trendingEvents, categories, filte
                             <h4 className="text-xs font-black text-slate-400 uppercase tracking-widest mb-4">When</h4>
                             <div className="grid grid-cols-2 gap-2">
                                 {['today', 'tomorrow', 'week'].map(t => (
-                                    <button 
+                                    <button
                                         key={t}
                                         onClick={() => updateFilter({ time: currentFilters.time === t ? undefined : t })}
                                         className={`py-2 rounded-xl text-xs font-bold capitalize transition-all ${
@@ -417,10 +434,10 @@ export default function EventCatalog({ events, trendingEvents, categories, filte
                         <div className="text-left">
                             <h4 className="text-xs font-black text-slate-400 uppercase tracking-widest mb-4">Price Range</h4>
                             <div className="space-y-4">
-                                <input 
-                                    type="range" 
-                                    min="0" 
-                                    max="5000000" 
+                                <input
+                                    type="range"
+                                    min="0"
+                                    max="5000000"
                                     step="50000"
                                     value={currentFilters.price_max || 5000000}
                                     onChange={e => updateFilter({ price_max: e.target.value })}
@@ -455,7 +472,7 @@ export default function EventCatalog({ events, trendingEvents, categories, filte
                     <div className={`grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-8 transition-opacity duration-300 ${isLoading ? 'opacity-50' : 'opacity-100'}`}>
                         {localEvents.data.length > 0 ? (
                             localEvents.data.map(event => (
-                                <EventCard key={event.id} event={event} />
+                                <EventCard key={event.id} event={event} isSaved={savedIds.includes(event.id)} onToggleSave={() => toggleSave(event.id)} />
                             ))
                         ) : (
                             <div className="col-span-full py-20 text-center">

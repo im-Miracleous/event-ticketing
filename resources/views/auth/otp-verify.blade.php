@@ -41,7 +41,7 @@
                 </div>
             </div>
             
-            <div class="flex gap-2 sm:gap-3 justify-center">
+            <div className="flex gap-2 sm:gap-3 justify-center">
                 @foreach(range(1, 6) as $i)
                     <input type="text" 
                            maxlength="1" 

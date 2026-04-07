@@ -36,7 +36,7 @@ Route::get('/dashboard', function () {
         return redirect()->route('organizer.dashboard');
     }
 
-    return Inertia::render('Dashboard');
+    return redirect()->route('events.index');
 })->middleware(['auth'])->name('dashboard');
 
 Route::middleware('auth')->group(function () {
@@ -54,10 +54,26 @@ Route::middleware('auth')->group(function () {
     // My Tickets
     Route::get('/my-tickets', [MyTicketsController::class, 'index'])->name('tickets.my');
 
+    // Saved Events (Wishlist)
+    Route::get('/saved-events', [App\Http\Controllers\WishlistController::class, 'index'])->name('wishlists.index');
+    Route::post('/saved-events/toggle', [App\Http\Controllers\WishlistController::class, 'toggle'])->name('wishlists.toggle');
+    Route::get('/saved-events/check', [App\Http\Controllers\WishlistController::class, 'check'])->name('wishlists.check');
+
+    // Waiting List
+    Route::get('/waiting-list', [App\Http\Controllers\WaitingListController::class, 'index'])->name('waiting-list.index');
+    Route::post('/waiting-list', [App\Http\Controllers\WaitingListController::class, 'store'])->name('waiting-list.store');
+    Route::post('/waiting-list/{id}/cancel', [App\Http\Controllers\WaitingListController::class, 'cancel'])->name('waiting-list.cancel');
+
+    // Account Settings (Profile)
+    Route::get('/settings', [ProfileController::class, 'edit'])->name('settings.edit');
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 });
+
+// DOKU Payment Notification Webhook (no auth, CSRF-exempt via bootstrap/app.php)
+Route::post('/doku/notification', [App\Http\Controllers\DokuNotificationController::class, 'handle'])
+    ->name('doku.notification');
 
 Route::middleware(['auth', 'verified', 'role:Organizer'])->prefix('organizer')->name('organizer.')->group(function () {
     Route::get('/', function () {

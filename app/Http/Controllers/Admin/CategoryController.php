@@ -20,10 +20,10 @@ class CategoryController extends Controller
             ->orderBy('name')
             ->get()
             ->map(fn($cat) => [
-                'id'          => $cat->id,
-                'name'        => $cat->name,
+                'id' => $cat->id,
+                'name' => $cat->name,
                 'description' => $cat->description,
-                'events'      => $cat->events_count,
+                'events' => $cat->events_count,
             ]);
 
         return Inertia::render('Admin/Categories/Index', [
@@ -113,7 +113,7 @@ class CategoryController extends Controller
     public function store(Request $request)
     {
         $request->validate([
-            'name'        => 'required|string|max:45|unique:event_category,name',
+            'name' => 'required|string|max:45|unique:event_category,name',
             'description' => 'nullable|string|max:100',
         ]);
 
@@ -130,7 +130,7 @@ class CategoryController extends Controller
         $category = EventCategory::findOrFail($id);
 
         $request->validate([
-            'name'        => 'required|string|max:45|unique:event_category,name,' . $id,
+            'name' => 'required|string|max:45|unique:event_category,name,' . $id,
             'description' => 'nullable|string|max:100',
         ]);
 

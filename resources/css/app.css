@@ -1,7 +1,9 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
 
 @layer base {
     html {
@@ -17,6 +19,13 @@
 
     .dark body {
         @apply bg-navy-950 text-slate-200;
+    }
+
+    /* Smooth transitions for theme changes */
+    *, *::before, *::after {
+        transition-property: background-color, border-color;
+        transition-duration: 150ms;
+        transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
     }
 }
 
@@ -107,6 +116,13 @@
         -ms-overflow-style: none;
         scrollbar-width: none;
     }
+    .no-scrollbar::-webkit-scrollbar {
+        display: none;
+    }
+    .no-scrollbar {
+        -ms-overflow-style: none;
+        scrollbar-width: none;
+    }
 
     .gradient-bg {
         @apply bg-gradient-to-br from-navy-950 via-navy-900 to-primary-950;
@@ -115,7 +131,6 @@
     .glow {
         @apply absolute -z-10 blur-[120px] rounded-full opacity-30;
     }
-
     .custom-scrollbar::-webkit-scrollbar {
         width: 6px;
         height: 6px;
@@ -126,4 +141,51 @@
     .custom-scrollbar::-webkit-scrollbar-thumb {
         @apply bg-slate-200 dark:bg-white/10 rounded-full hover:bg-slate-300 dark:hover:bg-white/20 transition-colors;
     }
+}
+
+/* ─── Focus Visible Ring ────────────────────────────────────── */
+:focus-visible {
+    outline: 2px solid rgba(124, 58, 237, 0.5);
+    outline-offset: 2px;
+    border-radius: 8px;
+}
+
+/* ─── Range Slider Custom ───────────────────────────────────── */
+input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: #7c3aed;
+    cursor: pointer;
+    border: 3px solid white;
+    box-shadow: 0 0 10px rgba(124, 58, 237, 0.4);
+    transition: all 0.2s;
+}
+input[type="range"]::-webkit-slider-thumb:hover {
+    transform: scale(1.2);
+    box-shadow: 0 0 20px rgba(124, 58, 237, 0.6);
+}
+
+/* ─── Page Transition ───────────────────────────────────────── */
+@keyframes pageIn {
+    from {
+        opacity: 0;
+        transform: translateY(8px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+main {
+    animation: pageIn 0.4s ease-out;
+}
+
+/* ─── Selection ─────────────────────────────────────────────── */
+::selection {
+    background-color: rgba(124, 58, 237, 0.3);
+    color: #e2e8f0;
 }

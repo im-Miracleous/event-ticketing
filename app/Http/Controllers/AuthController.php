@@ -28,16 +28,23 @@ class AuthController extends Controller
     {
         $request->authenticate();
 
-        $request->session()->regenerate();
-        
-        $user = Auth::user();
-        
-        if (in_array($user->role, ['Root', 'Admin'])) {
-            $defaultRoute = route('admin.dashboard');
-        } elseif ($user->role === 'Organizer') {
-            $defaultRoute = route('organizer.dashboard');
-        } else {
-            $defaultRoute = route('dashboard');
+        $loginValue = $request->input('login');
+        $fieldType  = filter_var($loginValue, FILTER_VALIDATE_EMAIL) ? 'email' : 'username';
+
+        if (Auth::attempt([$fieldType => $loginValue, 'password' => $request->password], $request->boolean('remember'))) {
+            $request->session()->regenerate();
+            
+            $user = Auth::user();
+            
+            if (in_array($user->role, ['Root', 'Admin'])) {
+                $defaultRoute = route('admin.dashboard');
+            } elseif ($user->role === 'Organizer') {
+                $defaultRoute = route('organizer.dashboard');
+            } else {
+                $defaultRoute = route('events.index');
+            }
+
+            return redirect()->intended($defaultRoute);
         }
 
         return redirect()->intended($defaultRoute);
@@ -62,7 +69,7 @@ class AuthController extends Controller
             'name' => $request->name,
             'username' => $request->username,
             'email' => $request->email,
-            'password' => Hash::make($request->password),
+            'password' => $request->password,
             'role' => $request->role ?? 'User',
         ]);
 

@@ -7,7 +7,6 @@ use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
-use Illuminate\Support\Str;
 
 class User extends Authenticatable implements MustVerifyEmail
 {
@@ -42,8 +41,6 @@ class User extends Authenticatable implements MustVerifyEmail
 
     /**
      * The attributes that are mass assignable.
-     *
-     * @var list<string>
      */
     protected $fillable = [
         'id',
@@ -52,14 +49,11 @@ class User extends Authenticatable implements MustVerifyEmail
         'email',
         'password',
         'role',
-        'status',
         'email_verified_at',
     ];
 
     /**
      * The attributes that should be hidden for serialization.
-     *
-     * @var list<string>
      */
     protected $hidden = [
         'password',
@@ -68,8 +62,6 @@ class User extends Authenticatable implements MustVerifyEmail
 
     /**
      * Get the attributes that should be cast.
-     *
-     * @return array<string, string>
      */
     protected function casts(): array
     {
@@ -79,19 +71,32 @@ class User extends Authenticatable implements MustVerifyEmail
         ];
     }
 
-    public function organizer() {
+    // ─── Relationships ────────────────────────────────────────────────
+    
+    public function organizer()
+    {
         return $this->hasOne(Organizer::class, 'user_id');
     }
 
-    public function transactions() {
+    public function transactions()
+    {
         return $this->hasMany(Transaction::class, 'user_id');
     }
 
-    public function events() {
+    public function events()
+    {
         return $this->belongsToMany(Event::class, 'registrations', 'user_id', 'event_id');
     }
 
-    public function waitingLists() {
-        return $this->belongsToMany(WaitingList::class, 'waiting_list_registrations', 'user_id', 'waiting_list_id');
+    public function wishlists()
+    {
+        return $this->hasMany(Wishlist::class, 'user_id');
     }
+
+    public function waitingLists()
+    {
+        return $this->hasMany(WaitingList::class, 'user_id');
+    }
+
+
 }
