@@ -25,7 +25,7 @@
                 <p style="text-transform: uppercase; font-weight: bold; margin: 0 0 5px 0; color: #6366f1; letter-spacing: 1px;">{{ $detail->ticketType->name }}</p>
                 <p style="margin: 0 0 15px 0; font-size: 14px; color: #64748b;">Attendee: {{ $ticket->attendee->name }}</p>
                 
-                <img src="https://chart.googleapis.com/chart?chs=200x200&cht=qr&chl={{ $ticket->qr_code }}" alt="QR Code" style="display: block; margin: 0 auto; border-radius: 4px;" />
+                <img src="https://quickchart.io/qr?size=200&text={{ $ticket->qr_code }}" alt="QR Code" style="display: block; margin: 0 auto; border-radius: 4px;" />
                 
                 <p style="margin: 15px 0 0 0; font-family: monospace; font-size: 16px; letter-spacing: 2px;">{{ $ticket->id }}</p>
             </div>

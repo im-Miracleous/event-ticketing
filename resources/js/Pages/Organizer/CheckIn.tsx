@@ -3,119 +3,156 @@ import { Head, useForm, usePage } from '@inertiajs/react';
 import React, { FormEvent, useEffect, useState } from 'react';
 import { Html5QrcodeScanner } from 'html5-qrcode';
 
-export default function CheckIn() {
-    const { flash } = usePage().props as any;
-    const { data, setData, post, processing, reset, errors } = useForm({
-        code: ''
-    });
+function ResultBadge({ type, text }: { type: 'success' | 'error', text: string }) {
+    return (
+        <div className={`p-4 rounded-xl flex items-start space-x-3 animate-in fade-in slide-in-from-top-4 duration-300 ${
+            type === 'success' ? 'bg-emerald-500/10 border border-emerald-500/20 text-emerald-400' : 'bg-red-500/10 border border-red-500/20 text-red-400'
+        }`}>
+            <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${type === 'success' ? 'bg-emerald-500/20' : 'bg-red-500/20'}`}>
+                {type === 'success' ? (
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" /></svg>
+                ) : (
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M6 18L18 6M6 6l12 12" /></svg>
+                )}
+            </div>
+            <div>
+                <h4 className="font-black uppercase text-xs tracking-widest mb-0.5">{type === 'success' ? 'Akses Diberikan' : 'Akses Ditolak'}</h4>
+                <p className="text-sm font-medium opacity-90">{text}</p>
+            </div>
+        </div>
+    );
+}
 
-    const [alertMessage, setAlertMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
+export default function CheckIn({ history, stats }: any) {
+    const { flash, errors: pageErrors } = usePage().props as any;
+    const { data, setData, post, processing, reset, errors } = useForm({ code: '' });
+    const [result, setResult] = useState<{ type: 'success' | 'error', text: string } | null>(null);
 
     useEffect(() => {
         if (flash?.success) {
-            setAlertMessage({ type: 'success', text: flash.success });
-        } else if (errors?.code) {
-            setAlertMessage({ type: 'error', text: errors.code });
+            setResult({ type: 'success', text: flash.success });
+            reset('code');
+        } else if (flash?.error || pageErrors?.code) {
+            setResult({ type: 'error', text: flash?.error || pageErrors?.code });
         }
-    }, [flash, errors]);
+    }, [flash, pageErrors]);
 
     useEffect(() => {
-        const scanner = new Html5QrcodeScanner('qr-reader', {
-            qrbox: { width: 250, height: 250 },
-            fps: 5,
-        }, false);
-
-        scanner.render(
-            (text: string) => {
+        const scanner = new Html5QrcodeScanner('qr-reader', { fps: 10, qrbox: 250 }, false);
+        scanner.render((text) => {
+            if (!processing) {
                 setData('code', text);
-            },
-            (err: unknown) => {
-                // ignore scanning errors
+                document.getElementById('checkin-form')?.dispatchEvent(new Event('submit', { cancelable: true, bubbles: true }));
             }
-        );
-
+        }, () => {});
         return () => {
-            scanner.clear().catch(console.error);
+            scanner.clear().catch(() => {});
         };
-        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
     const submit = (e: FormEvent) => {
         e.preventDefault();
-        setAlertMessage(null); // Clear previous messages
+        if (!data.code || processing) return;
         post(route('organizer.check-in.store'), {
-            onSuccess: () => reset('code'),
             preserveState: true,
+            onSuccess: () => reset('code'),
         });
     };
 
     return (
         <DashboardLayout>
-            <Head title="Check-In Peserta" />
+            <Head title="Gate Check-In" />
 
-            <div className="mb-6">
-                <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Event Check-In</h1>
-                <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">Scan or enter ticket codes to validate attendees.</p>
+            <div className="mb-8">
+                <h1 className="text-3xl font-black text-white uppercase tracking-tighter">Gate Management</h1>
+                <p className="text-slate-400 text-sm mt-1">Sistem validasi tiket real-time untuk seluruh event Anda.</p>
             </div>
 
-            <div className="max-w-xl mx-auto mt-12">
-                <div className="bg-white dark:bg-navy-900 border border-slate-200 dark:border-white/10 shadow-xl shadow-blue-500/5 rounded-2xl overflow-hidden">
-                    <div className="px-8 py-6 bg-blue-600 dark:bg-blue-600 text-center">
-                        <div className="w-16 h-16 bg-navy-900/10 dark:bg-navy-900/20 rounded-full flex items-center justify-center mx-auto mb-3 text-white">
-                            <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 12V4a2 2 0 012-2h12a2 2 0 012 2v8" /></svg>
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                {/* Scanner Section */}
+                <div className="lg:col-span-2 space-y-6">
+                    <div className="bg-navy-900 border border-white/5 rounded-3xl overflow-hidden shadow-2xl">
+                        <div className="p-8 pb-4">
+                            <h3 className="text-lg font-bold text-white mb-1">Scanner Validasi</h3>
+                            <p className="text-xs text-slate-500 font-medium">Scan QR Code atau input ID tiket secara manual.</p>
                         </div>
-                        <h2 className="text-2xl font-black text-white uppercase tracking-tight">Scan / Input Code</h2>
-                        <p className="text-blue-50 dark:text-blue-100 text-sm mt-1">Enter Ticket ID or Scan visitor Barcode</p>
-                    </div>
-
-                    <div className="bg-slate-50 dark:bg-navy-950/40 border-b border-slate-100 dark:border-white/5">
-                        <div id="qr-reader" className="w-full max-w-sm mx-auto overflow-hidden text-slate-600 dark:text-white"></div>
-                    </div>
-
-                    <div className="p-8 pb-10 space-y-6">
-                        {alertMessage && (
-                            <div className={`p-4 rounded-xl flex items-start space-x-3 mb-6 ${alertMessage.type === 'success' ? 'bg-emerald-50 text-emerald-800 border border-emerald-200' : 'bg-red-50 text-red-800 border border-red-200'
-                                }`}>
-                                {alertMessage.type === 'success' ? (
-                                    <svg className="w-6 h-6 text-emerald-500 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                                ) : (
-                                    <svg className="w-6 h-6 text-red-500 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                                )}
-                                <div>
-                                    <h4 className={`font-bold ${alertMessage.type === 'success' ? 'text-emerald-900' : 'text-red-900'}`}>
-                                        {alertMessage.type === 'success' ? 'Access Granted' : 'Access Denied'}
-                                    </h4>
-                                    <p className="text-sm mt-1">{alertMessage.text}</p>
-                                </div>
+                        
+                        <div className="px-8 pb-8 space-y-6">
+                            <div className="aspect-square max-w-sm mx-auto bg-black/40 rounded-2xl border-4 border-dashed border-white/10 overflow-hidden relative group">
+                                <div id="qr-reader" className="w-full h-full scale-110" />
+                                <div className="absolute inset-0 border-2 border-primary-500/50 rounded-2xl pointer-events-none animate-pulse" />
                             </div>
-                        )}
 
-                        <form onSubmit={submit} className="space-y-4">
-                            <div>
-                                <label className="block text-sm font-bold text-slate-500 dark:text-slate-300 mb-2">Ticket Code (Booking Code)</label>
+                            {result && <ResultBadge type={result.type} text={result.text} />}
+
+                            <form id="checkin-form" onSubmit={submit} className="flex gap-3">
                                 <input
                                     type="text"
-                                    autoFocus
-                                    className="w-full px-5 py-4 bg-slate-50 dark:bg-white/5 border-2 border-slate-200 dark:border-white/10 rounded-xl focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 text-lg font-bold text-center uppercase tracking-widest transition-all text-slate-900 dark:text-white placeholder:text-slate-300 dark:placeholder:text-slate-600"
-                                    placeholder="XXXX-YYYY-ZZZZ"
                                     value={data.code}
-                                    onChange={(e) => setData('code', e.target.value)}
+                                    onChange={(e) => setData('code', e.target.value.toUpperCase())}
+                                    className="flex-1 bg-white/5 border-white/10 rounded-xl text-white font-mono uppercase tracking-widest py-4 px-6 focus:ring-primary-500 focus:border-primary-500"
+                                    placeholder="INPUT KODE TIKET..."
+                                    autoFocus
                                 />
-                            </div>
+                                <button
+                                    type="submit"
+                                    disabled={processing}
+                                    className="bg-primary-600 hover:bg-primary-500 disabled:opacity-50 text-white font-black px-8 rounded-xl transition-all shadow-lg shadow-primary-500/20"
+                                >
+                                    {processing ? '...' : 'VALIDASI'}
+                                </button>
+                            </form>
+                        </div>
+                    </div>
 
-                            <button
-                                type="submit"
-                                disabled={processing}
-                                className="w-full py-4 text-sm font-bold text-white bg-blue-600 hover:bg-blue-700 rounded-xl transition-colors shadow-lg shadow-blue-600/30 flex items-center justify-center uppercase tracking-wide"
-                            >
-                                {processing ? 'Validating...' : 'VALIDATE TICKET'}
-                            </button>
-                        </form>
+                    {/* Stats Summary */}
+                    <div className="grid grid-cols-2 gap-4">
+                        <div className="bg-navy-900 border border-white/5 p-6 rounded-2xl">
+                            <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1">Check-in Progress</p>
+                            <div className="flex items-end justify-between mb-2">
+                                <h4 className="text-2xl font-black text-white">{stats.checked_in} <span className="text-slate-500 text-sm italic">/ {stats.total_sold}</span></h4>
+                                <span className="text-primary-400 font-bold text-sm">{Math.round((stats.checked_in / (stats.total_sold || 1)) * 100)}%</span>
+                            </div>
+                            <div className="h-2 bg-white/5 rounded-full overflow-hidden">
+                                <div className="h-full bg-primary-500 rounded-full transition-all duration-1000" style={{ width: `${(stats.checked_in / (stats.total_sold || 1)) * 100}%` }} />
+                            </div>
+                        </div>
+                        <div className="bg-navy-900 border border-white/5 p-6 rounded-2xl flex flex-col justify-center">
+                            <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1">Status Gate</p>
+                            <div className="flex items-center gap-2">
+                                <div className="w-3 h-3 bg-emerald-500 rounded-full animate-pulse" />
+                                <span className="text-white font-bold">ONLINE & ACTIVE</span>
+                            </div>
+                        </div>
                     </div>
                 </div>
 
-                <div className="mt-6 text-center text-sm font-medium text-slate-500">
-                    Validation System EventHive Manager
+                {/* History Sidebar */}
+                <div className="bg-navy-900 border border-white/5 rounded-3xl p-6 h-fit max-h-[800px] flex flex-col shadow-2xl">
+                    <h3 className="text-lg font-bold text-white mb-1">Scan History</h3>
+                    <p className="text-xs text-slate-500 font-medium mb-6">Aktivitas gate terbaru hari ini.</p>
+                    
+                    <div className="space-y-4 overflow-y-auto pr-2 custom-scrollbar">
+                        {history.map((log: any) => (
+                            <div key={log.id} className="p-4 rounded-2xl bg-white/[0.02] border border-white/5 space-y-1">
+                                <div className="flex justify-between items-start">
+                                    <span className="text-xs font-mono text-slate-500">{log.time}</span>
+                                <span className={`text-[8px] font-black uppercase px-2 py-0.5 rounded ${
+                                        log.result === 'Valid' ? 'bg-emerald-500/10 text-emerald-400' : 'bg-red-500/10 text-red-400'
+                                    }`}>
+                                        {log.result}
+                                    </span>
+                                </div>
+                                <h5 className="text-white text-sm font-bold truncate">{log.event_name}</h5>
+                                <p className="text-[10px] text-slate-400 font-medium">{log.ticket_type} • ID: {log.ticket_id}</p>
+                            </div>
+                        ))}
+                        {history.length === 0 && (
+                            <div className="text-center py-12">
+                                <p className="text-slate-500 text-sm">Belum ada aktivitas scan.</p>
+                            </div>
+                        )}
+                    </div>
                 </div>
             </div>
         </DashboardLayout>
