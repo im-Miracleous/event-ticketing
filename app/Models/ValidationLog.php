@@ -6,8 +6,8 @@ class ValidationLog extends Model {
     protected $table = 'validation_logs';
 
     protected $fillable = [
-        'validation_time', 
-        'result', 
+        'validation_time',
+        'result',
         'ticket_id'
     ];
 

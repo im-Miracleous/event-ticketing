@@ -137,8 +137,8 @@ export default function CheckIn({ history, stats }: any) {
                             <div key={log.id} className="p-4 rounded-2xl bg-white/[0.02] border border-white/5 space-y-1">
                                 <div className="flex justify-between items-start">
                                     <span className="text-xs font-mono text-slate-500">{log.time}</span>
-                                    <span className={`text-[8px] font-black uppercase px-2 py-0.5 rounded ${
-                                        log.result === 'Success' ? 'bg-emerald-500/10 text-emerald-400' : 'bg-red-500/10 text-red-400'
+                                <span className={`text-[8px] font-black uppercase px-2 py-0.5 rounded ${
+                                        log.result === 'Valid' ? 'bg-emerald-500/10 text-emerald-400' : 'bg-red-500/10 text-red-400'
                                     }`}>
                                         {log.result}
                                     </span>
