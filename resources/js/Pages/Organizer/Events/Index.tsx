@@ -108,9 +108,16 @@ export default function Index({ events, filters }: any) {
         <DashboardLayout>
             <Head title="My Events | Organizer" />
 
-            <div className="mb-6">
-                <h1 className="text-2xl font-bold text-slate-900 dark:text-white">My Events</h1>
-                <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">Manage and monitor all events you've created.</p>
+            <div className="mb-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <div className="flex items-center gap-4">
+                    <div className="w-12 h-12 bg-primary-600 rounded-2xl flex items-center justify-center text-white shadow-xl shadow-primary-500/20 rotate-3 flex-shrink-0">
+                        <svg className="w-7 h-7" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 0 1 2.25-2.25h13.5A2.25 2.25 0 0 1 21 7.5v11.25m-18 0A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75m-18 0v-7.5A2.25 2.25 0 0 1 5.25 9h13.5A2.25 2.25 0 0 1 21 11.25v7.5" /></svg>
+                    </div>
+                    <div>
+                        <h1 className="text-2xl font-bold text-slate-900 dark:text-white">My Events</h1>
+                        <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">Manage and monitor all events you've created.</p>
+                    </div>
+                </div>
             </div>
 
             <div className="max-w-7xl mx-auto space-y-6">

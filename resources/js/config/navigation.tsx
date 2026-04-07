@@ -158,7 +158,7 @@ const organizerNavItems: NavItem[] = [
     { label: 'Organizer Dashboard', href: '/organizer/dashboard', routeName: 'organizer.dashboard', icon: DashboardIcon },
     { label: 'Discover Events', href: '/events', routeName: 'events.index', icon: SearchIcon },
     { label: 'My Events', href: '/organizer/events', routeName: 'organizer.events.*', icon: EventsIcon },
-    { label: 'Validate Tickets', href: '/organizer/check-in', routeName: 'organizer.check-in', icon: ValidationIcon },
+    { label: 'Gate Management', href: '/organizer/check-in', routeName: 'organizer.check-in', icon: ValidationIcon },
     { label: 'Attendee Management', href: '/organizer/attendees', routeName: 'organizer.attendees.*', icon: UsersIcon },
     { label: 'Promotions', href: '/organizer/promotions', routeName: 'organizer.promotions.*', icon: PromotionIcon },
     { label: 'Transaction Monitor', href: '/organizer/transactions', routeName: 'organizer.transactions.*', icon: TicketIcon },

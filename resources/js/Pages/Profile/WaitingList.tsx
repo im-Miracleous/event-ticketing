@@ -127,17 +127,17 @@ export default function WaitingListPage({ entries }: { entries: WaitingEntry[] }
             <Head title="Waiting List – EventHive" />
 
             <div className="max-w-4xl mx-auto py-6">
-                <div className="flex items-center justify-between mb-8">
-                    <div>
-                        <h1 className="text-2xl font-black text-slate-900 dark:text-white flex items-center gap-3">
-                            <svg className="w-7 h-7 text-violet-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                                <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
-                            </svg>
-                            Waiting List
-                        </h1>
-                        <p className="text-sm text-slate-500 mt-1">
-                            Pantau ketersediaan tiket yang sedang kamu tunggu.
-                        </p>
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
+                    <div className="flex items-center gap-4">
+                        <div className="w-12 h-12 bg-primary-600 rounded-2xl flex items-center justify-center text-white shadow-xl shadow-primary-500/20 rotate-3 flex-shrink-0">
+                            <svg className="w-7 h-7" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" /></svg>
+                        </div>
+                        <div>
+                            <h1 className="text-2xl font-bold text-slate-900 dark:text-white flex items-center gap-3">
+                                Waiting List
+                            </h1>
+                            <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">Pantau ketersediaan tiket yang sedang kamu tunggu.</p>
+                        </div>
                     </div>
                     <Link
                         href="/events"
