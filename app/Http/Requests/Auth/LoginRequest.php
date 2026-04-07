@@ -40,29 +40,53 @@ class LoginRequest extends FormRequest
      */
     public function authenticate(): void
     {
-        $this->ensureIsNotRateLimited();
-
         $loginType = filter_var($this->input('login'), FILTER_VALIDATE_EMAIL) ? 'email' : 'username';
 
         $user = \App\Models\User::where($loginType, $this->input('login'))->first();
-        if ($user && in_array($user->status, ['Suspended', 'Banned'])) {
+
+        // Check if account exists
+        if (! $user) {
+            throw ValidationException::withMessages([
+                'login' => 'This account is not registered yet.',
+            ]);
+        }
+
+        // Check account status
+        if (in_array($user->status, ['Suspended', 'Banned'])) {
             throw ValidationException::withMessages([
                 'login' => 'Your account has been ' . strtolower($user->status) . '. Please contact support.',
             ]);
         }
 
+        $this->ensureIsNotRateLimited();
+
         if (! Auth::attempt([$loginType => $this->input('login'), 'password' => $this->input('password')], $this->boolean('remember'))) {
-            RateLimiter::hit($this->throttleKey());
+            $lockoutCounterKey = 'total_lockouts:' . $this->throttleKey();
+            $totalLockouts = (int) \Illuminate\Support\Facades\Cache::get($lockoutCounterKey, 0);
+            
+            // First 5 attempts (Cycle 1): 1 min lockout. Next 5 attempts (Cycle 2): 5 min lockout.
+            $decay = ($totalLockouts >= 1) ? 300 : 60;
+            RateLimiter::hit($this->throttleKey(), $decay);
 
             if (RateLimiter::tooManyAttempts($this->throttleKey(), 5)) {
-                $lockoutKey = 'lockouts:' . $this->throttleKey();
-                $lockouts = \Illuminate\Support\Facades\Cache::increment($lockoutKey);
+                $incidentKey = 'lockout_incident:' . $this->throttleKey();
                 
-                if ($lockouts >= 2 && $user && $user->role !== 'Root') {
-                    $user->update(['status' => 'Suspended']);
-                    throw ValidationException::withMessages([
-                        'login' => 'Too many failed attempts. Your account has been suspended for security reasons.',
-                    ]);
+                if (!\Illuminate\Support\Facades\Cache::has($incidentKey)) {
+                    \Illuminate\Support\Facades\Cache::put($incidentKey, true, $decay + 5); 
+                    
+                    $totalLockouts = \Illuminate\Support\Facades\Cache::increment($lockoutCounterKey);
+                    
+                    // 24-hour TTL (Time-To-Live)
+                    if ($totalLockouts === 1) {
+                         \Illuminate\Support\Facades\Cache::put($lockoutCounterKey, 1, 86400); 
+                    }
+
+                    if ($totalLockouts >= 3 && $user && $user->role !== 'Root') {
+                        $user->update(['status' => 'Suspended']);
+                        throw ValidationException::withMessages([
+                            'login' => 'Your account has been suspended due to a high number of failed login attempts. Please reach out to Support for assistance.',
+                        ]);
+                    }
                 }
             }
 
@@ -72,7 +96,8 @@ class LoginRequest extends FormRequest
         }
 
         RateLimiter::clear($this->throttleKey());
-        \Illuminate\Support\Facades\Cache::forget('lockouts:' . $this->throttleKey());
+        \Illuminate\Support\Facades\Cache::forget('total_lockouts:' . $this->throttleKey());
+        \Illuminate\Support\Facades\Cache::forget('lockout_incident:' . $this->throttleKey());
     }
 
     /**
@@ -89,12 +114,10 @@ class LoginRequest extends FormRequest
         event(new Lockout($this));
 
         $seconds = RateLimiter::availableIn($this->throttleKey());
+        $minutes = ceil($seconds / 60);
 
         throw ValidationException::withMessages([
-            'login' => trans('auth.throttle', [
-                'seconds' => $seconds,
-                'minutes' => ceil($seconds / 60),
-            ]),
+            'login' => "Too many attempts. Account is temporarily locked. Please try again in {$minutes} " . Str::plural('minute', $minutes) . ".",
         ]);
     }
 

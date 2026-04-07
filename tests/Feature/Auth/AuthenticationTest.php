@@ -55,6 +55,81 @@ class AuthenticationTest extends TestCase
         $this->assertGuest();
     }
 
+    public function test_user_is_suspended_after_repeated_lockouts(): void
+    {
+        $user = User::factory()->create([
+            'role' => 'User',
+            'status' => 'Active'
+        ]);
+
+        $throttleKey = \Illuminate\Support\Str::transliterate(\Illuminate\Support\Str::lower($user->email).'|127.0.0.1');
+
+        // Cycle 1 & 2: Fail 5 times per cycle, then clear and forget incident
+        for ($cycle = 1; $cycle < 3; $cycle++) {
+            for ($i = 0; $i < 5; $i++) {
+                $this->post('/login', [
+                    'login' => $user->email,
+                    'password' => 'wrong-password',
+                ]);
+            }
+            
+            $user->refresh();
+            $this->assertEquals('Active', $user->status);
+            
+            // Manually clear rate limit but leave total_lockouts intact
+            \Illuminate\Support\Facades\RateLimiter::clear($throttleKey);
+            \Illuminate\Support\Facades\Cache::forget('lockout_incident:' . $throttleKey);
+        }
+
+        // Cycle 3: The 5th hit here should trigger suspension
+        for ($i = 0; $i < 5; $i++) {
+            $this->post('/login', [
+                'login' => $user->email,
+                'password' => 'wrong-password',
+            ]);
+        }
+
+        $user->refresh();
+        $this->assertEquals('Suspended', $user->status);
+    }
+
+    public function test_suspended_user_cannot_login(): void
+    {
+        $user = User::factory()->create(['status' => 'Suspended']);
+
+        $response = $this->post('/login', [
+            'login' => $user->email,
+            'password' => 'password',
+        ]);
+
+        $this->assertGuest();
+        $response->assertSessionHasErrors('login');
+    }
+
+    public function test_banned_user_cannot_login(): void
+    {
+        $user = User::factory()->create(['status' => 'Banned']);
+
+        $response = $this->post('/login', [
+            'login' => $user->email,
+            'password' => 'password',
+        ]);
+
+        $this->assertGuest();
+        $response->assertSessionHasErrors('login');
+    }
+
+    public function test_not_registered_account_cannot_login(): void
+    {
+        $response = $this->post('/login', [
+            'login' => 'nonexistent@example.com',
+            'password' => 'password',
+        ]);
+
+        $this->assertGuest();
+        $response->assertSessionHasErrors(['login' => 'This account is not registered yet.']);
+    }
+
     public function test_users_can_logout(): void
     {
         $user = User::factory()->create();

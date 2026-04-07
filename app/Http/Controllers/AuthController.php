@@ -10,7 +10,9 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Validation\Rules\Password;
+use App\Http\Requests\Auth\LoginRequest;
 use Inertia\Inertia;
+use Symfony\Component\HttpFoundation\Response as SymfonyResponse;
 
 class AuthController extends Controller
 {
@@ -22,35 +24,23 @@ class AuthController extends Controller
         ]);
     }
 
-    public function login(Request $request)
+    public function login(LoginRequest $request)
     {
-        $request->validate([
-            'login'    => ['required', 'string'],
-            'password' => ['required'],
-        ]);
+        $request->authenticate();
 
-        $loginValue = $request->input('login');
-        $fieldType  = filter_var($loginValue, FILTER_VALIDATE_EMAIL) ? 'email' : 'username';
-
-        if (Auth::attempt([$fieldType => $loginValue, 'password' => $request->password], $request->boolean('remember'))) {
-            $request->session()->regenerate();
-            
-            $user = Auth::user();
-            
-            if (in_array($user->role, ['Root', 'Admin'])) {
-                $defaultRoute = route('admin.dashboard');
-            } elseif ($user->role === 'Organizer') {
-                $defaultRoute = route('organizer.dashboard');
-            } else {
-                $defaultRoute = route('dashboard');
-            }
-
-            return redirect()->intended($defaultRoute);
+        $request->session()->regenerate();
+        
+        $user = Auth::user();
+        
+        if (in_array($user->role, ['Root', 'Admin'])) {
+            $defaultRoute = route('admin.dashboard');
+        } elseif ($user->role === 'Organizer') {
+            $defaultRoute = route('organizer.dashboard');
+        } else {
+            $defaultRoute = route('dashboard');
         }
 
-        return back()->withErrors([
-            'login' => 'Email/username atau password salah.',
-        ])->onlyInput('login');
+        return redirect()->intended($defaultRoute);
     }
 
 

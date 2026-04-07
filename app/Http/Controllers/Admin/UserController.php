@@ -74,6 +74,7 @@ class UserController extends Controller
         
         $rules = [
             'name' => 'required|string|max:255',
+            'username' => 'required|string|max:255|unique:users',
             'email' => 'required|string|email|max:255|unique:users',
             'password' => 'required|string|min:8',
             'role' => 'required|in:Admin,Organizer,User',
@@ -88,6 +89,7 @@ class UserController extends Controller
 
         User::create([
             'name' => $request->name,
+            'username' => $request->username,
             'email' => $request->email,
             'password' => \Illuminate\Support\Facades\Hash::make($request->password),
             'role' => $request->role,
@@ -140,6 +142,7 @@ class UserController extends Controller
         
         $request->validate([
             'name' => 'required|string|max:255',
+            'username' => 'required|string|max:255|unique:users,username,' . $user->id,
             'email' => 'required|string|email|max:255|unique:users,email,' . $user->id,
             'role' => 'required|in:Admin,Organizer,User',
         ]);
@@ -162,6 +165,7 @@ class UserController extends Controller
 
         $user->update([
             'name' => $request->name,
+            'username' => $request->username,
             'email' => $request->email,
             'role' => $request->role,
         ]);
