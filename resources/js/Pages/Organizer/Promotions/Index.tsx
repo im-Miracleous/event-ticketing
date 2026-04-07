@@ -4,6 +4,8 @@ import SortableHeader from '@/Components/Dashboard/SortableHeader';
 import AdvancedFilter, { FilterField, FilterDateRange } from '@/Components/Dashboard/AdvancedFilter';
 import { Head, useForm, router } from '@inertiajs/react';
 import Modal from '@/Components/Modal';
+import { Fragment } from 'react';
+import { Menu, Transition } from '@headlessui/react';
 
 /* ─── Component ─────────────────────────────────────────────────────── */
 
@@ -25,6 +27,9 @@ export default function PromotionsIndex({ promotions, events }: any) {
         event_id: '',
         code: '',
         discount_amount: '',
+        discount_type: 'fixed',
+        max_discount_amount: '',
+        min_spending: '',
         quota: '',
         start_date: '',
         end_date: '',
@@ -44,7 +49,10 @@ export default function PromotionsIndex({ promotions, events }: any) {
         setData({
             event_id: promo.event_id,
             code: promo.code,
-            discount_amount: promo.discount_amount,
+            discount_type: promo.discount_type || 'fixed',
+            discount_amount: promo.discount_amount || '',
+            max_discount_amount: promo.max_discount_amount || '',
+            min_spending: promo.min_spending || '',
             quota: promo.quota,
             start_date: promo.start_date.split(' ')[0],
             end_date: promo.end_date.split(' ')[0],
@@ -77,8 +85,16 @@ export default function PromotionsIndex({ promotions, events }: any) {
         }
     };
 
-    const formatCurrency = (value: number) => {
-        return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(value);
+    const formatCurrency = (value: number | string) => {
+        if (!value) return '-';
+        return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(Number(value));
+    };
+
+    const formatDiscount = (promo: any) => {
+        if (promo.discount_type === 'percentage') {
+            return `${promo.discount_amount}%`;
+        }
+        return formatCurrency(promo.discount_amount);
     };
 
     const handleSort = (column: string, dir: 'asc' | 'desc') => {
@@ -176,8 +192,8 @@ export default function PromotionsIndex({ promotions, events }: any) {
                 </AdvancedFilter>
             </div>
 
-            <div className="bg-white dark:bg-navy-900 rounded-2xl shadow-sm border border-slate-200 dark:border-white/5">
-                <div className="overflow-x-auto">
+            <div className="bg-white dark:bg-navy-900 rounded-2xl shadow-sm border border-slate-200 dark:border-white/5 overflow-visible">
+                <div className="overflow-visible min-w-full">
                     <table className="w-full text-left border-collapse">
                         <thead>
                             <tr className="bg-slate-50 dark:bg-navy-950/50 border-b border-slate-200 dark:border-white/5 text-slate-500 dark:text-slate-400">
@@ -197,41 +213,81 @@ export default function PromotionsIndex({ promotions, events }: any) {
                                     </td>
                                 </tr>
                             ) : (
-                                filteredPromos.map((promo: any) => (
+                                filteredPromos.map((promo: any, rowIndex: number) => {
+                                    const totalRows = filteredPromos.length;
+                                    const isNearBottom = totalRows <= 2 || rowIndex >= totalRows - 2;
+                                    return (
                                     <tr key={promo.id} className="hover:bg-slate-50 dark:hover:bg-white/5 transition-colors">
                                         <td className="py-4 px-6">
                                             <span className="inline-block px-3 py-1 bg-primary-500/10 dark:bg-primary-500/20 text-primary-600 dark:text-primary-400 font-bold rounded-lg tracking-wider border border-primary-500/20">
                                                 {promo.code}
                                             </span>
                                         </td>
-                                        <td className="py-4 px-6 text-slate-700 dark:text-slate-300 font-medium">
+                                        <td className="py-4 px-6 text-slate-700 dark:text-slate-300 font-medium whitespace-nowrap">
                                             {promo.event?.title || '-'}
                                         </td>
-                                        <td className="py-4 px-6 font-bold text-emerald-500 dark:text-emerald-400">
-                                            {formatCurrency(promo.discount_amount)}
+                                        <td className="py-4 px-6 font-bold text-emerald-500 dark:text-emerald-400 whitespace-nowrap">
+                                            {formatDiscount(promo)}
                                         </td>
-                                        <td className="py-4 px-6 text-slate-700 dark:text-slate-300">
+                                        <td className="py-4 px-6 text-slate-700 dark:text-slate-300 whitespace-nowrap">
                                             {promo.quota}
                                         </td>
-                                        <td className="py-4 px-6 text-slate-700 dark:text-slate-300 text-sm">
+                                        <td className="py-4 px-6 text-slate-700 dark:text-slate-300 text-sm whitespace-nowrap">
                                             {promo.start_date.split(' ')[0]} s/d <br/> {promo.end_date.split(' ')[0]}
                                         </td>
-                                        <td className="py-4 px-6 text-right space-x-3">
-                                            <button
-                                                onClick={() => openEditModal(promo)}
-                                                className="text-blue-500 hover:text-blue-400 font-medium text-sm transition-colors"
-                                            >
-                                                Edit
-                                            </button>
-                                            <button
-                                                onClick={() => handleDelete(promo.id)}
-                                                className="text-red-500 hover:text-red-400 font-medium text-sm transition-colors"
-                                            >
-                                                Hapus
-                                            </button>
+                                        <td className="py-4 px-6 text-right whitespace-nowrap">
+                                            <Menu as="div" className="relative inline-block text-left">
+                                                <div>
+                                                    <Menu.Button className="inline-flex items-center justify-center p-2 rounded-lg text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-white/10 transition-colors">
+                                                        <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                                                            <circle cx="12" cy="6" r="2" />
+                                                            <circle cx="12" cy="12" r="2" />
+                                                            <circle cx="12" cy="18" r="2" />
+                                                        </svg>
+                                                    </Menu.Button>
+                                                </div>
+                                                <Transition
+                                                    as={Fragment}
+                                                    enter="transition ease-out duration-100"
+                                                    enterFrom="transform opacity-0 scale-95"
+                                                    enterTo="transform opacity-100 scale-100"
+                                                    leave="transition ease-in duration-75"
+                                                    leaveFrom="transform opacity-100 scale-100"
+                                                    leaveTo="transform opacity-0 scale-95"
+                                                >
+                                                    <Menu.Items className={`absolute right-0 z-50 w-36 origin-top-right rounded-xl bg-white dark:bg-navy-900 border border-slate-200 dark:border-white/10 shadow-lg focus:outline-none ${isNearBottom ? 'bottom-full mb-2' : 'mt-2'}`}>
+                                                        <div className="py-1">
+                                                            <Menu.Item>
+                                                                {({ active }) => (
+                                                                    <button
+                                                                        onClick={() => openEditModal(promo)}
+                                                                        className={`${
+                                                                            active ? 'bg-slate-50 dark:bg-white/5' : ''
+                                                                        } flex items-center gap-2 px-4 py-2 text-sm text-slate-700 dark:text-slate-300 w-full text-left`}
+                                                                    >
+                                                                        Edit
+                                                                    </button>
+                                                                )}
+                                                            </Menu.Item>
+                                                            <Menu.Item>
+                                                                {({ active }) => (
+                                                                    <button
+                                                                        onClick={() => handleDelete(promo.id)}
+                                                                        className={`${
+                                                                            active ? 'bg-red-50 dark:bg-red-500/10' : ''
+                                                                        } flex items-center gap-2 px-4 py-2 text-sm text-red-600 dark:text-red-400 w-full text-left`}
+                                                                    >
+                                                                        Hapus
+                                                                    </button>
+                                                                )}
+                                                            </Menu.Item>
+                                                        </div>
+                                                    </Menu.Items>
+                                                </Transition>
+                                            </Menu>
                                         </td>
                                     </tr>
-                                ))
+                                )})
                             )}
                         </tbody>
                     </table>
@@ -275,16 +331,58 @@ export default function PromotionsIndex({ promotions, events }: any) {
 
                         <div className="grid grid-cols-2 gap-4">
                             <div>
-                                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Potongan Harga (Rp)</label>
+                                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Tipe Diskon</label>
+                                <select
+                                    value={data.discount_type}
+                                    onChange={e => setData('discount_type', e.target.value)}
+                                    className="w-full rounded-xl border-slate-300 dark:border-white/10 dark:bg-navy-800 dark:text-white focus:border-primary-500 focus:ring-primary-500"
+                                >
+                                    <option value="fixed">Nominal (Rp)</option>
+                                    <option value="percentage">Persentase (%)</option>
+                                </select>
+                                {errors.discount_type && <p className="text-red-500 text-xs mt-1">{errors.discount_type}</p>}
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+                                    {data.discount_type === 'fixed' ? 'Potongan Harga (Rp)' : 'Persentase Diskon (%)'}
+                                </label>
                                 <input
                                     type="number"
                                     value={data.discount_amount}
                                     onChange={e => setData('discount_amount', e.target.value)}
-                                    placeholder="50000"
+                                    placeholder={data.discount_type === 'fixed' ? '50000' : '10'}
                                     className="w-full rounded-xl border-slate-300 dark:border-white/10 dark:bg-navy-800 dark:text-white focus:border-primary-500 focus:ring-primary-500"
                                 />
                                 {errors.discount_amount && <p className="text-red-500 text-xs mt-1">{errors.discount_amount}</p>}
                             </div>
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-4">
+                            {data.discount_type === 'percentage' ? (
+                                <div>
+                                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Maksimal Diskon (Rp) </label>
+                                    <input
+                                        type="number"
+                                        value={data.max_discount_amount}
+                                        onChange={e => setData('max_discount_amount', e.target.value)}
+                                        placeholder="100000 (Opsional)"
+                                        className="w-full rounded-xl border-slate-300 dark:border-white/10 dark:bg-navy-800 dark:text-white focus:border-primary-500 focus:ring-primary-500"
+                                    />
+                                    {errors.max_discount_amount && <p className="text-red-500 text-xs mt-1">{errors.max_discount_amount}</p>}
+                                </div>
+                            ) : (
+                                <div>
+                                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Minimal Transaksi (Rp)</label>
+                                    <input
+                                        type="number"
+                                        value={data.min_spending}
+                                        onChange={e => setData('min_spending', e.target.value)}
+                                        placeholder="0 (Opsional)"
+                                        className="w-full rounded-xl border-slate-300 dark:border-white/10 dark:bg-navy-800 dark:text-white focus:border-primary-500 focus:ring-primary-500"
+                                    />
+                                    {errors.min_spending && <p className="text-red-500 text-xs mt-1">{errors.min_spending}</p>}
+                                </div>
+                            )}
                             <div>
                                 <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Kuota Aktif</label>
                                 <input
@@ -297,6 +395,20 @@ export default function PromotionsIndex({ promotions, events }: any) {
                                 {errors.quota && <p className="text-red-500 text-xs mt-1">{errors.quota}</p>}
                             </div>
                         </div>
+
+                        {data.discount_type === 'percentage' && (
+                            <div>
+                                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Minimal Transaksi (Rp)</label>
+                                <input
+                                    type="number"
+                                    value={data.min_spending}
+                                    onChange={e => setData('min_spending', e.target.value)}
+                                    placeholder="0 (Opsional)"
+                                    className="w-full rounded-xl border-slate-300 dark:border-white/10 dark:bg-navy-800 dark:text-white focus:border-primary-500 focus:ring-primary-500"
+                                />
+                                {errors.min_spending && <p className="text-red-500 text-xs mt-1">{errors.min_spending}</p>}
+                            </div>
+                        )}
 
                         <div className="grid grid-cols-2 gap-4">
                             <div>

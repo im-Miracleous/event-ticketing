@@ -1,10 +1,12 @@
 import DashboardLayout from '@/Layouts/DashboardLayout';
 import Pagination from '@/Components/Dashboard/Pagination';
 import SortableHeader from '@/Components/Dashboard/SortableHeader';
-import AdvancedFilter, { FilterField, FilterSelect, FilterDateRange } from '@/Components/Dashboard/AdvancedFilter';
+import AdvancedFilter, { FilterField, FilterDateRange } from '@/Components/Dashboard/AdvancedFilter';
 import Tooltip from '@/Components/Dashboard/Tooltip';
-import { Head, router } from '@inertiajs/react';
-import { useState } from 'react';
+import { Head, router, useForm, Link } from '@inertiajs/react';
+import { useState, Fragment, useEffect } from 'react';
+import { Menu, Transition } from '@headlessui/react';
+import Modal from '@/Components/Modal';
 
 /* ─── Types ─────────────────────────────────────────────────────────── */
 
@@ -17,6 +19,14 @@ interface PromotionItem {
     validUntil: string;
     status: string;
     event: string;
+    discount_type: 'fixed' | 'percentage';
+    discount_amount: number;
+    max_discount_amount: number | null;
+    min_spending: number | null;
+    start_date: string;
+    end_date: string;
+    event_id: string;
+    terms_and_conditions: string | null;
 }
 
 interface PaginatedPromotions {
@@ -27,8 +37,14 @@ interface PaginatedPromotions {
     total: number;
 }
 
+interface EventItem {
+    id: string;
+    title: string;
+}
+
 interface Props {
     promotions: PaginatedPromotions;
+    events: EventItem[];
     filters: {
         per_page?: number;
         search?: string;
@@ -39,16 +55,27 @@ interface Props {
     };
 }
 
-const statusOptions = [
-    { label: 'Active', value: 'Active' },
-    { label: 'Expired', value: 'Expired' },
-];
-
 /* ─── Component ─────────────────────────────────────────────────────── */
 
-export default function AdminPromotions({ promotions, filters }: Props) {
+export default function AdminPromotions({ promotions, events, filters }: Props) {
     const [showModal, setShowModal] = useState(false);
+    const [isEdit, setIsEdit] = useState(false);
+    const [editingId, setEditingId] = useState<number | null>(null);
     const [search, setSearch] = useState(filters.search || '');
+
+    // Common useForm
+    const { data, setData, post, put, processing, errors, reset, clearErrors } = useForm({
+        code: '',
+        discount_type: 'fixed',
+        discount_amount: '',
+        max_discount_amount: '',
+        min_spending: '',
+        quota: '',
+        start_date: '',
+        end_date: '',
+        event_id: '',
+        terms_and_conditions: '',
+    });
 
     // Sort state
     const sort = filters.sort || '';
@@ -97,6 +124,46 @@ export default function AdminPromotions({ promotions, filters }: Props) {
         }
     };
 
+    const openCreate = () => {
+        setIsEdit(false);
+        setEditingId(null);
+        reset();
+        clearErrors();
+        setShowModal(true);
+    };
+
+    const openEdit = (p: any) => {
+        setIsEdit(true);
+        setEditingId(p.id);
+        setData({
+            code: p.code,
+            discount_type: p.discount_type,
+            discount_amount: p.discount_amount.toString(),
+            max_discount_amount: p.max_discount_amount ? p.max_discount_amount.toString() : '',
+            min_spending: p.min_spending ? p.min_spending.toString() : '',
+            quota: p.usage.split(' / ')[1],
+            start_date: p.start_date || '',
+            end_date: p.end_date || '',
+            event_id: p.event_id || '',
+            terms_and_conditions: p.terms_and_conditions || '',
+        });
+        clearErrors();
+        setShowModal(true);
+    };
+
+    const handleSubmit = (e: React.FormEvent) => {
+        e.preventDefault();
+        if (isEdit && editingId) {
+            put(route('admin.promotions.update', editingId), {
+                onSuccess: () => setShowModal(false),
+            });
+        } else {
+            post(route('admin.promotions.store'), {
+                onSuccess: () => setShowModal(false),
+            });
+        }
+    };
+
     const activeAdvancedFilterCount = [filterValidFrom, filterValidTo].filter(Boolean).length;
 
     const handleApplyFilters = () => {
@@ -136,7 +203,7 @@ export default function AdminPromotions({ promotions, filters }: Props) {
                     </p>
                 </div>
                 <button
-                    onClick={() => setShowModal(true)}
+                    onClick={openCreate}
                     className="inline-flex items-center gap-2 rounded-xl bg-primary-600 hover:bg-primary-700 text-white px-4 py-2.5 text-sm font-semibold transition-colors shadow-sm shadow-primary-500/25"
                 >
                     <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -168,11 +235,11 @@ export default function AdminPromotions({ promotions, filters }: Props) {
             </div>
 
             {/* Discount Codes Table */}
-            <div className="rounded-2xl bg-white dark:bg-white/[0.03] border border-slate-200 dark:border-white/5 shadow-sm dark:shadow-none mb-8 overflow-hidden">
+            <div className="rounded-2xl bg-white dark:bg-white/[0.03] border border-slate-200 dark:border-white/5 shadow-sm dark:shadow-none mb-8 overflow-visible">
                 <div className="px-5 py-4 border-b border-slate-100 dark:border-white/5">
                     <h2 className="text-base font-semibold text-slate-900 dark:text-white">Discount Codes</h2>
                 </div>
-                <div className="min-w-full rounded-2xl overflow-auto custom-scrollbar max-h-[calc(100vh-32rem)] sm:max-h-[calc(100vh-28rem)]">
+                <div className="min-w-full rounded-2xl overflow-visible">
                     <table className="w-full text-sm border-collapse">
                         <thead className="sticky top-0 z-10 bg-white dark:bg-[#0f172a] shadow-[0_1px_0_0_rgba(0,0,0,0.05)] dark:shadow-[0_1px_0_0_rgba(255,255,255,0.05)]">
                             <tr className="text-left text-xs font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider border-b border-slate-100 dark:border-white/5">
@@ -186,7 +253,10 @@ export default function AdminPromotions({ promotions, filters }: Props) {
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-100 dark:divide-white/5">
-                            {promotions.data.map((promo) => (
+                            {promotions.data.map((promo, rowIndex) => {
+                                const totalRows = promotions.data.length;
+                                const isNearBottom = totalRows <= 2 || rowIndex >= totalRows - 2;
+                                return (
                                 <tr key={promo.id} className="hover:bg-slate-50 dark:hover:bg-white/[0.02] transition-colors">
                                     <td className="px-5 py-3.5 whitespace-nowrap">
                                         <Tooltip content={promo.code}>
@@ -203,16 +273,70 @@ export default function AdminPromotions({ promotions, filters }: Props) {
                                         </span>
                                     </td>
                                     <td className="px-5 py-3.5 text-right whitespace-nowrap">
-                                        <button className="text-xs font-medium text-primary-600 dark:text-primary-400 hover:text-primary-700 dark:hover:text-primary-300 transition-colors mr-3">Edit</button>
-                                        <button
-                                            onClick={() => handleDelete(promo.id)}
-                                            className="text-xs font-medium text-red-500 dark:text-red-400 hover:text-red-600 dark:hover:text-red-300 transition-colors"
-                                        >
-                                            Delete
-                                        </button>
+                                        <Menu as="div" className="relative inline-block text-left">
+                                            <div>
+                                                <Menu.Button className="inline-flex items-center justify-center p-2 rounded-lg text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-white/10 transition-colors">
+                                                    <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                                                        <circle cx="12" cy="6" r="2" />
+                                                        <circle cx="12" cy="12" r="2" />
+                                                        <circle cx="12" cy="18" r="2" />
+                                                    </svg>
+                                                </Menu.Button>
+                                            </div>
+                                            <Transition
+                                                as={Fragment}
+                                                enter="transition ease-out duration-100"
+                                                enterFrom="transform opacity-0 scale-95"
+                                                enterTo="transform opacity-100 scale-100"
+                                                leave="transition ease-in duration-75"
+                                                leaveFrom="transform opacity-100 scale-100"
+                                                leaveTo="transform opacity-0 scale-95"
+                                            >
+                                                <Menu.Items className={`absolute right-0 z-50 w-36 origin-top-right rounded-xl bg-white dark:bg-navy-900 border border-slate-200 dark:border-white/10 shadow-lg focus:outline-none ${isNearBottom ? 'bottom-full mb-2' : 'mt-2'}`}>
+                                                    <div className="py-1">
+                                                        <Menu.Item>
+                                                            {({ active }) => (
+                                                                <Link
+                                                                    href={route('admin.promotions.show', { id: promo.id })}
+                                                                    className={`${
+                                                                        active ? 'bg-slate-50 dark:bg-white/5' : ''
+                                                                    } flex items-center gap-2 px-4 py-2 text-sm text-slate-700 dark:text-slate-300 w-full text-left`}
+                                                                >
+                                                                    View Detail
+                                                                </Link>
+                                                            )}
+                                                        </Menu.Item>
+                                                        <Menu.Item>
+                                                            {({ active }) => (
+                                                                <button
+                                                                    onClick={() => openEdit(promo)}
+                                                                    className={`${
+                                                                        active ? 'bg-slate-50 dark:bg-white/5' : ''
+                                                                    } flex items-center gap-2 px-4 py-2 text-sm text-slate-700 dark:text-slate-300 w-full text-left`}
+                                                                >
+                                                                    Edit
+                                                                </button>
+                                                            )}
+                                                        </Menu.Item>
+                                                        <Menu.Item>
+                                                            {({ active }) => (
+                                                                <button
+                                                                    onClick={() => handleDelete(promo.id)}
+                                                                    className={`${
+                                                                        active ? 'bg-red-50 dark:bg-red-500/10' : ''
+                                                                    } flex items-center gap-2 px-4 py-2 text-sm text-red-600 dark:text-red-400 w-full text-left`}
+                                                                >
+                                                                    Delete
+                                                                </button>
+                                                            )}
+                                                        </Menu.Item>
+                                                    </div>
+                                                </Menu.Items>
+                                            </Transition>
+                                        </Menu>
                                     </td>
                                 </tr>
-                            ))}
+                            )})}
                             {promotions.data.length === 0 && (
                                 <tr>
                                     <td colSpan={7} className="px-5 py-12 text-center text-sm text-slate-400 dark:text-slate-500">
@@ -234,44 +358,162 @@ export default function AdminPromotions({ promotions, filters }: Props) {
                 />
             </div>
 
-            {/* Add Promo Modal */}
-            {showModal && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center">
-                    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setShowModal(false)} />
-                    <div className="relative w-full max-w-lg rounded-2xl bg-white dark:bg-navy-900 border border-slate-200 dark:border-white/10 shadow-2xl p-6 m-4">
-                        <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-4">Create Promo Code</h3>
-                        <div className="grid grid-cols-2 gap-4">
-                            <div className="col-span-2">
-                                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Promo Code</label>
-                                <input type="text" placeholder="e.g. SUMMER2026" className="w-full rounded-xl border border-slate-200 dark:border-white/10 bg-white dark:bg-white/5 px-4 py-2.5 text-sm text-slate-700 dark:text-slate-300 placeholder-slate-400 dark:placeholder-slate-500 focus:border-primary-500/40 focus:ring-2 focus:ring-primary-500/20 transition font-mono uppercase" />
+            {/* Add/Edit Promo Modal */}
+            <Modal show={showModal} onClose={() => setShowModal(false)} maxWidth="lg">
+                <div className="p-6 bg-white dark:bg-navy-900 rounded-xl">
+                    <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-6">
+                        {isEdit ? 'Edit Promo Code' : 'Create Promo Code'}
+                    </h3>
+
+                    <form onSubmit={handleSubmit} className="space-y-4">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div className="md:col-span-2">
+                                <label className="block text-sm mb-1.5 font-semibold text-slate-700 dark:text-slate-300">Promo Code</label>
+                                <input 
+                                    type="text" 
+                                    value={data.code} 
+                                    onChange={(e) => setData('code', e.target.value.toUpperCase())}
+                                    placeholder="e.g. SUMMER2026" 
+                                    className="w-full rounded-xl border border-slate-200 dark:border-white/10 bg-white dark:bg-white/5 px-4 py-2.5 text-sm text-slate-700 dark:text-slate-300 placeholder-slate-400 dark:placeholder-slate-500 focus:border-primary-500/40 focus:ring-2 focus:ring-primary-500/20 transition font-mono uppercase" 
+                                />
+                                {errors.code && <p className="mt-1 text-xs text-red-500">{errors.code}</p>}
                             </div>
-                            <div>
-                                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Type</label>
-                                <select className="w-full rounded-xl border border-slate-200 dark:border-white/10 bg-white dark:bg-white/5 px-4 py-2.5 text-sm text-slate-700 dark:text-slate-300 focus:border-primary-500/40 focus:ring-2 focus:ring-primary-500/20 transition">
-                                    <option>Percentage</option>
-                                    <option>Fixed Amount</option>
+
+                            <div className="md:col-span-2">
+                                <label className="block text-sm mb-1.5 font-semibold text-slate-700 dark:text-slate-300">Target Event</label>
+                                <select 
+                                    value={data.event_id} 
+                                    onChange={(e) => setData('event_id', e.target.value)}
+                                    className="w-full rounded-xl border border-slate-200 dark:border-white/10 bg-white dark:bg-white/5 px-4 py-2.5 text-sm text-slate-700 dark:text-slate-300 focus:border-primary-500/40 focus:ring-2 focus:ring-primary-500/20 transition"
+                                >
+                                    <option value="">Select Event</option>
+                                    {events.map((ev) => (
+                                        <option key={ev.id} value={ev.id}>{ev.title}</option>
+                                    ))}
                                 </select>
+                                {errors.event_id && <p className="mt-1 text-xs text-red-500">{errors.event_id}</p>}
                             </div>
+
                             <div>
-                                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Value</label>
-                                <input type="text" placeholder="e.g. 15 or 50000" className="w-full rounded-xl border border-slate-200 dark:border-white/10 bg-white dark:bg-white/5 px-4 py-2.5 text-sm text-slate-700 dark:text-slate-300 placeholder-slate-400 dark:placeholder-slate-500 focus:border-primary-500/40 focus:ring-2 focus:ring-primary-500/20 transition" />
+                                <label className="block text-sm mb-1.5 font-semibold text-slate-700 dark:text-slate-300">Discount Type</label>
+                                <select 
+                                    value={data.discount_type} 
+                                    onChange={(e) => setData('discount_type', e.target.value as any)}
+                                    className="w-full rounded-xl border border-slate-200 dark:border-white/10 bg-white dark:bg-white/5 px-4 py-2.5 text-sm text-slate-700 dark:text-slate-300 focus:border-primary-500/40 focus:ring-2 focus:ring-primary-500/20 transition"
+                                >
+                                    <option value="fixed">Fixed Amount (Rp)</option>
+                                    <option value="percentage">Percentage (%)</option>
+                                </select>
+                                {errors.discount_type && <p className="mt-1 text-xs text-red-500">{errors.discount_type}</p>}
                             </div>
+
                             <div>
-                                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Max Usage</label>
-                                <input type="number" placeholder="e.g. 500" className="w-full rounded-xl border border-slate-200 dark:border-white/10 bg-white dark:bg-white/5 px-4 py-2.5 text-sm text-slate-700 dark:text-slate-300 placeholder-slate-400 dark:placeholder-slate-500 focus:border-primary-500/40 focus:ring-2 focus:ring-primary-500/20 transition" />
+                                <label className="block text-sm mb-1.5 font-semibold text-slate-700 dark:text-slate-300">
+                                    {data.discount_type === 'percentage' ? 'Percentage Value' : 'Amount Value'}
+                                </label>
+                                <input 
+                                    type="number" 
+                                    value={data.discount_amount} 
+                                    onChange={(e) => setData('discount_amount', e.target.value)}
+                                    placeholder={data.discount_type === 'percentage' ? 'e.g. 15' : 'e.g. 50000'} 
+                                    className="w-full rounded-xl border border-slate-200 dark:border-white/10 bg-white dark:bg-white/5 px-4 py-2.5 text-sm text-slate-700 dark:text-slate-300 focus:border-primary-500/40 focus:ring-2 focus:ring-primary-500/20 transition" 
+                                />
+                                {errors.discount_amount && <p className="mt-1 text-xs text-red-500">{errors.discount_amount}</p>}
                             </div>
+
+                            {data.discount_type === 'percentage' && (
+                                <div>
+                                    <label className="block text-sm mb-1.5 font-semibold text-slate-700 dark:text-slate-300">Max Discount amount</label>
+                                    <input 
+                                        type="number" 
+                                        value={data.max_discount_amount}
+                                        onChange={(e) => setData('max_discount_amount', e.target.value)}
+                                        placeholder="Optional limit" 
+                                        className="w-full rounded-xl border border-slate-200 dark:border-white/10 bg-white dark:bg-white/5 px-4 py-2.5 text-sm text-slate-700 dark:text-slate-300 focus:border-primary-500/40 focus:ring-2 focus:ring-primary-500/20 transition" 
+                                    />
+                                    {errors.max_discount_amount && <p className="mt-1 text-xs text-red-500">{errors.max_discount_amount}</p>}
+                                </div>
+                            )}
+
+                            <div className={data.discount_type === 'percentage' ? '' : 'md:col-span-1'}>
+                                <label className="block text-sm mb-1.5 font-semibold text-slate-700 dark:text-slate-300">Min Spending</label>
+                                <input 
+                                    type="number" 
+                                    value={data.min_spending}
+                                    onChange={(e) => setData('min_spending', e.target.value)}
+                                    placeholder="Optional min spending" 
+                                    className="w-full rounded-xl border border-slate-200 dark:border-white/10 bg-white dark:bg-white/5 px-4 py-2.5 text-sm text-slate-700 dark:text-slate-300 focus:border-primary-500/40 focus:ring-2 focus:ring-primary-500/20 transition" 
+                                />
+                                {errors.min_spending && <p className="mt-1 text-xs text-red-500">{errors.min_spending}</p>}
+                            </div>
+
                             <div>
-                                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Valid Until</label>
-                                <input type="date" className="w-full rounded-xl border border-slate-200 dark:border-white/10 bg-white dark:bg-white/5 px-4 py-2.5 text-sm text-slate-700 dark:text-slate-300 focus:border-primary-500/40 focus:ring-2 focus:ring-primary-500/20 transition" />
+                                <label className="block text-sm mb-1.5 font-semibold text-slate-700 dark:text-slate-300">Total Quota</label>
+                                <input 
+                                    type="number" 
+                                    value={data.quota}
+                                    onChange={(e) => setData('quota', e.target.value)}
+                                    placeholder="e.g. 500" 
+                                    className="w-full rounded-xl border border-slate-200 dark:border-white/10 bg-white dark:bg-white/5 px-4 py-2.5 text-sm text-slate-700 dark:text-slate-300 focus:border-primary-500/40 focus:ring-2 focus:ring-primary-500/20 transition" 
+                                />
+                                {errors.quota && <p className="mt-1 text-xs text-red-500">{errors.quota}</p>}
+                            </div>
+
+                            <div>
+                                <label className="block text-sm mb-1.5 font-semibold text-slate-700 dark:text-slate-300">Start Date</label>
+                                <input 
+                                    type="date" 
+                                    value={data.start_date}
+                                    onChange={(e) => setData('start_date', e.target.value)}
+                                    className="w-full rounded-xl border border-slate-200 dark:border-white/10 bg-white dark:bg-white/5 px-4 py-2.5 text-sm text-slate-700 dark:text-slate-300 focus:border-primary-500/40 focus:ring-2 focus:ring-primary-500/20 transition" 
+                                />
+                                {errors.start_date && <p className="mt-1 text-xs text-red-500">{errors.start_date}</p>}
+                            </div>
+
+                            <div>
+                                <label className="block text-sm mb-1.5 font-semibold text-slate-700 dark:text-slate-300">Expiry Date</label>
+                                <input 
+                                    type="date" 
+                                    value={data.end_date}
+                                    onChange={(e) => setData('end_date', e.target.value)}
+                                    className="w-full rounded-xl border border-slate-200 dark:border-white/10 bg-white dark:bg-white/5 px-4 py-2.5 text-sm text-slate-700 dark:text-slate-300 focus:border-primary-500/40 focus:ring-2 focus:ring-primary-500/20 transition" 
+                                />
+                                {errors.end_date && <p className="mt-1 text-xs text-red-500">{errors.end_date}</p>}
+                            </div>
+
+                            <div className="md:col-span-2">
+                                <label className="block text-sm mb-1.5 font-semibold text-slate-700 dark:text-slate-300">Terms and Conditions</label>
+                                <textarea 
+                                    value={data.terms_and_conditions}
+                                    onChange={(e) => setData('terms_and_conditions', e.target.value)}
+                                    rows={4}
+                                    placeholder="Write terms and conditions for this promo code..." 
+                                    className="w-full rounded-xl border border-slate-200 dark:border-white/10 bg-white dark:bg-white/5 px-4 py-2.5 text-sm text-slate-700 dark:text-slate-300 focus:border-primary-500/40 focus:ring-2 focus:ring-primary-500/20 transition resize-none" 
+                                />
+                                {errors.terms_and_conditions && <p className="mt-1 text-xs text-red-500">{errors.terms_and_conditions}</p>}
                             </div>
                         </div>
-                        <div className="flex items-center justify-end gap-3 mt-6">
-                            <button onClick={() => setShowModal(false)} className="px-4 py-2 rounded-xl text-sm font-medium text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-white/5 transition-colors">Cancel</button>
-                            <button className="px-4 py-2 rounded-xl bg-primary-600 hover:bg-primary-700 text-white text-sm font-semibold transition-colors shadow-sm shadow-primary-500/25">Create Code</button>
+
+                        <div className="flex items-center justify-end gap-3 mt-8">
+                            <button 
+                                type="button"
+                                onClick={() => setShowModal(false)} 
+                                className="px-5 py-2.5 rounded-xl text-sm font-semibold text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-white/5 transition-colors"
+                            >
+                                Cancel
+                            </button>
+                            <button 
+                                type="submit"
+                                disabled={processing}
+                                className="px-6 py-2.5 rounded-xl bg-primary-600 hover:bg-primary-700 disabled:opacity-50 text-white text-sm font-bold transition-all shadow-lg shadow-primary-500/25"
+                            >
+                                {processing ? 'Saving...' : (isEdit ? 'Update Promo Code' : 'Generate Promo Code')}
+                            </button>
                         </div>
-                    </div>
+                    </form>
                 </div>
-            )}
+            </Modal>
         </DashboardLayout>
     );
 }
+

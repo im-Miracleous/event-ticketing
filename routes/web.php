@@ -126,6 +126,7 @@ Route::middleware(['auth', 'verified'])->prefix('admin')->name('admin.')->group(
     // Promotions
     Route::get('/promotions', [Admin\PromotionController::class, 'index'])->name('promotions.index');
     Route::post('/promotions', [Admin\PromotionController::class, 'store'])->name('promotions.store');
+    Route::get('/promotions/{id}', [Admin\PromotionController::class, 'show'])->name('promotions.show');
     Route::put('/promotions/{id}', [Admin\PromotionController::class, 'update'])->name('promotions.update');
     Route::delete('/promotions/{id}', [Admin\PromotionController::class, 'destroy'])->name('promotions.destroy');
 
