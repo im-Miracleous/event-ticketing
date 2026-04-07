@@ -1,36 +1,95 @@
 import DashboardLayout from '@/Layouts/DashboardLayout';
-import { Head } from '@inertiajs/react';
-import { useState } from 'react';
-
-/* ─── Mock Data ─────────────────────────────────────────────────────── */
-
-const initialSettings = {
-    appName: 'EventHive',
-    tagline: 'Your Premier Event Ticketing Platform',
-    platformFee: '20',
-    supportEmail: 'support@eventhive.com',
-    socialFacebook: 'https://facebook.com/eventhive',
-    socialInstagram: 'https://instagram.com/eventhive',
-    socialTwitter: 'https://x.com/eventhive',
-    paymentGateway: 'Midtrans',
-    paymentApiKey: '••••••••••••ABCD',
-    paymentMode: 'Sandbox',
-};
+import { Head, useForm, router } from '@inertiajs/react';
+import { useState, FormEvent } from 'react';
+import Modal from '@/Components/Modal';
 
 /* ─── Component ─────────────────────────────────────────────────────── */
 
-export default function AdminSettings() {
-    const [settings, setSettings] = useState(initialSettings);
-    const [saving, setSaving] = useState(false);
+interface Props {
+    settings: Record<string, string | null>;
+}
 
-    const handleChange = (field: string, value: string) => {
-        setSettings((prev) => ({ ...prev, [field]: value }));
+const CURRENCIES = [
+    { code: 'IDR', label: 'Indonesian Rupiah (Rp)' },
+    { code: 'USD', label: 'US Dollar ($)' },
+    { code: 'EUR', label: 'Euro (€)' },
+    { code: 'GBP', label: 'British Pound (£)' },
+    { code: 'SGD', label: 'Singapore Dollar (S$)' },
+    { code: 'MYR', label: 'Malaysian Ringgit (RM)' },
+    { code: 'JPY', label: 'Japanese Yen (¥)' },
+    { code: 'AUD', label: 'Australian Dollar (A$)' },
+];
+
+export default function AdminSettings({ settings }: Props) {
+    const { data, setData, put, processing } = useForm({
+        app_name: settings.app_name || 'EventHive',
+        app_tagline: settings.app_tagline || '',
+        platform_fee: settings.platform_fee || '20',
+        contact_email: settings.contact_email || '',
+        currency: settings.currency || 'IDR',
+        social_facebook: settings.social_facebook || '',
+        social_instagram: settings.social_instagram || '',
+        social_twitter: settings.social_twitter || '',
+        payment_gateway: settings.payment_gateway || 'Midtrans',
+        payment_mode: settings.payment_mode || 'Sandbox',
+        payment_api_key: settings.payment_api_key || '',
+    });
+
+    // API Key reveal state
+    const [showApiKeyModal, setShowApiKeyModal] = useState(false);
+    const [password, setPassword] = useState('');
+    const [passwordError, setPasswordError] = useState('');
+    const [revealedApiKey, setRevealedApiKey] = useState<string | null>(null);
+    const [apiKeyVisible, setApiKeyVisible] = useState(false);
+    const [verifying, setVerifying] = useState(false);
+
+    const handleSave = (e: FormEvent) => {
+        e.preventDefault();
+        put(route('admin.settings.update'));
     };
 
-    const handleSave = () => {
-        setSaving(true);
-        setTimeout(() => setSaving(false), 1500); // Simulated save
+    const handleRevealApiKey = () => {
+        setShowApiKeyModal(true);
+        setPassword('');
+        setPasswordError('');
     };
+
+    const handleVerifyPassword = async () => {
+        setVerifying(true);
+        setPasswordError('');
+
+        try {
+            const response = await fetch(route('admin.settings.verifyPassword'), {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '',
+                },
+                body: JSON.stringify({ password }),
+            });
+
+            if (response.ok) {
+                const result = await response.json();
+                setRevealedApiKey(result.api_key);
+                setApiKeyVisible(true);
+                setShowApiKeyModal(false);
+            } else {
+                setPasswordError('The password is incorrect.');
+            }
+        } catch {
+            setPasswordError('An error occurred. Please try again.');
+        } finally {
+            setVerifying(false);
+        }
+    };
+
+    const handleHideApiKey = () => {
+        setRevealedApiKey(null);
+        setApiKeyVisible(false);
+    };
+
+    const inputClass = "w-full rounded-xl border border-slate-200 dark:border-white/10 bg-white dark:bg-white/5 px-4 py-2.5 text-sm text-slate-700 dark:text-slate-300 focus:border-primary-500/40 focus:ring-2 focus:ring-primary-500/20 transition";
+    const selectClass = inputClass;
 
     return (
         <DashboardLayout>
@@ -49,7 +108,7 @@ export default function AdminSettings() {
                 </p>
             </div>
 
-            <div className="space-y-6 max-w-3xl">
+            <form onSubmit={handleSave} className="space-y-6 max-w-3xl">
                 {/* ── General Settings ────────────────────────────────── */}
                 <div className="rounded-2xl bg-white dark:bg-white/[0.03] border border-slate-200 dark:border-white/5 shadow-sm dark:shadow-none overflow-hidden">
                     <div className="px-5 py-4 border-b border-slate-100 dark:border-white/5">
@@ -59,23 +118,13 @@ export default function AdminSettings() {
                         {/* App Name */}
                         <div>
                             <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Application Name</label>
-                            <input
-                                type="text"
-                                value={settings.appName}
-                                onChange={(e) => handleChange('appName', e.target.value)}
-                                className="w-full rounded-xl border border-slate-200 dark:border-white/10 bg-white dark:bg-white/5 px-4 py-2.5 text-sm text-slate-700 dark:text-slate-300 focus:border-primary-500/40 focus:ring-2 focus:ring-primary-500/20 transition"
-                            />
+                            <input type="text" value={data.app_name} onChange={(e) => setData('app_name', e.target.value)} className={inputClass} />
                         </div>
 
                         {/* Tagline */}
                         <div>
                             <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Tagline</label>
-                            <input
-                                type="text"
-                                value={settings.tagline}
-                                onChange={(e) => handleChange('tagline', e.target.value)}
-                                className="w-full rounded-xl border border-slate-200 dark:border-white/10 bg-white dark:bg-white/5 px-4 py-2.5 text-sm text-slate-700 dark:text-slate-300 focus:border-primary-500/40 focus:ring-2 focus:ring-primary-500/20 transition"
-                            />
+                            <input type="text" value={data.app_tagline} onChange={(e) => setData('app_tagline', e.target.value)} className={inputClass} />
                         </div>
 
                         {/* App Logo */}
@@ -86,7 +135,7 @@ export default function AdminSettings() {
                                     <span className="text-2xl font-black text-white">E</span>
                                 </div>
                                 <div>
-                                    <button className="inline-flex items-center gap-2 rounded-xl border border-slate-200 dark:border-white/10 bg-white dark:bg-white/5 px-4 py-2 text-sm font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-white/10 transition-colors">
+                                    <button type="button" className="inline-flex items-center gap-2 rounded-xl border border-slate-200 dark:border-white/10 bg-white dark:bg-white/5 px-4 py-2 text-sm font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-white/10 transition-colors">
                                         <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
                                             <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5m-13.5-9L12 3m0 0 4.5 4.5M12 3v13.5" />
                                         </svg>
@@ -101,14 +150,7 @@ export default function AdminSettings() {
                         <div>
                             <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Platform Fee (%)</label>
                             <div className="relative w-32">
-                                <input
-                                    type="number"
-                                    value={settings.platformFee}
-                                    onChange={(e) => handleChange('platformFee', e.target.value)}
-                                    min={0}
-                                    max={100}
-                                    className="w-full rounded-xl border border-slate-200 dark:border-white/10 bg-white dark:bg-white/5 px-4 py-2.5 pr-8 text-sm text-slate-700 dark:text-slate-300 focus:border-primary-500/40 focus:ring-2 focus:ring-primary-500/20 transition"
-                                />
+                                <input type="number" value={data.platform_fee} onChange={(e) => setData('platform_fee', e.target.value)} min={0} max={100} className={`${inputClass} pr-8`} />
                                 <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-slate-400">%</span>
                             </div>
                             <p className="text-xs text-slate-400 dark:text-slate-500 mt-1">Percentage deducted from each transaction as platform revenue.</p>
@@ -117,12 +159,20 @@ export default function AdminSettings() {
                         {/* Support Email */}
                         <div>
                             <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Support Email</label>
-                            <input
-                                type="email"
-                                value={settings.supportEmail}
-                                onChange={(e) => handleChange('supportEmail', e.target.value)}
-                                className="w-full rounded-xl border border-slate-200 dark:border-white/10 bg-white dark:bg-white/5 px-4 py-2.5 text-sm text-slate-700 dark:text-slate-300 focus:border-primary-500/40 focus:ring-2 focus:ring-primary-500/20 transition"
-                            />
+                            <input type="email" value={data.contact_email} onChange={(e) => setData('contact_email', e.target.value)} className={inputClass} />
+                        </div>
+
+                        {/* Currency */}
+                        <div>
+                            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Currency</label>
+                            <select value={data.currency} onChange={(e) => setData('currency', e.target.value)} className={selectClass}>
+                                {CURRENCIES.map((c) => (
+                                    <option key={c.code} value={c.code} className="bg-white dark:bg-navy-900 text-slate-900 dark:text-white">
+                                        {c.code} — {c.label}
+                                    </option>
+                                ))}
+                            </select>
+                            <p className="text-xs text-slate-400 dark:text-slate-500 mt-1">Currency used for ticket pricing and financial displays.</p>
                         </div>
                     </div>
                 </div>
@@ -135,30 +185,15 @@ export default function AdminSettings() {
                     <div className="p-5 space-y-5">
                         <div>
                             <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Facebook</label>
-                            <input
-                                type="url"
-                                value={settings.socialFacebook}
-                                onChange={(e) => handleChange('socialFacebook', e.target.value)}
-                                className="w-full rounded-xl border border-slate-200 dark:border-white/10 bg-white dark:bg-white/5 px-4 py-2.5 text-sm text-slate-700 dark:text-slate-300 focus:border-primary-500/40 focus:ring-2 focus:ring-primary-500/20 transition"
-                            />
+                            <input type="url" value={data.social_facebook} onChange={(e) => setData('social_facebook', e.target.value)} className={inputClass} />
                         </div>
                         <div>
                             <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Instagram</label>
-                            <input
-                                type="url"
-                                value={settings.socialInstagram}
-                                onChange={(e) => handleChange('socialInstagram', e.target.value)}
-                                className="w-full rounded-xl border border-slate-200 dark:border-white/10 bg-white dark:bg-white/5 px-4 py-2.5 text-sm text-slate-700 dark:text-slate-300 focus:border-primary-500/40 focus:ring-2 focus:ring-primary-500/20 transition"
-                            />
+                            <input type="url" value={data.social_instagram} onChange={(e) => setData('social_instagram', e.target.value)} className={inputClass} />
                         </div>
                         <div>
                             <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">X (Twitter)</label>
-                            <input
-                                type="url"
-                                value={settings.socialTwitter}
-                                onChange={(e) => handleChange('socialTwitter', e.target.value)}
-                                className="w-full rounded-xl border border-slate-200 dark:border-white/10 bg-white dark:bg-white/5 px-4 py-2.5 text-sm text-slate-700 dark:text-slate-300 focus:border-primary-500/40 focus:ring-2 focus:ring-primary-500/20 transition"
-                            />
+                            <input type="url" value={data.social_twitter} onChange={(e) => setData('social_twitter', e.target.value)} className={inputClass} />
                         </div>
                     </div>
                 </div>
@@ -172,25 +207,17 @@ export default function AdminSettings() {
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             <div>
                                 <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Gateway Provider</label>
-                                <select
-                                    value={settings.paymentGateway}
-                                    onChange={(e) => handleChange('paymentGateway', e.target.value)}
-                                    className="w-full rounded-xl border border-slate-200 dark:border-white/10 bg-white dark:bg-white/5 px-4 py-2.5 text-sm text-slate-700 dark:text-slate-300 focus:border-primary-500/40 focus:ring-2 focus:ring-primary-500/20 transition"
-                                >
-                                    <option value="Midtrans">Midtrans</option>
-                                    <option value="Xendit">Xendit</option>
-                                    <option value="Stripe">Stripe</option>
+                                <select value={data.payment_gateway} onChange={(e) => setData('payment_gateway', e.target.value)} className={selectClass}>
+                                    <option value="Midtrans" className="bg-white dark:bg-navy-900">Midtrans</option>
+                                    <option value="Xendit" className="bg-white dark:bg-navy-900">Xendit</option>
+                                    <option value="Stripe" className="bg-white dark:bg-navy-900">Stripe</option>
                                 </select>
                             </div>
                             <div>
                                 <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Mode</label>
-                                <select
-                                    value={settings.paymentMode}
-                                    onChange={(e) => handleChange('paymentMode', e.target.value)}
-                                    className="w-full rounded-xl border border-slate-200 dark:border-white/10 bg-white dark:bg-white/5 px-4 py-2.5 text-sm text-slate-700 dark:text-slate-300 focus:border-primary-500/40 focus:ring-2 focus:ring-primary-500/20 transition"
-                                >
-                                    <option value="Sandbox">Sandbox</option>
-                                    <option value="Production">Production</option>
+                                <select value={data.payment_mode} onChange={(e) => setData('payment_mode', e.target.value)} className={selectClass}>
+                                    <option value="Sandbox" className="bg-white dark:bg-navy-900">Sandbox</option>
+                                    <option value="Production" className="bg-white dark:bg-navy-900">Production</option>
                                 </select>
                             </div>
                         </div>
@@ -198,14 +225,29 @@ export default function AdminSettings() {
                             <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">API Key</label>
                             <div className="flex items-center gap-3">
                                 <input
-                                    type="password"
-                                    value={settings.paymentApiKey}
-                                    onChange={(e) => handleChange('paymentApiKey', e.target.value)}
-                                    className="flex-1 rounded-xl border border-slate-200 dark:border-white/10 bg-white dark:bg-white/5 px-4 py-2.5 text-sm text-slate-700 dark:text-slate-300 font-mono focus:border-primary-500/40 focus:ring-2 focus:ring-primary-500/20 transition"
+                                    type={apiKeyVisible ? 'text' : 'password'}
+                                    value={apiKeyVisible && revealedApiKey ? revealedApiKey : data.payment_api_key}
+                                    onChange={(e) => setData('payment_api_key', e.target.value)}
+                                    className={`flex-1 font-mono ${inputClass}`}
+                                    readOnly={apiKeyVisible}
                                 />
-                                <button className="px-3 py-2.5 rounded-xl border border-slate-200 dark:border-white/10 text-sm font-medium text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-white/5 transition-colors shrink-0">
-                                    Show
-                                </button>
+                                {apiKeyVisible ? (
+                                    <button
+                                        type="button"
+                                        onClick={handleHideApiKey}
+                                        className="px-3 py-2.5 rounded-xl border border-slate-200 dark:border-white/10 text-sm font-medium text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-white/5 transition-colors shrink-0"
+                                    >
+                                        Hide
+                                    </button>
+                                ) : (
+                                    <button
+                                        type="button"
+                                        onClick={handleRevealApiKey}
+                                        className="px-3 py-2.5 rounded-xl border border-slate-200 dark:border-white/10 text-sm font-medium text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-white/5 transition-colors shrink-0"
+                                    >
+                                        Show
+                                    </button>
+                                )}
                             </div>
                             <p className="text-xs text-amber-500 dark:text-amber-400 mt-1.5 flex items-center gap-1">
                                 <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -220,15 +262,15 @@ export default function AdminSettings() {
                 {/* Save Button */}
                 <div className="flex justify-end pt-2">
                     <button
-                        onClick={handleSave}
-                        disabled={saving}
+                        type="submit"
+                        disabled={processing}
                         className={`inline-flex items-center gap-2 rounded-xl px-6 py-2.5 text-sm font-semibold transition-all shadow-sm ${
-                            saving
+                            processing
                                 ? 'bg-primary-400 text-white cursor-wait'
                                 : 'bg-primary-600 hover:bg-primary-700 text-white shadow-primary-500/25'
                         }`}
                     >
-                        {saving ? (
+                        {processing ? (
                             <>
                                 <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24" fill="none">
                                     <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
@@ -241,7 +283,55 @@ export default function AdminSettings() {
                         )}
                     </button>
                 </div>
-            </div>
+            </form>
+
+            {/* Password Verification Modal */}
+            <Modal show={showApiKeyModal} onClose={() => setShowApiKeyModal(false)} maxWidth="sm">
+                <div className="p-6">
+                    <div className="flex items-center gap-3 mb-4">
+                        <div className="p-2 rounded-full bg-amber-100 dark:bg-amber-500/20">
+                            <svg className="w-5 h-5 text-amber-600 dark:text-amber-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z" />
+                            </svg>
+                        </div>
+                        <h2 className="text-lg font-semibold text-slate-900 dark:text-white">Verify Identity</h2>
+                    </div>
+                    <p className="text-sm text-slate-600 dark:text-slate-400 mb-4">
+                        For security, please re-enter your account password to reveal the API key.
+                    </p>
+                    <div className="space-y-3">
+                        <input
+                            type="password"
+                            placeholder="Enter your password"
+                            value={password}
+                            onChange={(e) => setPassword(e.target.value)}
+                            onKeyDown={(e) => e.key === 'Enter' && handleVerifyPassword()}
+                            className={`w-full rounded-xl border ${passwordError ? 'border-red-500' : 'border-slate-200 dark:border-white/10'} bg-white dark:bg-white/5 px-4 py-2.5 text-sm text-slate-700 dark:text-slate-300 focus:border-primary-500/40 focus:ring-2 focus:ring-primary-500/20 transition`}
+                            autoFocus
+                        />
+                        {passwordError && (
+                            <p className="text-xs text-red-500 font-medium">{passwordError}</p>
+                        )}
+                    </div>
+                    <div className="flex justify-end gap-3 mt-6">
+                        <button
+                            type="button"
+                            onClick={() => setShowApiKeyModal(false)}
+                            className="px-4 py-2 text-sm font-medium text-slate-600 dark:text-slate-400 bg-slate-100 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-xl hover:bg-slate-200 dark:hover:bg-white/10 transition-colors"
+                        >
+                            Cancel
+                        </button>
+                        <button
+                            type="button"
+                            onClick={handleVerifyPassword}
+                            disabled={verifying || !password}
+                            className="px-4 py-2 text-sm font-medium text-white bg-amber-600 hover:bg-amber-500 rounded-xl transition-colors disabled:opacity-50"
+                        >
+                            {verifying ? 'Verifying…' : 'Reveal API Key'}
+                        </button>
+                    </div>
+                </div>
+            </Modal>
         </DashboardLayout>
     );
 }

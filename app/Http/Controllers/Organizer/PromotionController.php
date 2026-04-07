@@ -51,6 +51,9 @@ class PromotionController extends Controller
             ],
             'code' => 'required|string|max:20|unique:promotions,code',
             'discount_amount' => 'required|integer|min:1',
+            'discount_type'   => 'required|in:fixed,percentage',
+            'max_discount_amount' => 'nullable|numeric|min:1',
+            'min_spending'    => 'nullable|numeric|min:0',
             'quota' => 'required|integer|min:1',
             'start_date' => 'required|date',
             'end_date' => 'required|date|after_or_equal:start_date',
@@ -75,12 +78,15 @@ class PromotionController extends Controller
         $request->validate([
             'code' => 'required|string|max:20|unique:promotions,code,'.$id,
             'discount_amount' => 'required|integer|min:1',
+            'discount_type'   => 'required|in:fixed,percentage',
+            'max_discount_amount' => 'nullable|numeric|min:1',
+            'min_spending'    => 'nullable|numeric|min:0',
             'quota' => 'required|integer|min:1',
             'start_date' => 'required|date',
             'end_date' => 'required|date|after_or_equal:start_date',
         ]);
 
-        $promotion->update($request->only(['code', 'discount_amount', 'quota', 'start_date', 'end_date']));
+        $promotion->update($request->only(['code', 'discount_amount', 'discount_type', 'max_discount_amount', 'min_spending', 'quota', 'start_date', 'end_date']));
 
         return redirect()->route('organizer.promotions.index')->with('success', 'Kode Promo berhasil diperbarui!');
     }

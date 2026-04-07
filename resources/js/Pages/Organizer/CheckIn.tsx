@@ -64,8 +64,8 @@ export default function CheckIn() {
                         <div className="w-16 h-16 bg-navy-900/10 dark:bg-navy-900/20 rounded-full flex items-center justify-center mx-auto mb-3 text-white">
                             <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 12V4a2 2 0 012-2h12a2 2 0 012 2v8" /></svg>
                         </div>
-                        <h2 className="text-2xl font-black text-white uppercase tracking-tight">Scan / Input Kode</h2>
-                        <p className="text-blue-50 dark:text-blue-100 text-sm mt-1">Masukkan ID Tiket atau Scan Barcode pengunjung</p>
+                        <h2 className="text-2xl font-black text-white uppercase tracking-tight">Scan / Input Code</h2>
+                        <p className="text-blue-50 dark:text-blue-100 text-sm mt-1">Enter Ticket ID or Scan visitor Barcode</p>
                     </div>
 
                     <div className="bg-slate-50 dark:bg-navy-950/40 border-b border-slate-100 dark:border-white/5">
@@ -83,7 +83,7 @@ export default function CheckIn() {
                                 )}
                                 <div>
                                     <h4 className={`font-bold ${alertMessage.type === 'success' ? 'text-emerald-900' : 'text-red-900'}`}>
-                                        {alertMessage.type === 'success' ? 'Akses Diberikan' : 'Akses Ditolak'}
+                                        {alertMessage.type === 'success' ? 'Access Granted' : 'Access Denied'}
                                     </h4>
                                     <p className="text-sm mt-1">{alertMessage.text}</p>
                                 </div>
@@ -92,7 +92,7 @@ export default function CheckIn() {
 
                         <form onSubmit={submit} className="space-y-4">
                             <div>
-                                <label className="block text-sm font-bold text-slate-500 dark:text-slate-300 mb-2">Kode Tiket (Booking Code)</label>
+                                <label className="block text-sm font-bold text-slate-500 dark:text-slate-300 mb-2">Ticket Code (Booking Code)</label>
                                 <input
                                     type="text"
                                     autoFocus
@@ -108,14 +108,14 @@ export default function CheckIn() {
                                 disabled={processing}
                                 className="w-full py-4 text-sm font-bold text-white bg-blue-600 hover:bg-blue-700 rounded-xl transition-colors shadow-lg shadow-blue-600/30 flex items-center justify-center uppercase tracking-wide"
                             >
-                                {processing ? 'Memvalidasi...' : 'VALIDASI TIKET'}
+                                {processing ? 'Validating...' : 'VALIDATE TICKET'}
                             </button>
                         </form>
                     </div>
                 </div>
 
                 <div className="mt-6 text-center text-sm font-medium text-slate-500">
-                    Sistem validasi Goers Experience Manager
+                    Validation System EventHive Manager
                 </div>
             </div>
         </DashboardLayout>

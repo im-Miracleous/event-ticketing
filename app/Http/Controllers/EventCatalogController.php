@@ -96,6 +96,10 @@ class EventCatalogController extends Controller
 
         $events = $query->paginate(12)->withQueryString();
         
+        if ($request->wantsJson()) {
+            return response()->json($events);
+        }
+
         // Fetch trending events for carousel
         $trendingEvents = Event::where('status', 'Active')
             ->with(['category', 'ticketTypes'])

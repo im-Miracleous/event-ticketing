@@ -31,6 +31,7 @@ class AuthenticatedSessionController extends Controller
      */
     public function store(LoginRequest $request): SymfonyResponse
     {
+        // dd('store');
         $request->authenticate();
 
         $request->session()->regenerate();

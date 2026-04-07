@@ -29,7 +29,47 @@ class EarningController extends Controller
             $query->where('event_id', $request->event_id);
         }
 
-        $transactions = $query->latest()->paginate(20)->withQueryString();
+        // Search
+        if ($request->filled('search')) {
+            $s = $request->search;
+            $query->where(function ($q) use ($s) {
+                $q->where('id', 'like', "%{$s}%")
+                  ->orWhereHas('user', fn($uq) => $uq->where('name', 'like', "%{$s}%")->orWhere('email', 'like', "%{$s}%"))
+                  ->orWhereHas('event', fn($eq) => $eq->where('title', 'like', "%{$s}%"));
+            });
+        }
+
+        // Date range
+        if ($request->filled('date_from')) {
+            $query->whereDate('created_at', '>=', $request->date_from);
+        }
+        if ($request->filled('date_to')) {
+            $query->whereDate('created_at', '<=', $request->date_to);
+        }
+
+        // Dynamic sorting
+        $sortMap = [
+            'buyer_name'   => 'buyer',
+            'event_name'   => 'event',
+            'total_amount' => 'total_amount',
+            'date'         => 'created_at',
+        ];
+        $sortCol = $sortMap[$request->input('sort')] ?? 'created_at';
+        $sortDir = $request->input('direction', 'desc') === 'asc' ? 'asc' : 'desc';
+
+        if ($sortCol === 'buyer') {
+            $query->leftJoin('users', 'transactions.user_id', '=', 'users.id')
+                  ->orderBy('users.name', $sortDir)
+                  ->select('transactions.*');
+        } elseif ($sortCol === 'event') {
+            $query->leftJoin('events', 'transactions.event_id', '=', 'events.id')
+                  ->orderBy('events.title', $sortDir)
+                  ->select('transactions.*');
+        } else {
+            $query->orderBy($sortCol, $sortDir);
+        }
+
+        $transactions = $query->paginate(20)->withQueryString();
         
         // Transform the data to keep the React component clean
         $ledger = $transactions->through(function ($tx) {
@@ -57,7 +97,7 @@ class EarningController extends Controller
         return Inertia::render('Organizer/Earnings/Index', [
             'ledger' => $ledger,
             'events' => $events,
-            'filters' => $request->only(['event_id']),
+            'filters' => $request->only(['event_id', 'search', 'sort', 'direction', 'date_from', 'date_to']),
             'summary' => [
                 'totalEarnings' => $totalEarnings,
                 'totalTransactions' => $totalTransactions,

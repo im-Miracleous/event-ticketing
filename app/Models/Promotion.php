@@ -8,9 +8,14 @@ class Promotion extends Model {
     protected $fillable = [
         'code', 
         'discount_amount', 
-        'quota', 'start_date', 
+        'discount_type',
+        'max_discount_amount',
+        'min_spending',
+        'quota', 
+        'start_date', 
         'end_date', 
-        'event_id'
+        'event_id',
+        'terms_and_conditions'
     ];
 
     public function event() {

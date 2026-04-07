@@ -1,17 +1,35 @@
 import React, { useState } from 'react';
 import DashboardLayout from '@/Layouts/DashboardLayout';
+import SortableHeader from '@/Components/Dashboard/SortableHeader';
+import AdvancedFilter, { FilterField, FilterDateRange } from '@/Components/Dashboard/AdvancedFilter';
 import { Head, useForm, router } from '@inertiajs/react';
 import Modal from '@/Components/Modal';
+import { Fragment } from 'react';
+import { Menu, Transition } from '@headlessui/react';
 
-export default function PromotionsIndex({ auth, promotions, events }: any) {
+/* ─── Component ─────────────────────────────────────────────────────── */
+
+export default function PromotionsIndex({ promotions, events }: any) {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [isEditMode, setIsEditMode] = useState(false);
     const [editId, setEditId] = useState<number | null>(null);
+    const [search, setSearch] = useState('');
+
+    // Sort state (client-side since data isn't paginated)
+    const [sort, setSort] = useState('');
+    const [direction, setDirection] = useState<'asc' | 'desc'>('desc');
+
+    // Advanced filter local state
+    const [filterDateFrom, setFilterDateFrom] = useState('');
+    const [filterDateTo, setFilterDateTo] = useState('');
 
     const { data, setData, post, put, delete: destroy, processing, errors, reset, clearErrors } = useForm({
         event_id: '',
         code: '',
         discount_amount: '',
+        discount_type: 'fixed',
+        max_discount_amount: '',
+        min_spending: '',
         quota: '',
         start_date: '',
         end_date: '',
@@ -31,9 +49,12 @@ export default function PromotionsIndex({ auth, promotions, events }: any) {
         setData({
             event_id: promo.event_id,
             code: promo.code,
-            discount_amount: promo.discount_amount,
+            discount_type: promo.discount_type || 'fixed',
+            discount_amount: promo.discount_amount || '',
+            max_discount_amount: promo.max_discount_amount || '',
+            min_spending: promo.min_spending || '',
             quota: promo.quota,
-            start_date: promo.start_date.split(' ')[0], // Format for date input if datetime
+            start_date: promo.start_date.split(' ')[0],
             end_date: promo.end_date.split(' ')[0],
         });
         clearErrors();
@@ -59,24 +80,86 @@ export default function PromotionsIndex({ auth, promotions, events }: any) {
     };
 
     const handleDelete = (promoId: number) => {
-        if (confirm('Apakah Anda yakin ingin menghapus promo ini?')) {
+        if (confirm('Are you sure you want to delete this promo?')) {
             destroy(route('organizer.promotions.destroy', promoId));
         }
     };
 
-    const formatCurrency = (value: number) => {
-        return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(value);
+    const formatCurrency = (value: number | string) => {
+        if (!value) return '-';
+        return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(Number(value));
+    };
+
+    const formatDiscount = (promo: any) => {
+        if (promo.discount_type === 'percentage') {
+            return `${promo.discount_amount}%`;
+        }
+        return formatCurrency(promo.discount_amount);
+    };
+
+    const handleSort = (column: string, dir: 'asc' | 'desc') => {
+        setSort(column);
+        setDirection(dir);
+    };
+
+    // Client-side filtering and sorting
+    let filteredPromos = [...promotions];
+
+    // Search filter
+    if (search) {
+        const s = search.toLowerCase();
+        filteredPromos = filteredPromos.filter((p: any) =>
+            p.code.toLowerCase().includes(s) || (p.event?.title || '').toLowerCase().includes(s)
+        );
+    }
+
+    // Date range filter
+    if (filterDateFrom) {
+        filteredPromos = filteredPromos.filter((p: any) => p.end_date.split(' ')[0] >= filterDateFrom);
+    }
+    if (filterDateTo) {
+        filteredPromos = filteredPromos.filter((p: any) => p.end_date.split(' ')[0] <= filterDateTo);
+    }
+
+    // Sort
+    if (sort) {
+        const sortKeyMap: Record<string, (p: any) => any> = {
+            'code': (p) => p.code,
+            'event': (p) => p.event?.title || '',
+            'discount': (p) => p.discount_amount,
+            'quota': (p) => p.quota,
+            'end_date': (p) => p.end_date,
+        };
+        const getKey = sortKeyMap[sort] || (() => 0);
+        filteredPromos.sort((a: any, b: any) => {
+            const aVal = getKey(a);
+            const bVal = getKey(b);
+            if (aVal < bVal) return direction === 'asc' ? -1 : 1;
+            if (aVal > bVal) return direction === 'asc' ? 1 : -1;
+            return 0;
+        });
+    }
+
+    const activeAdvancedFilterCount = [filterDateFrom, filterDateTo].filter(Boolean).length;
+
+    const handleApplyFilters = () => {
+        // Client-side: filters already applied reactively
+    };
+
+    const handleClearFilters = () => {
+        setFilterDateFrom('');
+        setFilterDateTo('');
     };
 
     return (
         <DashboardLayout>
-            <Head title="Manajemen Promo" />
+            <Head title="Promotion Management" />
 
             <div className="flex flex-col md:flex-row md:items-center justify-between mb-6 gap-4">
                 <div>
-                    <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Manajemen Promo</h1>
+                    <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Promotion Management</h1>
                     <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
-                        Kelola kode diskon promosi untuk event Anda.
+                        Manage promotional discount codes for your events.
                     </p>
                 </div>
                 <button
@@ -84,66 +167,127 @@ export default function PromotionsIndex({ auth, promotions, events }: any) {
                     className="inline-flex items-center justify-center space-x-2 bg-primary-600 hover:bg-primary-500 text-white font-bold py-2.5 px-6 rounded-xl transition-colors shadow-lg shadow-primary-500/25"
                 >
                     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.5v15m7.5-7.5h-15" /></svg>
-                    <span>Buat Promo Baru</span>
+                    <span>Create New Promo</span>
                 </button>
             </div>
 
-            <div className="bg-white dark:bg-navy-900 rounded-2xl shadow-sm border border-slate-200 dark:border-white/5 overflow-hidden">
-                <div className="overflow-x-auto">
+            {/* Toolbar: Search + AdvancedFilter */}
+            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 mb-6">
+                <div className="relative w-full sm:w-80">
+                    <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 dark:text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z" />
+                    </svg>
+                    <input
+                        type="text"
+                        placeholder="Search promo code or event…"
+                        value={search}
+                        onChange={(e) => setSearch(e.target.value)}
+                        className="w-full rounded-xl border border-slate-200 dark:border-white/10 bg-white dark:bg-white/5 pl-10 pr-4 py-2.5 text-sm text-slate-700 dark:text-slate-300 placeholder-slate-400 dark:placeholder-slate-500 focus:border-primary-500/40 focus:ring-2 focus:ring-primary-500/20 transition"
+                    />
+                </div>
+                <AdvancedFilter activeCount={activeAdvancedFilterCount} onApply={handleApplyFilters} onClear={handleClearFilters}>
+                    <FilterField label="Validity Period">
+                        <FilterDateRange from={filterDateFrom} to={filterDateTo} onFromChange={setFilterDateFrom} onToChange={setFilterDateTo} />
+                    </FilterField>
+                </AdvancedFilter>
+            </div>
+
+            <div className="bg-white dark:bg-navy-900 rounded-2xl shadow-sm border border-slate-200 dark:border-white/5 overflow-visible">
+                <div className="overflow-visible min-w-full">
                     <table className="w-full text-left border-collapse">
                         <thead>
                             <tr className="bg-slate-50 dark:bg-navy-950/50 border-b border-slate-200 dark:border-white/5 text-slate-500 dark:text-slate-400">
-                                <th className="py-4 px-6 text-xs font-bold uppercase tracking-wider">KODE PROMO</th>
-                                <th className="py-4 px-6 text-xs font-bold uppercase tracking-wider">NAMA EVENT</th>
-                                <th className="py-4 px-6 text-xs font-bold uppercase tracking-wider">DISKON</th>
-                                <th className="py-4 px-6 text-xs font-bold uppercase tracking-wider">KUOTA</th>
-                                <th className="py-4 px-6 text-xs font-bold uppercase tracking-wider">MASA BERLAKU</th>
-                                <th className="py-4 px-6 text-xs font-bold uppercase tracking-wider text-right">AKSI</th>
+                                <SortableHeader label="Promo Code" column="code" currentSort={sort} currentDirection={direction} onSort={handleSort} className="py-4 px-6 text-xs font-bold uppercase tracking-wider" />
+                                <SortableHeader label="Event Name" column="event" currentSort={sort} currentDirection={direction} onSort={handleSort} className="py-4 px-6 text-xs font-bold uppercase tracking-wider" />
+                                <SortableHeader label="Discount" column="discount" currentSort={sort} currentDirection={direction} onSort={handleSort} className="py-4 px-6 text-xs font-bold uppercase tracking-wider" />
+                                <SortableHeader label="Quota" column="quota" currentSort={sort} currentDirection={direction} onSort={handleSort} className="py-4 px-6 text-xs font-bold uppercase tracking-wider" />
+                                <SortableHeader label="Validity Period" column="end_date" currentSort={sort} currentDirection={direction} onSort={handleSort} className="py-4 px-6 text-xs font-bold uppercase tracking-wider" />
+                                <th className="py-4 px-6 text-xs font-bold uppercase tracking-wider text-right">Actions</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-200 dark:divide-white/5">
-                            {promotions.length === 0 ? (
+                            {filteredPromos.length === 0 ? (
                                 <tr>
                                     <td colSpan={6} className="py-12 text-center text-slate-500 dark:text-slate-400">
-                                        Belum ada kode promo yang dibuat.
+                                        No promo codes created yet.
                                     </td>
                                 </tr>
                             ) : (
-                                promotions.map((promo: any) => (
+                                filteredPromos.map((promo: any, rowIndex: number) => {
+                                    const totalRows = filteredPromos.length;
+                                    const isNearBottom = totalRows <= 2 || rowIndex >= totalRows - 2;
+                                    return (
                                     <tr key={promo.id} className="hover:bg-slate-50 dark:hover:bg-white/5 transition-colors">
                                         <td className="py-4 px-6">
                                             <span className="inline-block px-3 py-1 bg-primary-500/10 dark:bg-primary-500/20 text-primary-600 dark:text-primary-400 font-bold rounded-lg tracking-wider border border-primary-500/20">
                                                 {promo.code}
                                             </span>
                                         </td>
-                                        <td className="py-4 px-6 text-slate-700 dark:text-slate-300 font-medium">
+                                        <td className="py-4 px-6 text-slate-700 dark:text-slate-300 font-medium whitespace-nowrap">
                                             {promo.event?.title || '-'}
                                         </td>
-                                        <td className="py-4 px-6 text-slate-700 dark:text-slate-300 font-bold text-emerald-500">
-                                            {formatCurrency(promo.discount_amount)}
+                                        <td className="py-4 px-6 font-bold text-emerald-500 dark:text-emerald-400 whitespace-nowrap">
+                                            {formatDiscount(promo)}
                                         </td>
-                                        <td className="py-4 px-6 text-slate-700 dark:text-slate-300">
+                                        <td className="py-4 px-6 text-slate-700 dark:text-slate-300 whitespace-nowrap">
                                             {promo.quota}
                                         </td>
-                                        <td className="py-4 px-6 text-slate-700 dark:text-slate-300 text-sm">
-                                            {promo.start_date.split(' ')[0]} s/d <br/> {promo.end_date.split(' ')[0]}
+                                        <td className="py-4 px-6 text-slate-700 dark:text-slate-300 text-sm whitespace-nowrap">
+                                            {promo.start_date.split(' ')[0]} to <br/> {promo.end_date.split(' ')[0]}
                                         </td>
-                                        <td className="py-4 px-6 text-right space-x-3">
-                                            <button 
-                                                onClick={() => openEditModal(promo)}
-                                                className="text-blue-500 hover:text-blue-400 font-medium text-sm transition-colors"
-                                            >
-                                                Edit
-                                            </button>
-                                            <button 
-                                                onClick={() => handleDelete(promo.id)}
-                                                className="text-red-500 hover:text-red-400 font-medium text-sm transition-colors"
-                                            >
-                                                Hapus
-                                            </button>
+                                        <td className="py-4 px-6 text-right whitespace-nowrap">
+                                            <Menu as="div" className="relative inline-block text-left">
+                                                <div>
+                                                    <Menu.Button className="inline-flex items-center justify-center p-2 rounded-lg text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-white/10 transition-colors">
+                                                        <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                                                            <circle cx="12" cy="6" r="2" />
+                                                            <circle cx="12" cy="12" r="2" />
+                                                            <circle cx="12" cy="18" r="2" />
+                                                        </svg>
+                                                    </Menu.Button>
+                                                </div>
+                                                <Transition
+                                                    as={Fragment}
+                                                    enter="transition ease-out duration-100"
+                                                    enterFrom="transform opacity-0 scale-95"
+                                                    enterTo="transform opacity-100 scale-100"
+                                                    leave="transition ease-in duration-75"
+                                                    leaveFrom="transform opacity-100 scale-100"
+                                                    leaveTo="transform opacity-0 scale-95"
+                                                >
+                                                    <Menu.Items className={`absolute right-0 z-50 w-36 origin-top-right rounded-xl bg-white dark:bg-navy-900 border border-slate-200 dark:border-white/10 shadow-lg focus:outline-none ${isNearBottom ? 'bottom-full mb-2' : 'mt-2'}`}>
+                                                        <div className="py-1">
+                                                            <Menu.Item>
+                                                                {({ active }) => (
+                                                                    <button
+                                                                        onClick={() => openEditModal(promo)}
+                                                                        className={`${
+                                                                            active ? 'bg-slate-50 dark:bg-white/5' : ''
+                                                                        } flex items-center gap-2 px-4 py-2 text-sm text-slate-700 dark:text-slate-300 w-full text-left`}
+                                                                    >
+                                                                        Edit
+                                                                    </button>
+                                                                )}
+                                                            </Menu.Item>
+                                                            <Menu.Item>
+                                                                {({ active }) => (
+                                                                    <button
+                                                                        onClick={() => handleDelete(promo.id)}
+                                                                        className={`${
+                                                                            active ? 'bg-red-50 dark:bg-red-500/10' : ''
+                                                                        } flex items-center gap-2 px-4 py-2 text-sm text-red-600 dark:text-red-400 w-full text-left`}
+                                                                    >
+                                                                        Delete
+                                                                    </button>
+                                                                )}
+                                                            </Menu.Item>
+                                                        </div>
+                                                    </Menu.Items>
+                                                </Transition>
+                                            </Menu>
                                         </td>
                                     </tr>
-                                ))
+                                )})
                             )}
                         </tbody>
                     </table>
@@ -154,18 +298,18 @@ export default function PromotionsIndex({ auth, promotions, events }: any) {
             <Modal show={isModalOpen} onClose={closeModal} maxWidth="md">
                 <div className="p-6 bg-white dark:bg-navy-900 rounded-xl">
                     <h2 className="text-xl font-bold text-slate-900 dark:text-white mb-6">
-                        {isEditMode ? 'Edit Kode Promo' : 'Buat Kode Promo Baru'}
+                        {isEditMode ? 'Edit Promo Code' : 'Create New Promo Code'}
                     </h2>
-                    
+
                     <form onSubmit={handleSubmit} className="space-y-4">
                         <div>
-                            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Pilih Event</label>
+                            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Select Event</label>
                             <select
                                 value={data.event_id}
                                 onChange={e => setData('event_id', e.target.value)}
                                 className="w-full rounded-xl border-slate-300 dark:border-white/10 dark:bg-navy-800 dark:text-white focus:border-primary-500 focus:ring-primary-500"
                             >
-                                <option value="">-- Pilih Event --</option>
+                                <option value="">-- Select Event --</option>
                                 {events.map((event: any) => (
                                     <option key={event.id} value={event.id}>{event.title}</option>
                                 ))}
@@ -174,12 +318,12 @@ export default function PromotionsIndex({ auth, promotions, events }: any) {
                         </div>
 
                         <div>
-                            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Kode Promo</label>
+                            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Promo Code</label>
                             <input
                                 type="text"
                                 value={data.code}
                                 onChange={e => setData('code', e.target.value.toUpperCase())}
-                                placeholder="Contoh: PROMO2026"
+                                placeholder="Example: PROMO2026"
                                 className="w-full rounded-xl border-slate-300 dark:border-white/10 dark:bg-navy-800 dark:text-white focus:border-primary-500 focus:ring-primary-500 uppercase"
                             />
                             {errors.code && <p className="text-red-500 text-xs mt-1">{errors.code}</p>}
@@ -187,18 +331,60 @@ export default function PromotionsIndex({ auth, promotions, events }: any) {
 
                         <div className="grid grid-cols-2 gap-4">
                             <div>
-                                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Potongan Harga (Rp)</label>
+                                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Discount Type</label>
+                                <select
+                                    value={data.discount_type}
+                                    onChange={e => setData('discount_type', e.target.value)}
+                                    className="w-full rounded-xl border-slate-300 dark:border-white/10 dark:bg-navy-800 dark:text-white focus:border-primary-500 focus:ring-primary-500"
+                                >
+                                    <option value="fixed">Fixed Amount (Rp)</option>
+                                    <option value="percentage">Percentage (%)</option>
+                                </select>
+                                {errors.discount_type && <p className="text-red-500 text-xs mt-1">{errors.discount_type}</p>}
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+                                    {data.discount_type === 'fixed' ? 'Discount Amount (Rp)' : 'Discount Percentage (%)'}
+                                </label>
                                 <input
                                     type="number"
                                     value={data.discount_amount}
                                     onChange={e => setData('discount_amount', e.target.value)}
-                                    placeholder="50000"
+                                    placeholder={data.discount_type === 'fixed' ? '50000' : '10'}
                                     className="w-full rounded-xl border-slate-300 dark:border-white/10 dark:bg-navy-800 dark:text-white focus:border-primary-500 focus:ring-primary-500"
                                 />
                                 {errors.discount_amount && <p className="text-red-500 text-xs mt-1">{errors.discount_amount}</p>}
                             </div>
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-4">
+                            {data.discount_type === 'percentage' ? (
+                                <div>
+                                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Max Discount (Rp)</label>
+                                    <input
+                                        type="number"
+                                        value={data.max_discount_amount}
+                                        onChange={e => setData('max_discount_amount', e.target.value)}
+                                        placeholder="100000 (Optional)"
+                                        className="w-full rounded-xl border-slate-300 dark:border-white/10 dark:bg-navy-800 dark:text-white focus:border-primary-500 focus:ring-primary-500"
+                                    />
+                                    {errors.max_discount_amount && <p className="text-red-500 text-xs mt-1">{errors.max_discount_amount}</p>}
+                                </div>
+                            ) : (
+                                <div>
+                                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Min Spending (Rp)</label>
+                                    <input
+                                        type="number"
+                                        value={data.min_spending}
+                                        onChange={e => setData('min_spending', e.target.value)}
+                                        placeholder="0 (Optional)"
+                                        className="w-full rounded-xl border-slate-300 dark:border-white/10 dark:bg-navy-800 dark:text-white focus:border-primary-500 focus:ring-primary-500"
+                                    />
+                                    {errors.min_spending && <p className="text-red-500 text-xs mt-1">{errors.min_spending}</p>}
+                                </div>
+                            )}
                             <div>
-                                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Kuota Aktif</label>
+                                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Active Quota</label>
                                 <input
                                     type="number"
                                     value={data.quota}
@@ -210,9 +396,23 @@ export default function PromotionsIndex({ auth, promotions, events }: any) {
                             </div>
                         </div>
 
+                        {data.discount_type === 'percentage' && (
+                            <div>
+                                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Min Spending (Rp)</label>
+                                <input
+                                    type="number"
+                                    value={data.min_spending}
+                                    onChange={e => setData('min_spending', e.target.value)}
+                                    placeholder="0 (Optional)"
+                                    className="w-full rounded-xl border-slate-300 dark:border-white/10 dark:bg-navy-800 dark:text-white focus:border-primary-500 focus:ring-primary-500"
+                                />
+                                {errors.min_spending && <p className="text-red-500 text-xs mt-1">{errors.min_spending}</p>}
+                            </div>
+                        )}
+
                         <div className="grid grid-cols-2 gap-4">
                             <div>
-                                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Tanggal Mulai</label>
+                                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Start Date</label>
                                 <input
                                     type="date"
                                     value={data.start_date}
@@ -222,7 +422,7 @@ export default function PromotionsIndex({ auth, promotions, events }: any) {
                                 {errors.start_date && <p className="text-red-500 text-xs mt-1">{errors.start_date}</p>}
                             </div>
                             <div>
-                                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Tanggal Berakhir</label>
+                                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">End Date</label>
                                 <input
                                     type="date"
                                     value={data.end_date}
@@ -239,14 +439,14 @@ export default function PromotionsIndex({ auth, promotions, events }: any) {
                                 onClick={closeModal}
                                 className="px-5 py-2.5 rounded-xl text-slate-700 dark:text-slate-300 font-medium hover:bg-slate-100 dark:hover:bg-white/5 transition-colors"
                             >
-                                Batal
+                                Cancel
                             </button>
                             <button
                                 type="submit"
                                 disabled={processing}
                                 className="bg-primary-600 hover:bg-primary-500 text-white px-5 py-2.5 rounded-xl font-medium transition-colors disabled:opacity-50"
                             >
-                                {isEditMode ? 'Simpan Perubahan' : 'Buat Promo'}
+                                {isEditMode ? 'Save Changes' : 'Create Promo'}
                             </button>
                         </div>
                     </form>

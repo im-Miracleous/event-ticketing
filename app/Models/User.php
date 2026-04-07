@@ -79,15 +79,19 @@ class User extends Authenticatable implements MustVerifyEmail
         ];
     }
 
+    public function organizer() {
+        return $this->hasOne(Organizer::class, 'user_id');
+    }
+
     public function transactions() {
-        return $this->hasMany(Transaction::class, 'users_user_id', 'user_id');
+        return $this->hasMany(Transaction::class, 'user_id');
     }
 
     public function events() {
-        return $this->belongsToMany(Event::class, 'Register', 'users_user_id', 'events_event_id');
+        return $this->belongsToMany(Event::class, 'registrations', 'user_id', 'event_id');
     }
 
     public function waitingLists() {
-        return $this->belongsToMany(WaitingList::class, 'Register Waiting_List', 'users_user_id', 'waiting_list_waitinglist_id');
+        return $this->belongsToMany(WaitingList::class, 'waiting_list_registrations', 'user_id', 'waiting_list_id');
     }
 }
