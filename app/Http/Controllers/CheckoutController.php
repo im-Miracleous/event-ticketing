@@ -153,6 +153,8 @@ class CheckoutController extends Controller
                     Attendee::create([
                         'name' => $attendeeData['name'],
                         'email' => $attendeeData['email'],
+                        'phone_number' => $attendeeData['phone_number'] ?? '000000000',
+                        'identity_number' => $attendeeData['identity_number'] ?? '000000000',
                         'ticket_id' => $ticket->id,
                     ]);
 

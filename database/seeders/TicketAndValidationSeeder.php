@@ -33,6 +33,16 @@ class TicketAndValidationSeeder extends Seeder
                         'ticket_type_id'        => $detail->ticket_type_id,
                     ]);
 
+                    // Add attendee for each ticket
+                    $user = $detail->transaction->user;
+                    \App\Models\Attendee::create([
+                        'name'            => $user->name ?? fake()->name(),
+                        'email'           => $user->email ?? fake()->safeEmail(),
+                        'phone_number'    => fake()->phoneNumber(),
+                        'identity_number' => fake()->numerify('################'),
+                        'ticket_id'       => $ticket->id,
+                    ]);
+
                     // Add validation log for used tickets
                     if ($ticketStatus === 'Used') {
                         ValidationLog::create([
