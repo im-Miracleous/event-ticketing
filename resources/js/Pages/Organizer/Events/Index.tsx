@@ -42,11 +42,11 @@ export default function Index({ events, filters }: any) {
 
     const statusColor = (status: string) => {
         switch (status) {
-            case 'Active':    return 'bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 ring-1 ring-emerald-500/20';
-            case 'Draft':     return 'bg-slate-100 dark:bg-white/5 text-slate-500 dark:text-slate-400 ring-1 ring-slate-200 dark:ring-white/10';
+            case 'Active': return 'bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 ring-1 ring-emerald-500/20';
+            case 'Draft': return 'bg-slate-100 dark:bg-white/5 text-slate-500 dark:text-slate-400 ring-1 ring-slate-200 dark:ring-white/10';
             case 'Cancelled': return 'bg-red-50 dark:bg-red-500/10 text-red-500 dark:text-red-400 ring-1 ring-red-500/20';
             case 'Completed': return 'bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400 ring-1 ring-blue-500/20';
-            default:          return '';
+            default: return '';
         }
     };
 
@@ -128,11 +128,10 @@ export default function Index({ events, filters }: any) {
                         <button
                             key={tab.value}
                             onClick={() => handleTabChange(tab.value)}
-                            className={`px-4 py-2.5 text-sm font-bold transition-colors relative ${
-                                activeTab === tab.value
-                                    ? 'text-primary-600 dark:text-primary-400'
-                                    : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
-                            }`}
+                            className={`px-4 py-2.5 text-sm font-bold transition-colors relative ${activeTab === tab.value
+                                ? 'text-primary-600 dark:text-primary-400'
+                                : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                                }`}
                         >
                             {tab.label}
                             {activeTab === tab.value && (
@@ -217,7 +216,7 @@ export default function Index({ events, filters }: any) {
                                                     {openMenuId === event.id && (
                                                         <>
                                                             <div className="fixed inset-0 z-40" onClick={() => setOpenMenuId(null)} />
-                                                            <div className={`absolute right-0 z-50 w-48 bg-white dark:bg-navy-800 border border-slate-200 dark:border-white/10 rounded-xl shadow-xl py-1 ${isNearBottom ? 'bottom-full mb-1' : 'top-full mt-1'}`}>
+                                                            <div className={`absolute right-0 z-50 w-48 bg-white dark:bg-navy-800 border border-slate-200 dark:border-white/10 rounded-xl shadow-xl py-1 text-left ${isNearBottom ? 'bottom-full mb-1' : 'top-full mt-1'}`}>
                                                                 <Link
                                                                     href={route('organizer.events.show', event.id)}
                                                                     className="block px-4 py-2 text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-white/5"
@@ -286,11 +285,10 @@ export default function Index({ events, filters }: any) {
                                 key={i}
                                 onClick={() => link.url && router.get(link.url, {}, { preserveState: true })}
                                 disabled={!link.url}
-                                className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-colors ${
-                                    link.active
-                                        ? 'bg-primary-600 text-white'
-                                        : 'text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-white/5'
-                                } disabled:opacity-30 disabled:cursor-not-allowed`}
+                                className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-colors ${link.active
+                                    ? 'bg-primary-600 text-white'
+                                    : 'text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-white/5'
+                                    } disabled:opacity-30 disabled:cursor-not-allowed`}
                                 dangerouslySetInnerHTML={{ __html: link.label }}
                             />
                         ))}
@@ -320,9 +318,8 @@ export default function Index({ events, filters }: any) {
                         <SecondaryButton onClick={closeConfirmModal}>Cancel</SecondaryButton>
                         <button
                             onClick={handleConfirmAction}
-                            className={`px-4 py-2 text-sm font-medium text-white rounded-xl transition-colors ${
-                                confirmModal.action === 'complete' ? 'bg-blue-600 hover:bg-blue-500' : 'bg-red-600 hover:bg-red-500'
-                            }`}
+                            className={`px-4 py-2 text-sm font-medium text-white rounded-xl transition-colors ${confirmModal.action === 'complete' ? 'bg-blue-600 hover:bg-blue-500' : 'bg-red-600 hover:bg-red-500'
+                                }`}
                         >
                             {confirmModal.action === 'complete' ? 'Mark as Completed' : 'Cancel Event'}
                         </button>
