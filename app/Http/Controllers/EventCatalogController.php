@@ -4,7 +4,9 @@ namespace App\Http\Controllers;
 
 use App\Models\Event;
 use App\Models\EventCategory;
+use App\Models\Wishlist;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 
 use Inertia\Inertia;
 
@@ -23,9 +25,9 @@ class EventCatalogController extends Controller
         // Search by title or description
         if ($request->filled('search')) {
             $search = $request->input('search');
-            $query->where(function($q) use ($search) {
+            $query->where(function ($q) use ($search) {
                 $q->where('title', 'like', "%{$search}%")
-                  ->orWhere('description', 'like', "%{$search}%");
+                    ->orWhere('description', 'like', "%{$search}%");
             });
         }
 
@@ -46,12 +48,12 @@ class EventCatalogController extends Controller
 
         // Filter by price range
         if ($request->filled('price_min')) {
-            $query->whereHas('ticketTypes', function($q) use ($request) {
+            $query->whereHas('ticketTypes', function ($q) use ($request) {
                 $q->where('price', '>=', $request->input('price_min'));
             });
         }
         if ($request->filled('price_max')) {
-            $query->whereHas('ticketTypes', function($q) use ($request) {
+            $query->whereHas('ticketTypes', function ($q) use ($request) {
                 $q->where('price', '<=', $request->input('price_max'));
             });
         }
@@ -82,11 +84,11 @@ class EventCatalogController extends Controller
 
         // Sorting
         $sortMapping = [
-            'date_asc'   => ['event_date', 'asc'],
-            'date_desc'  => ['event_date', 'desc'],
-            'price_asc'  => ['price', 'asc'], // Note: need to handle this specially if it's in ticketTypes
+            'date_asc' => ['event_date', 'asc'],
+            'date_desc' => ['event_date', 'desc'],
+            'price_asc' => ['price', 'asc'],
             'price_desc' => ['price', 'desc'],
-            'popular'    => ['total_quota', 'desc'], // placeholder for popularity
+            'popular' => ['total_quota', 'desc'],
         ];
 
         $sort = $request->input('sort', 'date_asc');
@@ -95,7 +97,10 @@ class EventCatalogController extends Controller
         }
 
         $events = $query->paginate(12)->withQueryString();
-        
+        if ($request->wantsJson()) {
+            return response()->json($events);
+        }
+
         // Fetch trending events for carousel
         $trendingEvents = Event::where('status', 'Active')
             ->with(['category', 'ticketTypes'])
@@ -105,12 +110,20 @@ class EventCatalogController extends Controller
 
         $categories = EventCategory::all();
 
+        // Get user's wishlisted event IDs
+        $savedEventIds = [];
+        if (Auth::check()) {
+            $savedEventIds = Wishlist::where('user_id', Auth::id())
+                ->pluck('event_id')
+                ->toArray();
+        }
+
         return Inertia::render('Events/Index', [
             'events' => $events,
             'trendingEvents' => $trendingEvents,
             'categories' => $categories,
             'filters' => $request->only(['search', 'category', 'location', 'format', 'price_min', 'price_max', 'time', 'date_from', 'date_to', 'sort']),
+            'savedEventIds' => $savedEventIds,
         ]);
     }
 }
-

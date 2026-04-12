@@ -118,6 +118,12 @@ const ServerIcon = (
     </svg>
 );
 
+const ArchiveIcon = (
+    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4" />
+    </svg>
+);
+
 const UserSettingsIcon = (
     <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
         <path strokeLinecap="round" strokeLinejoin="round" d="M17.982 18.725A7.488 7.488 0 0 0 12 15.75a7.488 7.488 0 0 0-5.982 2.975m11.963 0a9 9 0 1 0-11.963 0m11.963 0A8.966 8.966 0 0 1 12 21a8.966 8.966 0 0 1-5.982-2.275M15 9.75a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" />
@@ -135,7 +141,7 @@ const adminNavItems: NavItem[] = [
     { label: 'System Dashboard', href: '/admin/dashboard', routeName: 'admin.dashboard', icon: DashboardIcon },
     { label: 'Discover Events', href: '/events', routeName: 'events.index', icon: SearchIcon },
     { label: 'All Events', href: '/admin/events', routeName: 'admin.events.index', icon: EventsIcon },
-    { label: 'Create Event', href: '/admin/events/create', routeName: 'admin.events.create', icon: CreateIcon },
+    // { label: 'Create Event', href: '/admin/events/create', routeName: 'admin.events.create', icon: CreateIcon },
     { label: 'Event Categories', href: '/admin/categories', routeName: 'admin.categories.*', icon: CategoryIcon },
     { label: 'User Management', href: '/admin/users', routeName: 'admin.users.*', icon: UsersIcon },
     { label: 'Financial Overview', href: '/admin/finance', routeName: 'admin.finance.*', icon: FinanceIcon },
@@ -152,9 +158,10 @@ const organizerNavItems: NavItem[] = [
     { label: 'Organizer Dashboard', href: '/organizer/dashboard', routeName: 'organizer.dashboard', icon: DashboardIcon },
     { label: 'Discover Events', href: '/events', routeName: 'events.index', icon: SearchIcon },
     { label: 'My Events', href: '/organizer/events', routeName: 'organizer.events.*', icon: EventsIcon },
-    { label: 'Validate Tickets', href: '/organizer/check-in', routeName: 'organizer.check-in', icon: ValidationIcon },
+    { label: 'Gate Management', href: '/organizer/check-in', routeName: 'organizer.check-in', icon: ValidationIcon },
     { label: 'Attendee Management', href: '/organizer/attendees', routeName: 'organizer.attendees.*', icon: UsersIcon },
     { label: 'Promotions', href: '/organizer/promotions', routeName: 'organizer.promotions.*', icon: PromotionIcon },
+    { label: 'Transaction Monitor', href: '/organizer/transactions', routeName: 'organizer.transactions.*', icon: TicketIcon },
     { label: 'Earnings', href: '/organizer/earnings', routeName: 'organizer.earnings.*', icon: EarningsIcon },
 ];
 

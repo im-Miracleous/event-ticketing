@@ -1,6 +1,8 @@
 import { Head, Link, router } from '@inertiajs/react';
 import DashboardLayout from '@/Layouts/DashboardLayout';
 import { useState, useCallback, useEffect } from 'react';
+import axios from 'axios';
+import debounce from 'lodash/debounce';
 
 interface Category {
     id: number;
@@ -62,6 +64,7 @@ interface Filters {
     date_from?: string;
     date_to?: string;
     sort?: string;
+    page?: number;
 }
 
 interface Props {
@@ -69,12 +72,13 @@ interface Props {
     trendingEvents: EventItem[];
     categories: Category[];
     filters: Filters;
+    savedEventIds: (string | number)[];
 }
 
 const SORT_OPTIONS = [
-    { value: 'date_asc',   label: 'Nearest' },
-    { value: 'popular',    label: 'Most Popular' },
-    { value: 'price_asc',  label: 'Lowest Price' },
+    { value: 'date_asc', label: 'Nearest' },
+    { value: 'popular', label: 'Most Popular' },
+    { value: 'price_asc', label: 'Lowest Price' },
     { value: 'price_desc', label: 'Highest Price' },
 ];
 
@@ -113,15 +117,14 @@ const PinIcon = () => (
 );
 
 // ─── Event Card Component ──────────────────────────────────────────────────
-function EventCard({ event }: { event: EventItem }) {
-    const minPrice = event.ticket_types?.length > 0 
-        ? Math.min(...event.ticket_types.map(t => Number(t.price))) 
+function EventCard({ event, isSaved, onToggleSave }: { event: EventItem; isSaved: boolean; onToggleSave: () => void }) {
+    const minPrice = event.ticket_types?.length > 0
+        ? Math.min(...event.ticket_types.map(t => Number(t.price)))
         : 0;
-    
+
     const fallbackImg = `https://images.unsplash.com/photo-1501281668745-f7f57925c3b4?q=80&w=800&auto=format&fit=crop`;
-    
+
     const isSoldOut = event.ticket_types?.every(t => t.available_stock === 0) ?? false;
-    const isEarlyBird = event.id.includes('early'); // dummy logic for badge
 
     return (
         <div className="group relative bg-white dark:bg-slate-900/40 rounded-[2rem] overflow-hidden border border-slate-200 dark:border-slate-800 hover:border-violet-500/50 shadow-sm hover:shadow-2xl hover:shadow-violet-500/10 transition-all duration-500">
@@ -133,7 +136,7 @@ function EventCard({ event }: { event: EventItem }) {
                     className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
                 />
                 <div className="absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-black/80 to-transparent pointer-events-none" />
-                
+
                 {/* Badges */}
                 <div className="absolute top-4 left-4 flex flex-wrap gap-2">
                     {event.category && (
@@ -141,14 +144,24 @@ function EventCard({ event }: { event: EventItem }) {
                             {event.category.name}
                         </span>
                     )}
-                    {isSoldOut ? (
+                    {isSoldOut && (
                         <span className="px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider bg-red-500 text-white">Sold Out</span>
-                    ) : isEarlyBird ? (
-                        <span className="px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider bg-amber-500 text-white">Early Bird</span>
-                    ) : (
-                        <span className="px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider bg-emerald-500 text-white">New</span>
                     )}
                 </div>
+
+                {/* Save/Bookmark Button */}
+                <button
+                    onClick={(e) => { e.preventDefault(); e.stopPropagation(); onToggleSave(); }}
+                    className={`absolute top-4 right-4 p-2.5 rounded-xl backdrop-blur-md transition-all duration-300 ${isSaved
+                            ? 'bg-violet-600 text-white shadow-lg shadow-violet-500/40'
+                            : 'bg-black/30 text-white/80 hover:bg-violet-600 hover:text-white'
+                        }`}
+                    title={isSaved ? 'Hapus dari simpan' : 'Simpan event'}
+                >
+                    <svg className="w-4 h-4" fill={isSaved ? 'currentColor' : 'none'} viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M17.593 3.322c1.1.128 1.907 1.077 1.907 2.185V21L12 17.25 4.5 21V5.507c0-1.108.806-2.057 1.907-2.185a48.507 48.507 0 0 1 11.186 0Z" />
+                    </svg>
+                </button>
 
                 <div className="absolute bottom-4 left-4 right-4 flex items-center justify-between">
                     <div className="flex items-center gap-1.5 text-white">
@@ -182,7 +195,7 @@ function EventCard({ event }: { event: EventItem }) {
                         </span>
                     </div>
                     <Link
-                        href={`/events/${event.id}`}
+                        href={`/events/${event.id}/checkout`}
                         className="p-3 rounded-2xl bg-slate-900 dark:bg-white text-white dark:text-slate-900 hover:bg-violet-600 dark:hover:bg-violet-400 transition-colors"
                     >
                         <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
@@ -196,19 +209,65 @@ function EventCard({ event }: { event: EventItem }) {
 }
 
 // ─── Main Catalog Page ──────────────────────────────────────────────────────
-export default function EventCatalog({ events, trendingEvents, categories, filters }: Props) {
+export default function EventCatalog({ events, trendingEvents, categories, filters, savedEventIds = [] }: Props) {
+    const [savedIds, setSavedIds] = useState<(string | number)[]>(savedEventIds);
+
+    const toggleSave = (eventId: string | number) => {
+        setSavedIds(prev => prev.includes(eventId) ? prev.filter(id => id !== eventId) : [...prev, eventId]);
+        router.post('/saved-events/toggle', { event_id: eventId }, { preserveScroll: true, preserveState: true });
+    };
     const [search, setSearch] = useState(filters.search ?? '');
     const [activeTab, setActiveTab] = useState(filters.category ?? 'all');
 
+    const [localEvents, setLocalEvents] = useState<PaginatedEvents>(events);
+    const [currentFilters, setCurrentFilters] = useState<Filters>(filters);
+    const [isLoading, setIsLoading] = useState(false);
+
+    const fetchEvents = async (params: Filters) => {
+        setIsLoading(true);
+        try {
+            const cleanParams: any = {};
+            Object.keys(params).forEach(key => {
+                if (params[key as keyof Filters] !== undefined && params[key as keyof Filters] !== '') {
+                    cleanParams[key] = params[key as keyof Filters];
+                }
+            });
+            const res = await axios.get('/events', { params: cleanParams, headers: { 'Accept': 'application/json' } });
+            
+            // Re-sync local events
+            setLocalEvents(res.data);
+
+            const newUrl = new URL(window.location.href);
+            newUrl.search = new URLSearchParams(cleanParams).toString();
+            window.history.replaceState({}, '', newUrl);
+        } catch (error) {
+            console.error(error);
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    const debouncedFetch = useCallback(
+        debounce((params: Filters) => {
+            fetchEvents(params);
+        }, 500),
+        []
+    );
+
+    // Skip the very first render since `events` is already passed via props
+    const [isInitialMount, setIsInitialMount] = useState(true);
+
+    useEffect(() => {
+        if (isInitialMount) {
+            setIsInitialMount(false);
+        } else {
+            debouncedFetch(currentFilters);
+        }
+        return () => debouncedFetch.cancel();
+    }, [currentFilters, debouncedFetch]);
+
     const updateFilter = (newFilters: Partial<Filters>) => {
-        const currentParams = { ...filters, ...newFilters };
-        const cleanParams: any = {};
-        Object.keys(currentParams).forEach(key => {
-            if (currentParams[key as keyof Filters] !== undefined && currentParams[key as keyof Filters] !== '') {
-                cleanParams[key] = currentParams[key as keyof Filters];
-            }
-        });
-        router.get('/events', cleanParams, { preserveState: true, replace: true });
+        setCurrentFilters(prev => ({ ...prev, ...newFilters, page: undefined }));
     };
 
     return (
@@ -244,13 +303,16 @@ export default function EventCatalog({ events, trendingEvents, categories, filte
                                     type="text"
                                     value={search}
                                     onChange={e => setSearch(e.target.value)}
-                                    onKeyDown={e => e.key === 'Enter' && updateFilter({ search })}
+                                    onKeyDown={e => e.key === 'Enter' && router.get('/search', { q: search })}
                                     placeholder="Find your favorite events..."
                                     className="w-full bg-transparent border-none focus:ring-0 text-slate-900 dark:text-white placeholder-slate-500 py-3 text-lg font-medium"
                                 />
                             </div>
                             <button 
-                                onClick={() => updateFilter({ search })}
+                                onClick={() => {
+                                    updateFilter({ search });
+                                    router.get('/search', { q: search });
+                                }}
                                 className="bg-slate-900 dark:bg-violet-600 hover:bg-violet-700 text-white px-8 py-3 rounded-[1.5rem] font-bold transition-all transform hover:scale-[1.02] active:scale-[0.98]"
                             >
                                 Search
@@ -269,7 +331,7 @@ export default function EventCatalog({ events, trendingEvents, categories, filte
                             Trending Events
                         </h2>
                     </div>
-                    
+
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 pb-4 overflow-x-auto no-scrollbar">
                         {trendingEvents.slice(0, 2).map(event => (
                             <div key={event.id} className="relative h-[300px] rounded-[2.5rem] overflow-hidden group cursor-pointer border border-white/10 shadow-lg">
@@ -292,26 +354,24 @@ export default function EventCatalog({ events, trendingEvents, categories, filte
             {/* ── CATEGORY QUICK FILTER ── */}
             <section className="mb-12">
                 <div className="flex items-center gap-4 overflow-x-auto no-scrollbar pb-4">
-                    <button 
+                    <button
                         onClick={() => { setActiveTab('all'); updateFilter({ category: undefined }); }}
-                        className={`flex items-center gap-3 px-6 py-4 rounded-3xl font-bold transition-all whitespace-nowrap ${
-                            activeTab === 'all' 
-                            ? 'bg-violet-600 text-white shadow-xl shadow-violet-500/30' 
-                            : 'bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:border-violet-500'
-                        }`}
+                        className={`flex items-center gap-3 px-6 py-4 rounded-3xl font-bold transition-all whitespace-nowrap ${activeTab === 'all'
+                                ? 'bg-violet-600 text-white shadow-xl shadow-violet-500/30'
+                                : 'bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:border-violet-500'
+                            }`}
                     >
                         {CATEGORY_ICONS.Default}
                         All Events
                     </button>
                     {categories.map(cat => (
-                        <button 
+                        <button
                             key={cat.id}
                             onClick={() => { setActiveTab(cat.id); updateFilter({ category: cat.id }); }}
-                            className={`flex items-center gap-3 px-6 py-4 rounded-3xl font-bold transition-all whitespace-nowrap ${
-                                String(activeTab) === String(cat.id)
-                                ? 'bg-violet-600 text-white shadow-xl shadow-violet-500/30' 
-                                : 'bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:border-violet-500'
-                            }`}
+                            className={`flex items-center gap-3 px-6 py-4 rounded-3xl font-bold transition-all whitespace-nowrap ${String(activeTab) === String(cat.id)
+                                    ? 'bg-violet-600 text-white shadow-xl shadow-violet-500/30'
+                                    : 'bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:border-violet-500'
+                                }`}
                         >
                             {CATEGORY_ICONS[cat.name] || CATEGORY_ICONS.Default}
                             {cat.name}
@@ -335,11 +395,11 @@ export default function EventCatalog({ events, trendingEvents, categories, filte
                             <h4 className="text-xs font-black text-slate-400 uppercase tracking-widest mb-4">Event Format</h4>
                             <div className="flex gap-2">
                                 {['Online', 'Offline'].map(f => (
-                                    <button 
+                                    <button
                                         key={f}
-                                        onClick={() => updateFilter({ format: filters.format === f ? undefined : f })}
+                                        onClick={() => updateFilter({ format: currentFilters.format === f ? undefined : f })}
                                         className={`flex-1 py-2 rounded-xl text-xs font-bold transition-all ${
-                                            filters.format === f 
+                                            currentFilters.format === f 
                                             ? 'bg-violet-600 text-white shadow-lg' 
                                             : 'bg-slate-100 dark:bg-slate-800 text-slate-500 hover:bg-slate-200'
                                         }`}
@@ -355,11 +415,11 @@ export default function EventCatalog({ events, trendingEvents, categories, filte
                             <h4 className="text-xs font-black text-slate-400 uppercase tracking-widest mb-4">When</h4>
                             <div className="grid grid-cols-2 gap-2">
                                 {['today', 'tomorrow', 'week'].map(t => (
-                                    <button 
+                                    <button
                                         key={t}
-                                        onClick={() => updateFilter({ time: filters.time === t ? undefined : t })}
+                                        onClick={() => updateFilter({ time: currentFilters.time === t ? undefined : t })}
                                         className={`py-2 rounded-xl text-xs font-bold capitalize transition-all ${
-                                            filters.time === t 
+                                            currentFilters.time === t 
                                             ? 'bg-violet-600 text-white' 
                                             : 'bg-slate-100 dark:bg-slate-800 text-slate-500'
                                         }`}
@@ -374,18 +434,18 @@ export default function EventCatalog({ events, trendingEvents, categories, filte
                         <div className="text-left">
                             <h4 className="text-xs font-black text-slate-400 uppercase tracking-widest mb-4">Price Range</h4>
                             <div className="space-y-4">
-                                <input 
-                                    type="range" 
-                                    min="0" 
-                                    max="5000000" 
+                                <input
+                                    type="range"
+                                    min="0"
+                                    max="5000000"
                                     step="50000"
-                                    value={filters.price_max || 5000000}
+                                    value={currentFilters.price_max || 5000000}
                                     onChange={e => updateFilter({ price_max: e.target.value })}
                                     className="w-full h-1.5 bg-slate-200 dark:bg-slate-800 rounded-lg appearance-none cursor-pointer accent-violet-600"
                                 />
                                 <div className="flex justify-between text-[10px] font-black text-slate-500 uppercase">
                                     <span>Rp 0</span>
-                                    <span>Max {formatCurrency(Number(filters.price_max) || 5000000)}</span>
+                                    <span>Max {formatCurrency(Number(currentFilters.price_max) || 5000000)}</span>
                                 </div>
                             </div>
                         </div>
@@ -396,10 +456,10 @@ export default function EventCatalog({ events, trendingEvents, categories, filte
                 <div className="flex-1">
                     <div className="flex items-center justify-between mb-8">
                         <p className="text-slate-500 font-medium whitespace-nowrap overflow-hidden text-ellipsis">
-                            <span className="font-black text-slate-900 dark:text-white">{events.total}</span> events matching your vibe
+                            <span className="font-black text-slate-900 dark:text-white">{localEvents.total}</span> events matching your vibe
                         </p>
                         <select 
-                            value={filters.sort || 'date_asc'}
+                            value={currentFilters.sort || 'date_asc'}
                             onChange={e => updateFilter({ sort: e.target.value })}
                             className="bg-transparent border-none text-sm font-black text-violet-600 focus:ring-0 cursor-pointer"
                         >
@@ -409,10 +469,10 @@ export default function EventCatalog({ events, trendingEvents, categories, filte
                         </select>
                     </div>
 
-                    <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-8">
-                        {events.data.length > 0 ? (
-                            events.data.map(event => (
-                                <EventCard key={event.id} event={event} />
+                    <div className={`grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-8 transition-opacity duration-300 ${isLoading ? 'opacity-50' : 'opacity-100'}`}>
+                        {localEvents.data.length > 0 ? (
+                            localEvents.data.map(event => (
+                                <EventCard key={event.id} event={event} isSaved={savedIds.includes(event.id)} onToggleSave={() => toggleSave(event.id)} />
                             ))
                         ) : (
                             <div className="col-span-full py-20 text-center">
@@ -427,13 +487,23 @@ export default function EventCatalog({ events, trendingEvents, categories, filte
                     </div>
 
                     {/* Load More */}
-                    {events.current_page < events.last_page && (
+                    {localEvents.current_page < localEvents.last_page && (
                         <div className="mt-16 flex justify-center">
                            <button 
-                                onClick={() => router.visit(events.links[events.current_page + 1].url || '', { preserveState: true })}
+                                onClick={async () => {
+                                    setIsLoading(true);
+                                    try {
+                                        const cleanParams: any = { ...currentFilters, page: localEvents.current_page + 1 };
+                                        const res = await axios.get('/events', { params: cleanParams, headers: { 'Accept': 'application/json' } });
+                                        setLocalEvents(prev => ({
+                                            ...res.data,
+                                            data: [...prev.data, ...res.data.data]
+                                        }));
+                                    } catch(e) { console.error(e); } finally { setIsLoading(false); }
+                                }}
                                 className="px-10 py-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white rounded-[1.5rem] font-black hover:border-violet-500 transition-all shadow-xl shadow-slate-200/50 dark:shadow-none"
                             >
-                                Load More Events
+                                {isLoading ? 'Loading...' : 'Load More Events'}
                             </button>
                         </div>
                     )}

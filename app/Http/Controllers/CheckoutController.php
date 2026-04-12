@@ -12,6 +12,7 @@ use App\Models\Ticket;
 use App\Models\Attendee;
 use App\Mail\BookingPendingMail;
 use App\Mail\ETicketMail;
+use App\Services\DokuService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -34,21 +35,21 @@ class CheckoutController extends Controller
     }
 
     /**
-     * Store a new booking (lock stock, create pending transaction).
+     * Store a new booking (lock stock, create pending transaction, create DOKU payment).
      */
-    public function store(Request $request)
+    public function store(Request $request, DokuService $dokuService)
     {
         $request->validate([
-            'event_id'         => 'required|string|exists:events,id',
-            'items'            => 'required|array|min:1',
+            'event_id' => 'required|string|exists:events,id',
+            'items' => 'required|array|min:1',
             'items.*.ticket_type_id' => 'required|integer|exists:tickets_types,id',
             'items.*.quantity' => 'required|integer|min:1|max:10',
-            'attendees'        => 'required|array',
-            'attendees.*.name'  => 'required|string|max:100',
+            'attendees' => 'required|array',
+            'attendees.*.name' => 'required|string|max:100',
             'attendees.*.email' => 'required|email|max:100',
         ]);
 
-        $result = DB::transaction(function () use ($request) {
+        $result = DB::transaction(function () use ($request, $dokuService) {
             $totalAmount = 0;
             $resolvedItems = [];
 
@@ -66,30 +67,61 @@ class CheckoutController extends Controller
                 $totalAmount += $subtotal;
 
                 $resolvedItems[] = [
-                    'ticket_type'  => $ticketType,
-                    'quantity'     => $item['quantity'],
-                    'subtotal'     => $subtotal,
+                    'ticket_type' => $ticketType,
+                    'quantity' => $item['quantity'],
+                    'subtotal' => $subtotal,
                 ];
+            }
+
+            $transactionId = 'TRX-' . strtoupper(Str::random(12));
+            $expiryMinutes = config('doku.expiry_minutes', 60);
+            $expiresAt = now()->addMinutes($expiryMinutes);
+
+            // Attempt to create DOKU payment
+            $dokuResponse = null;
+            $dokuPaymentUrl = null;
+            $dokuVaNumber = null;
+            $isDokuEnabled = !empty(config('doku.client_id')) && !empty(config('doku.secret_key'));
+
+            if ($isDokuEnabled && $totalAmount > 0) {
+                $user = Auth::user();
+                $dokuResponse = $dokuService->createVirtualAccount([
+                    'invoice_number' => $transactionId,
+                    'amount' => (int) $totalAmount,
+                    'customer_id' => (string) $user->id,
+                    'customer_name' => $user->name,
+                    'customer_email' => $user->email,
+                    'item_name' => 'EventHive Ticket',
+                ]);
+
+                if ($dokuResponse) {
+                    $dokuPaymentUrl = $dokuResponse['response']['payment']['url'] ?? null;
+                    $dokuVaNumber = $dokuResponse['response']['payment']['virtual_account_number']
+                        ?? $dokuResponse['virtual_account_info']['virtual_account_number']
+                        ?? null;
+                }
             }
 
             // Create payment record
             $payment = Payment::create([
-                'payment_method'   => 'Transfer',
-                'payment_status'   => 'Pending',
+                'payment_method' => 'Transfer',
+                'payment_status' => 'Pending',
                 'transaction_time' => now(),
+                'doku_invoice_number' => $isDokuEnabled ? $transactionId : null,
+                'doku_payment_url' => $dokuPaymentUrl,
+                'doku_va_number' => $dokuVaNumber,
+                'doku_raw_response' => $dokuResponse,
             ]);
-
-            $expiresAt = now()->addMinutes(15);
 
             // Create transaction
             $transaction = Transaction::create([
-                'id'                 => 'TRX-' . strtoupper(Str::random(12)),
-                'total_amount'       => $totalAmount,
+                'id' => $transactionId,
+                'total_amount' => $totalAmount,
                 'transaction_status' => 'Pending',
-                'user_id'            => Auth::id(),
-                'payment_id'         => $payment->id,
-                'event_id'           => $request->event_id,
-                'expires_at'         => $expiresAt,
+                'user_id' => Auth::id(),
+                'payment_id' => $payment->id,
+                'event_id' => $request->event_id,
+                'expires_at' => $expiresAt,
             ]);
 
             $attendeeIdx = 0;
@@ -97,30 +129,32 @@ class CheckoutController extends Controller
             // Create TransactionDetails, Tickets, and Attendees
             foreach ($resolvedItems as $item) {
                 $detail = TransactionDetail::create([
-                    'subtotal'       => $item['subtotal'],
-                    'quantity'       => $item['quantity'],
+                    'subtotal' => $item['subtotal'],
+                    'quantity' => $item['quantity'],
                     'transaction_id' => $transaction->id,
                     'ticket_type_id' => $item['ticket_type']->id,
                 ]);
 
                 for ($i = 0; $i < $item['quantity']; $i++) {
                     $ticket = Ticket::create([
-                        'id'                  => 'TKT-' . strtoupper(Str::random(12)),
-                        'qr_code'             => Str::uuid(),
-                        'ticket_status'       => 'Pending',
-                        'issued_at'           => now(),
+                        'id' => 'TKT-' . strtoupper(Str::random(12)),
+                        'qr_code' => Str::uuid(),
+                        'ticket_status' => 'Pending',
+                        'issued_at' => now(),
                         'transaction_detail_id' => $detail->id,
-                        'ticket_type_id'      => $item['ticket_type']->id,
+                        'ticket_type_id' => $item['ticket_type']->id,
                     ]);
 
                     $attendeeData = $request->attendees[$attendeeIdx] ?? [
-                        'name'  => Auth::user()->name,
+                        'name' => Auth::user()->name,
                         'email' => Auth::user()->email,
                     ];
 
                     Attendee::create([
-                        'name'      => $attendeeData['name'],
-                        'email'     => $attendeeData['email'],
+                        'name' => $attendeeData['name'],
+                        'email' => $attendeeData['email'],
+                        'phone_number' => $attendeeData['phone_number'] ?? '000000000',
+                        'identity_number' => $attendeeData['identity_number'] ?? '000000000',
                         'ticket_id' => $ticket->id,
                     ]);
 
@@ -128,21 +162,31 @@ class CheckoutController extends Controller
                 }
             }
 
-            // Dispatch auto-cancel job after 15 minutes
+            // Dispatch auto-cancel job
             CancelExpiredBooking::dispatch($transaction->id)->delay($expiresAt);
 
             // Send Booking Pending Email
             $transaction->load('event');
             Mail::to(Auth::user()->email)->send(new BookingPendingMail($transaction));
 
-            return $transaction;
+            return [
+                'transaction' => $transaction,
+                'doku_payment_url' => $dokuPaymentUrl,
+                'is_doku' => $isDokuEnabled && $totalAmount > 0,
+            ];
         });
 
-        return redirect()->route('checkout.payment', $result->id);
+        // If DOKU is enabled and we got a payment URL, redirect to DOKU
+        if ($result['is_doku'] && $result['doku_payment_url']) {
+            return Inertia::location($result['doku_payment_url']);
+        }
+
+        // Fallback to manual payment page
+        return redirect()->route('checkout.payment', $result['transaction']->id);
     }
 
     /**
-     * Show the payment page.
+     * Show the payment page (manual / fallback when DOKU URL not available).
      */
     public function payment(string $transactionId)
     {
@@ -152,20 +196,29 @@ class CheckoutController extends Controller
             'details.ticketType',
             'details.tickets.attendee',
         ])->where('id', $transactionId)
-          ->where('user_id', Auth::id())
-          ->firstOrFail();
+            ->where('user_id', Auth::id())
+            ->firstOrFail();
 
         if ($transaction->transaction_status !== 'Pending') {
             return redirect()->route('checkout.result', $transactionId);
         }
 
+        // If DOKU payment URL exists, redirect there
+        if ($transaction->payment && $transaction->payment->doku_payment_url) {
+            return Inertia::render('Checkout/Payment', [
+                'transaction' => $transaction,
+                'dokuPaymentUrl' => $transaction->payment->doku_payment_url,
+            ]);
+        }
+
         return Inertia::render('Checkout/Payment', [
             'transaction' => $transaction,
+            'dokuPaymentUrl' => null,
         ]);
     }
 
     /**
-     * Confirm payment by user.
+     * Confirm payment by user (manual fallback).
      */
     public function confirmPayment(Request $request, string $transactionId)
     {
@@ -196,7 +249,7 @@ class CheckoutController extends Controller
             // Mark all tickets as issued
             foreach ($transaction->details as $detail) {
                 foreach ($detail->tickets as $ticket) {
-                    $ticket->update(['ticket_status' => 'Active']);
+                    $ticket->update(['ticket_status' => 'Issued']);
                 }
             }
 
@@ -247,8 +300,8 @@ class CheckoutController extends Controller
             'details.ticketType',
             'details.tickets.attendee',
         ])->where('id', $transactionId)
-          ->where('user_id', Auth::id())
-          ->firstOrFail();
+            ->where('user_id', Auth::id())
+            ->firstOrFail();
 
         return Inertia::render('Checkout/Result', [
             'transaction' => $transaction,

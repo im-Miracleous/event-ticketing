@@ -4,13 +4,14 @@ namespace Database\Seeders;
 
 use App\Models\User;
 use Illuminate\Database\Seeder;
-use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Str;
 
 class UserSeeder extends Seeder
 {
     /**
      * Run the database seeds.
+     * 
+     * NOTE: The User model has 'password' => 'hashed' cast,
+     * so we pass PLAIN text passwords here — Eloquent will hash them automatically.
      */
     public function run(): void
     {
@@ -22,10 +23,8 @@ class UserSeeder extends Seeder
                     'name' => 'System Admin',
                     'username' => 'sysadmin',
                     'role' => 'Admin',
-                    'password' => Hash::make(env('DEFAULT_ADMIN_PASSWORD')),
+                    'password' => env('DEFAULT_ADMIN_PASSWORD'), // plain text, auto-hashed by cast
                     'email_verified_at' => now(),
-                    // Using fixed UUID or letting Model handle it via trait, 
-                    // HasUuids trait in User model handles 'id' assignment.
                 ]
             );
         }
@@ -38,10 +37,22 @@ class UserSeeder extends Seeder
                     'name' => 'Main Organizer',
                     'username' => 'eventorganizer',
                     'role' => 'Organizer',
-                    'password' => Hash::make(env('DEFAULT_ORGANIZER_PASSWORD')),
+                    'password' => env('DEFAULT_ORGANIZER_PASSWORD'), // plain text, auto-hashed by cast
                     'email_verified_at' => now(),
                 ]
             );
         }
+
+        // 3. Create Default Test User
+        User::firstOrCreate(
+            ['email' => 'user@test.com'],
+            [
+                'name' => 'Test User',
+                'username' => 'testuser',
+                'role' => 'User',
+                'password' => 'password123', // plain text, auto-hashed by cast
+                'email_verified_at' => now(),
+            ]
+        );
     }
 }

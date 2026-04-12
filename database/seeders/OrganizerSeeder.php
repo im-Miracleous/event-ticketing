@@ -13,25 +13,16 @@ class OrganizerSeeder extends Seeder
      */
     public function run(): void
     {
-        $organizerNames = [
-            'PT Inovasi Digital', 'SoundWave Events', 'RunID Sports',
-            'Kreasi Seni ID', 'Kuliner Nusantara',
-        ];
-
         $organizerUsers = User::where('role', 'Organizer')->orderBy('created_at')->get();
 
-        foreach ($organizerNames as $i => $name) {
-            $userId = $i < $organizerUsers->count()
-                ? $organizerUsers[$i]->id
-                : ($organizerUsers->first()?->id ?? User::where('role', 'Organizer')->inRandomOrder()->first()?->id);
-
+        foreach ($organizerUsers as $user) {
             Organizer::firstOrCreate(
-                ['name' => $name],
+                ['user_id' => $user->id],
                 [
+                    'name'         => $user->name, // Same name as the User
                     'description'  => fake()->paragraph(2),
                     'logo'         => null,
                     'bank_account' => fake()->numerify('####-####-####'),
-                    'user_id'      => $userId,
                 ]
             );
         }

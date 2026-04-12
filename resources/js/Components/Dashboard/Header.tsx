@@ -41,29 +41,6 @@ export default function Header({ onMenuToggle, onCollapseToggle, isCollapsed, is
 
                     {/* ─── Role-specific centre content ─── */}
 
-                    {/* Admin/Root: Mode indicator badge */}
-                    {(activeRole === 'admin' || activeRole === 'root') && (
-                        <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-xl bg-amber-500/10 dark:bg-amber-400/10 border border-amber-500/20 dark:border-amber-400/15">
-                            <span className="relative flex h-2 w-2">
-                                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75" />
-                                <span className="relative inline-flex rounded-full h-2 w-2 bg-amber-500 dark:bg-amber-400" />
-                            </span>
-                            <span className="text-xs font-bold uppercase tracking-wider text-amber-600 dark:text-amber-400">
-                                {activeRole === 'root' ? 'Root Mode' : 'Admin Mode'}
-                            </span>
-                        </div>
-                    )}
-
-                    {/* Admin: Create Event CTA */}
-                    {activeRole === 'admin' && (
-                        <Link href={route('admin.events.create')} className="hidden sm:inline-flex items-center gap-2 rounded-xl bg-primary-600 hover:bg-primary-700 text-white px-4 py-2 text-sm font-semibold transition-colors shadow-sm shadow-primary-500/25">
-                            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                                <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
-                            </svg>
-                            Create Event
-                        </Link>
-                    )}
-
                     {/* User: Search bar */}
                     {activeRole === 'user' && (
                         <div className="hidden sm:flex items-center gap-2 bg-slate-100 dark:bg-navy-900/5 border border-slate-200 dark:border-white/5 rounded-xl px-3 py-2 w-72 focus-within:border-primary-500/40 transition-colors">

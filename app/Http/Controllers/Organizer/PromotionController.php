@@ -13,14 +13,35 @@ class PromotionController extends Controller
     /**
      * Display a listing of the promotions for the current organizer's events.
      */
-    public function index()
+    public function index(Request $request)
     {
         $organizerId = auth()->user()->organizer?->id ?? 0;
         
-        // Fetch promotions only for events owned by this organizer
-        $promotions = Promotion::whereHas('event', function($query) use ($organizerId) {
-            $query->where('organizer_id', $organizerId);
-        })->with('event')->latest()->get();
+        $query = Promotion::whereHas('event', function($q) use ($organizerId) {
+            $q->where('organizer_id', $organizerId);
+        })->with('event');
+
+        // Filters
+        if ($request->filled('search')) {
+            $query->where('code', 'like', "%{$request->search}%");
+        }
+
+        if ($request->filled('event_id')) {
+            $query->where('event_id', $request->event_id);
+        }
+
+        // Dynamic Sorting
+        $sortMap = [
+            'code'   => 'code',
+            'event'  => 'event_id',
+            'active' => 'start_date',
+            'quota'  => 'quota',
+        ];
+        $sortCol = $sortMap[$request->input('sort')] ?? 'created_at';
+        $sortDir = $request->input('direction', 'desc') === 'asc' ? 'asc' : 'desc';
+        $query->orderBy($sortCol, $sortDir);
+
+        $promotions = $query->paginate($request->input('per_page', 10))->withQueryString();
 
         // Also fetch active events so the Organizer can select which event a new promo applies to
         $events = Event::where('organizer_id', $organizerId)->where('status', 'Active')->get(['id', 'title']);
@@ -28,6 +49,7 @@ class PromotionController extends Controller
         return Inertia::render('Organizer/Promotions/Index', [
             'promotions' => $promotions,
             'events' => $events,
+            'filters' => $request->only(['search', 'event_id', 'sort', 'direction', 'per_page']),
         ]);
     }
 
@@ -51,6 +73,9 @@ class PromotionController extends Controller
             ],
             'code' => 'required|string|max:20|unique:promotions,code',
             'discount_amount' => 'required|integer|min:1',
+            'discount_type'   => 'required|in:fixed,percentage',
+            'max_discount_amount' => 'nullable|numeric|min:1',
+            'min_spending'    => 'nullable|numeric|min:0',
             'quota' => 'required|integer|min:1',
             'start_date' => 'required|date',
             'end_date' => 'required|date|after_or_equal:start_date',
@@ -75,12 +100,15 @@ class PromotionController extends Controller
         $request->validate([
             'code' => 'required|string|max:20|unique:promotions,code,'.$id,
             'discount_amount' => 'required|integer|min:1',
+            'discount_type'   => 'required|in:fixed,percentage',
+            'max_discount_amount' => 'nullable|numeric|min:1',
+            'min_spending'    => 'nullable|numeric|min:0',
             'quota' => 'required|integer|min:1',
             'start_date' => 'required|date',
             'end_date' => 'required|date|after_or_equal:start_date',
         ]);
 
-        $promotion->update($request->only(['code', 'discount_amount', 'quota', 'start_date', 'end_date']));
+        $promotion->update($request->only(['code', 'discount_amount', 'discount_type', 'max_discount_amount', 'min_spending', 'quota', 'start_date', 'end_date']));
 
         return redirect()->route('organizer.promotions.index')->with('success', 'Kode Promo berhasil diperbarui!');
     }

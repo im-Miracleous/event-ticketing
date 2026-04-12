@@ -18,7 +18,6 @@ class ValidationLogController extends Controller
         $query = ValidationLog::with('ticket');
 
         if ($request->filled('type') && $request->type !== 'All') {
-            // Map frontend filter types to result column values
             $typeMap = [
                 'ticket_scan' => ['Valid', 'Invalid', 'Already Used'],
                 'system'      => ['Expired'],
@@ -29,7 +28,35 @@ class ValidationLogController extends Controller
             }
         }
 
-        $logs = $query->orderByDesc('validation_time')
+        // Search
+        if ($request->filled('search')) {
+            $s = $request->search;
+            $query->where(function ($q) use ($s) {
+                $q->where('result', 'like', "%{$s}%")
+                  ->orWhereHas('ticket', fn ($tq) => $tq->where('id', 'like', "%{$s}%"));
+            });
+        }
+
+        // Date range
+        if ($request->filled('date_from')) {
+            $query->whereDate('validation_time', '>=', $request->date_from);
+        }
+        if ($request->filled('date_to')) {
+            $query->whereDate('validation_time', '<=', $request->date_to);
+        }
+
+        // Dynamic sorting
+        $sortMap = [
+            'type'        => 'result',
+            'description' => 'result',
+            'user'        => 'result',
+            'timestamp'   => 'validation_time',
+        ];
+        $sortCol = $sortMap[$request->input('sort')] ?? 'validation_time';
+        $sortDir = $request->input('direction', 'desc') === 'asc' ? 'asc' : 'desc';
+        $query->orderBy($sortCol, $sortDir);
+
+        $logs = $query
             ->paginate($request->input('per_page', 10))
             ->through(fn($log) => [
                 'id'          => $log->id,
@@ -46,7 +73,7 @@ class ValidationLogController extends Controller
 
         return Inertia::render('Admin/Logs/Index', [
             'logs'    => $logs,
-            'filters' => $request->only(['type', 'per_page']),
+            'filters' => $request->only(['type', 'per_page', 'search', 'sort', 'direction', 'date_from', 'date_to']),
         ]);
     }
 }

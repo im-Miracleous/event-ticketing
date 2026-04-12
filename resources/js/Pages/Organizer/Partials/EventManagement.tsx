@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Search, Edit2, Trash2, Eye, Calendar, MapPin, CheckCircle, Clock } from 'lucide-react';
+import SortableHeader from '@/Components/Dashboard/SortableHeader';
 
 // Kamus Lokal
 // - EventStatus: Tipe data status event
@@ -16,6 +17,13 @@ interface TicketType { id: string; name: string; price: number; quota: number; }
 export default function EventManagement() {
     const [viewMode, setViewMode] = useState<'list' | 'form'>('list');
     const [sysMessage, setSysMessage] = useState('');
+    const [sort, setSort] = useState('');
+    const [direction, setDirection] = useState<'asc' | 'desc'>('desc');
+
+    const handleSort = (column: string, dir: 'asc' | 'desc') => {
+        setSort(column);
+        setDirection(dir);
+    };
     
     // State Formulir Event
     const [events, setEvents] = useState([
@@ -87,10 +95,10 @@ export default function EventManagement() {
                         <table className="w-full text-left whitespace-nowrap">
                             <thead>
                                 <tr className="bg-gray-50/50 text-slate-500 text-xs uppercase tracking-wider font-semibold">
-                                    <th className="px-6 py-4">Nama Event</th>
-                                    <th className="px-6 py-4">Tanggal</th>
+                                    <SortableHeader label="Nama Event" column="title" currentSort={sort} currentDirection={direction} onSort={handleSort} className="px-6 py-4" />
+                                    <SortableHeader label="Tanggal" column="date" currentSort={sort} currentDirection={direction} onSort={handleSort} className="px-6 py-4" />
                                     <th className="px-6 py-4">Lokasi</th>
-                                    <th className="px-6 py-4">Status</th>
+                                    <SortableHeader label="Status" column="status" currentSort={sort} currentDirection={direction} onSort={handleSort} className="px-6 py-4" />
                                     <th className="px-6 py-4 text-right">Action</th>
                                 </tr>
                             </thead>

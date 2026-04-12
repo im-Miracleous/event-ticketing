@@ -1,5 +1,5 @@
 import DashboardLayout from '@/Layouts/DashboardLayout';
-import { Head, router, useForm } from '@inertiajs/react';
+import { Head, router, useForm, Link } from '@inertiajs/react';
 import { useState } from 'react';
 
 /* ─── Types ─────────────────────────────────────────────────────────── */
@@ -75,12 +75,15 @@ export default function AdminCategories({ categories }: Props) {
             <Head title="Event Categories" />
 
             {/* Page heading */}
-            <div className="mb-8 flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
-                <div>
-                    <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Event Categories</h1>
-                    <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
-                        Manage the global list of categories available to organizers.
-                    </p>
+            <div className="mb-8 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                <div className="flex items-center gap-4">
+                    <div className="w-12 h-12 bg-primary-600 rounded-2xl flex items-center justify-center text-white shadow-xl shadow-primary-500/20 rotate-3 flex-shrink-0">
+                        <svg className="w-7 h-7" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M9.568 3H5.25A2.25 2.25 0 0 0 3 5.25v4.318c0 .597.237 1.17.659 1.591l9.581 9.581c.699.699 1.78.872 2.607.33a18.095 18.095 0 0 0 5.223-5.223c.542-.827.369-1.908-.33-2.607L11.16 3.66A2.25 2.25 0 0 0 9.568 3Z" /><path strokeLinecap="round" strokeLinejoin="round" d="M6 6h.008v.008H6V6Z" /></svg>
+                    </div>
+                    <div>
+                        <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Event Categories</h1>
+                        <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">Manage the global list of categories available to organizers.</p>
+                    </div>
                 </div>
                 <button
                     onClick={openCreate}
@@ -101,14 +104,14 @@ export default function AdminCategories({ categories }: Props) {
                         <div className={`absolute top-0 left-0 right-0 h-1 bg-gradient-to-r ${gradients[idx % gradients.length]}`} />
 
                         <div className="flex items-start justify-between mb-3 pt-1">
-                            <div>
-                                <h3 className="text-base font-semibold text-slate-800 dark:text-white">{cat.name}</h3>
+                            <Link href={route('admin.categories.show', { id: cat.id })} className="flex-1 min-w-0">
+                                <h3 className="text-base font-semibold text-slate-800 dark:text-white hover:text-primary-600 dark:hover:text-primary-400 transition-colors">{cat.name}</h3>
                                 {cat.description && (
                                     <p className="text-xs text-slate-400 dark:text-slate-500 mt-0.5">{cat.description}</p>
                                 )}
-                            </div>
+                            </Link>
                             {/* Action dots */}
-                            <div className="opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1">
+                            <div className="opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1 ml-2 shrink-0">
                                 <button
                                     onClick={() => openEdit(cat)}
                                     className="p-1 rounded-lg text-slate-400 hover:text-primary-500 hover:bg-primary-50 dark:hover:bg-primary-500/10 transition-colors"
@@ -130,12 +133,12 @@ export default function AdminCategories({ categories }: Props) {
                             </div>
                         </div>
 
-                        <div className="flex items-center gap-1.5">
+                        <Link href={route('admin.categories.show', { id: cat.id })} className="flex items-center gap-1.5">
                             <svg className="w-4 h-4 text-slate-400 dark:text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
                                 <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 0 1 2.25-2.25h13.5A2.25 2.25 0 0 1 21 7.5v11.25m-18 0A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75m-18 0v-7.5A2.25 2.25 0 0 1 5.25 9h13.5A2.25 2.25 0 0 1 21 11.25v7.5" />
                             </svg>
-                            <span className="text-sm text-slate-500 dark:text-slate-400">{cat.events} events</span>
-                        </div>
+                            <span className="text-sm text-slate-500 dark:text-slate-400 hover:text-primary-500 dark:hover:text-primary-400 transition-colors">{cat.events} events</span>
+                        </Link>
                     </div>
                 ))}
             </div>

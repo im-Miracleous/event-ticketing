@@ -12,7 +12,7 @@ class TicketController extends Controller {
         $data = $request->validate([
             'id' => 'required|string|max:50|unique:tickets',
             'qr_code' => 'required|string|max:255',
-            'ticket_status' => 'required|in:Active,Used,Cancelled,Expired',
+            'ticket_status' => 'required|in:Issued,Scanned,Cancelled,Expired',
             'issued_at' => 'required|date',
             'transaction_detail_id' => 'required|exists:transaction_details,id',
             'ticket_type_id' => 'required|exists:tickets_types,id'
@@ -24,7 +24,7 @@ class TicketController extends Controller {
     public function update(Request $request, $id) {
         $ticket = Ticket::findOrFail($id);
         $data = $request->validate([
-            'ticket_status' => 'required|in:Active,Used,Cancelled,Expired',
+            'ticket_status' => 'required|in:Issued,Scanned,Cancelled,Expired',
             'validated_at' => 'nullable|date'
         ]);
         $ticket->update($data);
@@ -34,7 +34,7 @@ class TicketController extends Controller {
 
     public function toggleStatus($id) {
         $ticket = Ticket::findOrFail($id);
-        $ticket->ticket_status = ($ticket->ticket_status == 'Active') ? 'Cancelled' : 'Active';
+        $ticket->ticket_status = ($ticket->ticket_status == 'Issued') ? 'Cancelled' : 'Issued';
         $ticket->save();
         
         return response()->json($ticket);

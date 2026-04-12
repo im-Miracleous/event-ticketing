@@ -22,19 +22,29 @@ class TicketAndValidationSeeder extends Seeder
             $details = TransactionDetail::with('ticketType')->limit(20)->get();
             foreach ($details as $detail) {
                 for ($q = 0; $q < min($detail->quantity, 2); $q++) {
-                    $ticketStatus = fake()->randomElement(['Active', 'Used', 'Cancelled']);
+                    $ticketStatus = fake()->randomElement(['Issued', 'Scanned', 'Cancelled']);
                     $ticket = Ticket::create([
                         'id'                    => Str::uuid()->toString(),
                         'qr_code'               => 'QR-' . Str::upper(Str::random(8)),
                         'ticket_status'         => $ticketStatus,
                         'issued_at'             => now()->subDays(rand(1, 30)),
-                        'validated_at'          => $ticketStatus === 'Used' ? now()->subDays(rand(0, 5)) : null,
+                        'validated_at'          => $ticketStatus === 'Scanned' ? now()->subDays(rand(0, 5)) : null,
                         'transaction_detail_id' => $detail->id,
                         'ticket_type_id'        => $detail->ticket_type_id,
                     ]);
 
+                    // Add attendee for each ticket
+                    $user = $detail->transaction->user;
+                    \App\Models\Attendee::create([
+                        'name'            => $user->name ?? fake()->name(),
+                        'email'           => $user->email ?? fake()->safeEmail(),
+                        'phone_number'    => fake()->phoneNumber(),
+                        'identity_number' => fake()->numerify('################'),
+                        'ticket_id'       => $ticket->id,
+                    ]);
+
                     // Add validation log for used tickets
-                    if ($ticketStatus === 'Used') {
+                    if ($ticketStatus === 'Scanned') {
                         ValidationLog::create([
                             'validation_time' => $ticket->validated_at,
                             'result'          => 'Valid',
@@ -49,7 +59,7 @@ class TicketAndValidationSeeder extends Seeder
         $existingTickets = Ticket::limit(5)->get();
         foreach ($existingTickets as $ticket) {
             ValidationLog::firstOrCreate(
-                ['ticket_id' => $ticket->id, 'result' => fake()->randomElement(['Valid', 'Invalid', 'Expired', 'Already Used'])],
+                ['ticket_id' => $ticket->id, 'result' => fake()->randomElement(['Valid', 'Invalid', 'Expired', 'Already Scanned'])],
                 ['validation_time' => now()->subHours(rand(1, 72))]
             );
         }

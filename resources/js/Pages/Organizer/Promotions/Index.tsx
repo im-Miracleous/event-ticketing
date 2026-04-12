@@ -1,252 +1,500 @@
-import React, { useState } from 'react';
+import React, { useState, Fragment } from 'react';
 import DashboardLayout from '@/Layouts/DashboardLayout';
-import { Head, useForm, router } from '@inertiajs/react';
+import Pagination from '@/Components/Dashboard/Pagination';
+import SortableHeader from '@/Components/Dashboard/SortableHeader';
+import AdvancedFilter, { FilterField, FilterSelect, FilterDateRange } from '@/Components/Dashboard/AdvancedFilter';
+import Tooltip from '@/Components/Dashboard/Tooltip';
 import Modal from '@/Components/Modal';
+import { Head, useForm, router, Link } from '@inertiajs/react';
+import { Menu, Transition, Portal } from '@headlessui/react';
+import { Tag, Search, Plus, MoreVertical, Edit2, Trash2, Calendar, CreditCard, Clock } from 'lucide-react';
 
-export default function PromotionsIndex({ auth, promotions, events }: any) {
-    const [isModalOpen, setIsModalOpen] = useState(false);
+export default function PromotionsIndex({ promotions, events, filters }: any) {
+    const [isFormModalOpen, setIsFormModalOpen] = useState(false);
     const [isEditMode, setIsEditMode] = useState(false);
     const [editId, setEditId] = useState<number | null>(null);
 
-    const { data, setData, post, put, delete: destroy, processing, errors, reset, clearErrors } = useForm({
+    // Search local state
+    const [search, setSearch] = useState(filters?.search || '');
+    
+    // Sort parameters
+    const sort = filters?.sort || '';
+    const direction = filters?.direction || 'desc';
+
+    // Advanced filter local state
+    const [filterEvent, setFilterEvent] = useState(filters.event_id || '');
+    const [filterDateFrom, setFilterDateFrom] = useState(filters.date_from || '');
+    const [filterDateTo, setFilterDateTo] = useState(filters.date_to || '');
+
+    const { data, setData, post, put, delete: destroy, processing, errors, reset, clearErrors, transform } = useForm({
         event_id: '',
         code: '',
         discount_amount: '',
+        discount_type: 'fixed',
+        max_discount_amount: '',
+        min_spending: '',
         quota: '',
         start_date: '',
+        start_time: '00:00',
         end_date: '',
+        end_time: '23:59',
+        include_time: false,
     });
+
+    const eventOptions = events.map((e: any) => ({ label: e.title, value: e.id }));
+
+    /* ── Helpers ──────────────────────────────────────────────────── */
+
+    const buildParams = (overrides = {}) => {
+        const params: any = {
+            search: search || undefined,
+            event_id: filterEvent || undefined,
+            sort: sort || undefined,
+            direction: sort ? direction : undefined,
+            date_from: filterDateFrom || undefined,
+            date_to: filterDateTo || undefined,
+            per_page: promotions.per_page,
+            ...overrides,
+        };
+        Object.keys(params).forEach(k => params[k] === undefined && delete params[k]);
+        return params;
+    };
+
+    const handleSearch = (value: string) => {
+        setSearch(value);
+        router.get(route('organizer.promotions.index'), buildParams({ search: value || undefined, page: undefined }), { preserveState: true, replace: true });
+    };
+
+    const handleSort = (column: string, dir: 'asc' | 'desc') => {
+        router.get(route('organizer.promotions.index'), buildParams({ sort: column, direction: dir, page: undefined }), { preserveState: true, replace: true });
+    };
+
+    const handlePageChange = (page: number) => {
+        router.get(route('organizer.promotions.index'), buildParams({ page }), { preserveState: true, preserveScroll: true, replace: true });
+    };
+
+    const handlePerPageChange = (perPage: number) => {
+        router.get(route('organizer.promotions.index'), buildParams({ per_page: perPage, page: undefined }), { preserveState: true, preserveScroll: true, replace: true });
+    };
+
+    const activeAdvancedFilterCount = [filterEvent, filterDateFrom, filterDateTo].filter(Boolean).length;
+
+    const handleApplyFilters = () => {
+        router.get(route('organizer.promotions.index'), buildParams({ page: undefined }), { preserveState: true, preserveScroll: true, replace: true });
+    };
+
+    const handleClearFilters = () => {
+        setFilterEvent('');
+        setFilterDateFrom('');
+        setFilterDateTo('');
+        router.get(route('organizer.promotions.index'), buildParams({
+            event_id: undefined, date_from: undefined, date_to: undefined, page: undefined,
+        }), { preserveState: true, preserveScroll: true, replace: true });
+    };
+
+    /* ── Form Modal Helpers ─────────────────────────────────────── */
 
     const openCreateModal = () => {
         setIsEditMode(false);
         setEditId(null);
         reset();
         clearErrors();
-        setIsModalOpen(true);
+        setIsFormModalOpen(true);
     };
 
     const openEditModal = (promo: any) => {
         setIsEditMode(true);
         setEditId(promo.id);
+        const hasStartTime = promo.start_date.includes(' ') && promo.start_date.split(' ')[1] !== '00:00:00';
+        const hasEndTime = promo.end_date.includes(' ') && promo.end_date.split(' ')[1] !== '23:59:00';
+
         setData({
             event_id: promo.event_id,
             code: promo.code,
-            discount_amount: promo.discount_amount,
+            discount_type: promo.discount_type || 'fixed',
+            discount_amount: promo.discount_amount || '',
+            max_discount_amount: promo.max_discount_amount || '',
+            min_spending: promo.min_spending || '',
             quota: promo.quota,
-            start_date: promo.start_date.split(' ')[0], // Format for date input if datetime
+            start_date: promo.start_date.split(' ')[0],
+            start_time: promo.start_date.includes(' ') ? promo.start_date.split(' ')[1].substring(0, 5) : '00:00',
             end_date: promo.end_date.split(' ')[0],
+            end_time: promo.end_date.includes(' ') ? promo.end_date.split(' ')[1].substring(0, 5) : '23:59',
+            include_time: hasStartTime || hasEndTime,
         });
         clearErrors();
-        setIsModalOpen(true);
+        setIsFormModalOpen(true);
     };
 
-    const closeModal = () => {
-        setIsModalOpen(false);
+    const closeFormModal = () => {
+        setIsFormModalOpen(false);
         reset();
     };
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
+        
+        // Transform data to combine date and time
+        transform((data) => ({
+            ...data,
+            start_date: data.include_time ? `${data.start_date} ${data.start_time}:00` : data.start_date,
+            end_date: data.include_time ? `${data.end_date} ${data.end_time}:00` : data.end_date,
+        }));
+
         if (isEditMode && editId) {
             put(route('organizer.promotions.update', editId), {
-                onSuccess: () => closeModal(),
+                onSuccess: () => closeFormModal(),
             });
         } else {
             post(route('organizer.promotions.store'), {
-                onSuccess: () => closeModal(),
+                onSuccess: () => closeFormModal(),
             });
         }
     };
 
     const handleDelete = (promoId: number) => {
-        if (confirm('Apakah Anda yakin ingin menghapus promo ini?')) {
+        if (confirm('Are you sure you want to delete this promotion code?')) {
             destroy(route('organizer.promotions.destroy', promoId));
         }
     };
 
-    const formatCurrency = (value: number) => {
-        return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(value);
+    const formatCurrency = (value: number | string) => {
+        if (!value) return '-';
+        return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(Number(value));
+    };
+
+    const formatDiscount = (promo: any) => {
+        if (promo.discount_type === 'percentage') {
+            return `${promo.discount_amount}%`;
+        }
+        return formatCurrency(promo.discount_amount);
     };
 
     return (
         <DashboardLayout>
-            <Head title="Manajemen Promo" />
+            <Head title="Promotion Management" />
 
-            <div className="flex flex-col md:flex-row md:items-center justify-between mb-6 gap-4">
-                <div>
-                    <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Manajemen Promo</h1>
-                    <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
-                        Kelola kode diskon promosi untuk event Anda.
-                    </p>
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-8 gap-4">
+                <div className="flex items-center gap-4">
+                    <div className="w-12 h-12 bg-gradient-to-br from-primary-500 to-primary-700 rounded-2xl flex items-center justify-center text-white shadow-xl shadow-primary-500/20 rotate-3 flex-shrink-0">
+                        <Tag className="w-7 h-7" />
+                    </div>
+                    <div>
+                        <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Promotions</h1>
+                        <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">Manage your event discount codes.</p>
+                    </div>
                 </div>
                 <button
                     onClick={openCreateModal}
-                    className="inline-flex items-center justify-center space-x-2 bg-primary-600 hover:bg-primary-500 text-white font-bold py-2.5 px-6 rounded-xl transition-colors shadow-lg shadow-primary-500/25"
+                    className="inline-flex items-center gap-2 px-5 py-2.5 text-sm font-bold text-white bg-primary-600 rounded-xl hover:bg-primary-700 transition-all shadow-lg shadow-primary-500/25 active:scale-95"
                 >
-                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.5v15m7.5-7.5h-15" /></svg>
-                    <span>Buat Promo Baru</span>
+                    <Plus className="w-4 h-4" />
+                    Create Promo
                 </button>
             </div>
 
-            <div className="bg-white dark:bg-navy-900 rounded-2xl shadow-sm border border-slate-200 dark:border-white/5 overflow-hidden">
-                <div className="overflow-x-auto">
-                    <table className="w-full text-left border-collapse">
-                        <thead>
-                            <tr className="bg-slate-50 dark:bg-navy-950/50 border-b border-slate-200 dark:border-white/5 text-slate-500 dark:text-slate-400">
-                                <th className="py-4 px-6 text-xs font-bold uppercase tracking-wider">KODE PROMO</th>
-                                <th className="py-4 px-6 text-xs font-bold uppercase tracking-wider">NAMA EVENT</th>
-                                <th className="py-4 px-6 text-xs font-bold uppercase tracking-wider">DISKON</th>
-                                <th className="py-4 px-6 text-xs font-bold uppercase tracking-wider">KUOTA</th>
-                                <th className="py-4 px-6 text-xs font-bold uppercase tracking-wider">MASA BERLAKU</th>
-                                <th className="py-4 px-6 text-xs font-bold uppercase tracking-wider text-right">AKSI</th>
+            {/* Toolbar: Search + Advanced Filter */}
+            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 mb-6">
+                <div className="relative w-full sm:w-80">
+                    <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 dark:text-slate-500" />
+                    <input
+                        type="text"
+                        placeholder="Search promo codes…"
+                        value={search}
+                        onChange={(e) => handleSearch(e.target.value)}
+                        className="w-full rounded-2xl border border-slate-200 dark:border-white/10 bg-white dark:bg-white/5 pl-11 pr-4 py-3 text-sm text-slate-700 dark:text-slate-300 placeholder-slate-400 dark:placeholder-slate-500 focus:border-primary-500/40 focus:ring-4 focus:ring-primary-500/10 transition-all shadow-sm"
+                    />
+                </div>
+
+                <AdvancedFilter activeCount={activeAdvancedFilterCount} onApply={handleApplyFilters} onClear={handleClearFilters}>
+                    <FilterField label="Event">
+                        <FilterSelect
+                            value={filterEvent}
+                            onChange={setFilterEvent}
+                            options={eventOptions}
+                            placeholder="All Events"
+                        />
+                    </FilterField>
+                    <FilterField label="Validity Period">
+                        <FilterDateRange
+                            from={filterDateFrom}
+                            to={filterDateTo}
+                            onFromChange={setFilterDateFrom}
+                            onToChange={setFilterDateTo}
+                        />
+                    </FilterField>
+                </AdvancedFilter>
+            </div>
+
+            <div className="rounded-3xl bg-white dark:bg-white/[0.03] border border-slate-200 dark:border-white/5 shadow-xl shadow-slate-200/50 dark:shadow-none p-2">
+                <div className="overflow-x-auto overflow-y-auto custom-scrollbar max-h-[calc(100vh-24rem)] px-2">
+                    <table className="w-full text-sm border-collapse">
+                        <thead className="sticky top-0 z-10 bg-white dark:bg-[#0f172a] shadow-[0_1px_0_0_rgba(0,0,0,0.05)] dark:shadow-[0_1px_0_0_rgba(255,255,255,0.05)]">
+                            <tr className="text-left text-xs font-bold text-slate-400 dark:text-slate-500 border-b border-slate-100 dark:border-white/5 uppercase tracking-wider">
+                                <SortableHeader label="Promo Code" column="code" currentSort={sort} currentDirection={direction} onSort={handleSort} className="px-6 py-5 border-none" />
+                                <SortableHeader label="Event" column="event" currentSort={sort} currentDirection={direction} onSort={handleSort} className="px-6 py-5 border-none" />
+                                <th className="px-6 py-5 font-bold">Discount</th>
+                                <SortableHeader label="Quota" column="quota" currentSort={sort} currentDirection={direction} onSort={handleSort} className="px-6 py-5 border-none" />
+                                <SortableHeader label="Active Until" column="active" currentSort={sort} currentDirection={direction} onSort={handleSort} className="px-6 py-5 border-none text-right" />
+                                <th className="px-6 py-5 text-right font-bold">Actions</th>
                             </tr>
                         </thead>
-                        <tbody className="divide-y divide-slate-200 dark:divide-white/5">
-                            {promotions.length === 0 ? (
+                        <tbody className="divide-y divide-slate-50 dark:divide-white/[0.02]">
+                            {promotions.data.length === 0 ? (
                                 <tr>
-                                    <td colSpan={6} className="py-12 text-center text-slate-500 dark:text-slate-400">
-                                        Belum ada kode promo yang dibuat.
+                                    <td colSpan={6} className="px-6 py-20 text-center">
+                                        <div className="flex flex-col items-center">
+                                            <div className="w-20 h-20 bg-slate-100 dark:bg-white/5 rounded-full flex items-center justify-center mb-6 text-slate-300 dark:text-slate-600">
+                                                <Tag className="w-10 h-10" />
+                                            </div>
+                                            <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-2 tracking-tight">No Promotions Found</h3>
+                                            <p className="text-slate-500 dark:text-slate-400 text-sm max-w-sm">Try adjusting your filters or create a new code.</p>
+                                        </div>
                                     </td>
                                 </tr>
                             ) : (
-                                promotions.map((promo: any) => (
-                                    <tr key={promo.id} className="hover:bg-slate-50 dark:hover:bg-white/5 transition-colors">
-                                        <td className="py-4 px-6">
-                                            <span className="inline-block px-3 py-1 bg-primary-500/10 dark:bg-primary-500/20 text-primary-600 dark:text-primary-400 font-bold rounded-lg tracking-wider border border-primary-500/20">
-                                                {promo.code}
-                                            </span>
-                                        </td>
-                                        <td className="py-4 px-6 text-slate-700 dark:text-slate-300 font-medium">
-                                            {promo.event?.title || '-'}
-                                        </td>
-                                        <td className="py-4 px-6 text-slate-700 dark:text-slate-300 font-bold text-emerald-500">
-                                            {formatCurrency(promo.discount_amount)}
-                                        </td>
-                                        <td className="py-4 px-6 text-slate-700 dark:text-slate-300">
-                                            {promo.quota}
-                                        </td>
-                                        <td className="py-4 px-6 text-slate-700 dark:text-slate-300 text-sm">
-                                            {promo.start_date.split(' ')[0]} s/d <br/> {promo.end_date.split(' ')[0]}
-                                        </td>
-                                        <td className="py-4 px-6 text-right space-x-3">
-                                            <button 
-                                                onClick={() => openEditModal(promo)}
-                                                className="text-blue-500 hover:text-blue-400 font-medium text-sm transition-colors"
-                                            >
-                                                Edit
-                                            </button>
-                                            <button 
-                                                onClick={() => handleDelete(promo.id)}
-                                                className="text-red-500 hover:text-red-400 font-medium text-sm transition-colors"
-                                            >
-                                                Hapus
-                                            </button>
-                                        </td>
-                                    </tr>
-                                ))
+                                promotions.data.map((promo: any) => {
+                                    return (
+                                        <tr key={promo.id} className="hover:bg-slate-50 dark:hover:bg-white/[0.01] transition-colors group">
+                                            <td className="px-6 py-4">
+                                                <span className="inline-flex px-3 py-1 bg-primary-500/10 text-primary-600 dark:text-primary-400 font-bold rounded-lg border border-primary-500/20 text-xs">
+                                                    {promo.code}
+                                                </span>
+                                            </td>
+                                            <td className="px-6 py-4 text-slate-700 dark:text-slate-300 font-bold text-[11px] truncate max-w-[200px]">
+                                                {promo.event?.title || '-'}
+                                            </td>
+                                            <td className="px-6 py-4 font-black text-emerald-500 dark:text-emerald-400">
+                                                {formatDiscount(promo)}
+                                            </td>
+                                            <td className="px-6 py-4 text-slate-500 dark:text-slate-400 font-bold">
+                                                {promo.quota}
+                                            </td>
+                                            <td>
+                                                <div className="flex flex-col gap-1.5 items-end px-6 py-4 whitespace-nowrap">
+                                                    <div className="flex items-center gap-2 text-slate-700 dark:text-slate-200 font-bold text-xs font-mono">
+                                                        <Calendar className="w-3.5 h-3.5 text-primary-500/60" />
+                                                        {new Date(promo.end_date).toLocaleDateString('en-GB', { 
+                                                            day: '2-digit', 
+                                                            month: 'short', 
+                                                            year: 'numeric' 
+                                                        })}
+                                                    </div>
+                                                    <div className="flex items-center gap-2 text-slate-400 dark:text-slate-500 text-xs font-medium">
+                                                        <Clock className="w-3.5 h-3.5 text-slate-300 dark:text-slate-600" />
+                                                        {new Date(promo.end_date).toLocaleTimeString('en-GB', { 
+                                                            hour: '2-digit', 
+                                                            minute: '2-digit',
+                                                            second: '2-digit',
+                                                            timeZoneName: 'short'
+                                                        })}
+                                                    </div>
+                                                </div>
+                                            </td>
+                                            <td className="px-6 py-4 text-right">
+                                                <Menu as="div" className="relative inline-block text-left">
+                                                    <Menu.Button className="p-2 rounded-xl text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 hover:bg-slate-100 dark:hover:bg-white/10 transition-all">
+                                                        <MoreVertical className="w-5 h-5" />
+                                                    </Menu.Button>
+                                                    <Portal>
+                                                        <Transition
+                                                            as={Fragment}
+                                                            enter="transition ease-out duration-100"
+                                                            enterFrom="transform opacity-0 scale-95"
+                                                            enterTo="transform opacity-100 scale-100"
+                                                            leave="transition ease-in duration-75"
+                                                            leaveFrom="transform opacity-100 scale-100"
+                                                            leaveTo="transform opacity-0 scale-95"
+                                                        >
+                                                            <Menu.Items 
+                                                                anchor={{ to: 'bottom end', gap: 4 }}
+                                                                className="z-[9999] w-48 rounded-2xl bg-white dark:bg-navy-900 border border-slate-200 dark:border-white/10 shadow-[0_20px_50px_rgba(0,0,0,0.3)] dark:shadow-[0_20px_50px_rgba(0,0,0,0.5)] focus:outline-none ring-1 ring-black/5 dark:ring-transparent"
+                                                            >
+                                                                <div className="p-1.5 space-y-1">
+                                                                    <Menu.Item>
+                                                                        {({ active }) => (
+                                                                            <button
+                                                                                onClick={() => openEditModal(promo)}
+                                                                                className={`${active ? 'bg-primary-50 dark:bg-primary-500/10 text-primary-600 dark:text-primary-400' : 'text-slate-700 dark:text-slate-300'} flex items-center gap-3 px-3.5 py-2.5 text-xs font-bold rounded-xl transition-all w-full`}
+                                                                            >
+                                                                                <Edit2 className="w-4 h-4" />
+                                                                                Edit Code
+                                                                            </button>
+                                                                        )}
+                                                                    </Menu.Item>
+                                                                    <Menu.Item>
+                                                                        {({ active }) => (
+                                                                            <button
+                                                                                onClick={() => handleDelete(promo.id)}
+                                                                                className={`${active ? 'bg-red-50 dark:bg-red-500/10 text-red-600' : 'text-red-500/70'} flex items-center gap-3 px-3.5 py-2.5 text-xs font-bold rounded-xl transition-all w-full`}
+                                                                            >
+                                                                                <Trash2 className="w-4 h-4 text-red-500/60" />
+                                                                                Delete Code
+                                                                            </button>
+                                                                        )}
+                                                                    </Menu.Item>
+                                                                </div>
+                                                            </Menu.Items>
+                                                        </Transition>
+                                                    </Portal>
+                                                </Menu>
+                                            </td>
+                                        </tr>
+                                    );
+                                })
                             )}
                         </tbody>
                     </table>
                 </div>
+
+                <Pagination
+                    currentPage={promotions.current_page}
+                    totalItems={promotions.total}
+                    perPage={promotions.per_page}
+                    onPageChange={handlePageChange}
+                    onPerPageChange={handlePerPageChange}
+                />
             </div>
 
-            {/* Modal Form */}
-            <Modal show={isModalOpen} onClose={closeModal} maxWidth="md">
-                <div className="p-6 bg-white dark:bg-navy-900 rounded-xl">
-                    <h2 className="text-xl font-bold text-slate-900 dark:text-white mb-6">
-                        {isEditMode ? 'Edit Kode Promo' : 'Buat Kode Promo Baru'}
-                    </h2>
-                    
-                    <form onSubmit={handleSubmit} className="space-y-4">
+            {/* Form Modal */}
+            <Modal show={isFormModalOpen} onClose={closeFormModal} maxWidth="md">
+                <div className="p-6 bg-white dark:bg-navy-900">
+                    <div className="flex items-center gap-4 mb-8">
+                        <div className="w-12 h-12 bg-primary-100 dark:bg-primary-500/20 rounded-2xl flex items-center justify-center text-primary-600">
+                            <Tag className="w-6 h-6" />
+                        </div>
                         <div>
-                            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Pilih Event</label>
-                            <select
-                                value={data.event_id}
-                                onChange={e => setData('event_id', e.target.value)}
-                                className="w-full rounded-xl border-slate-300 dark:border-white/10 dark:bg-navy-800 dark:text-white focus:border-primary-500 focus:ring-primary-500"
-                            >
-                                <option value="">-- Pilih Event --</option>
-                                {events.map((event: any) => (
-                                    <option key={event.id} value={event.id}>{event.title}</option>
-                                ))}
-                            </select>
-                            {errors.event_id && <p className="text-red-500 text-xs mt-1">{errors.event_id}</p>}
+                            <h2 className="text-xl font-bold text-slate-900 dark:text-white tracking-tight">
+                                {isEditMode ? 'Edit Promotion' : 'New Promotion'}
+                            </h2>
+                            <p className="text-sm font-medium text-slate-500 dark:text-slate-400">Configure your discount code.</p>
+                        </div>
+                    </div>
+
+                    <form onSubmit={handleSubmit} className="space-y-5">
+                        <div className="space-y-4">
+                            <div>
+                                <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-2">Apply to Event</label>
+                                <select
+                                    value={data.event_id}
+                                    onChange={e => setData('event_id', e.target.value)}
+                                    className="w-full rounded-xl border-slate-200 dark:border-white/10 dark:bg-navy-800 dark:text-white focus:ring-primary-500/20 focus:border-primary-500 text-sm font-medium"
+                                    disabled={isEditMode}
+                                >
+                                    <option value="">Choose Event</option>
+                                    {events.map((event: any) => (
+                                        <option key={event.id} value={event.id}>{event.title}</option>
+                                    ))}
+                                </select>
+                                {errors.event_id && <p className="text-red-500 text-[10px] font-bold mt-1 uppercase">{errors.event_id}</p>}
+                            </div>
+
+                            <div>
+                                <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-2">Promo Code</label>
+                                <input
+                                    type="text"
+                                    value={data.code}
+                                    onChange={e => setData('code', e.target.value.toUpperCase())}
+                                    placeholder="e.g. NEWYEAR2026"
+                                    className="w-full rounded-xl border-slate-200 dark:border-white/10 dark:bg-navy-800 dark:text-white focus:ring-primary-500/20 focus:border-primary-500 text-sm font-medium uppercase tracking-wider"
+                                />
+                                {errors.code && <p className="text-red-500 text-[10px] font-bold mt-1 uppercase">{errors.code}</p>}
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-2">Type</label>
+                                    <select
+                                        value={data.discount_type}
+                                        onChange={e => setData('discount_type', e.target.value)}
+                                        className="w-full rounded-xl border-slate-200 dark:border-white/10 dark:bg-navy-800 dark:text-white focus:ring-primary-500/20 focus:border-primary-500 text-sm font-medium"
+                                    >
+                                        <option value="fixed">Fixed (Rp)</option>
+                                        <option value="percentage">Percent (%)</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-2">Value</label>
+                                    <input
+                                        type="number"
+                                        value={data.discount_amount}
+                                        onChange={e => setData('discount_amount', e.target.value)}
+                                        className="w-full rounded-xl border-slate-200 dark:border-white/10 dark:bg-navy-800 dark:text-white focus:ring-primary-500/20 focus:border-primary-500 text-sm font-medium"
+                                    />
+                                </div>
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-2">Min Spending</label>
+                                    <input
+                                        type="number"
+                                        value={data.min_spending}
+                                        onChange={e => setData('min_spending', e.target.value)}
+                                        placeholder="0"
+                                        className="w-full rounded-xl border-slate-200 dark:border-white/10 dark:bg-navy-800 dark:text-white focus:ring-primary-500/20 focus:border-primary-500 text-sm font-medium"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-2">Active Quota</label>
+                                    <input
+                                        type="number"
+                                        value={data.quota}
+                                        onChange={e => setData('quota', e.target.value)}
+                                        className="w-full rounded-xl border-slate-200 dark:border-white/10 dark:bg-navy-800 dark:text-white focus:ring-primary-500/20 focus:border-primary-500 text-sm font-medium"
+                                    />
+                                </div>
+                            </div>
+
+                            <div className="pt-2">
+                                <label className="inline-flex items-center cursor-pointer group">
+                                    <input 
+                                        type="checkbox" 
+                                        checked={data.include_time}
+                                        onChange={e => setData('include_time', e.target.checked)}
+                                        className="sr-only peer" 
+                                    />
+                                    <div className="w-9 h-5 bg-slate-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary-300 dark:peer-focus:ring-primary-800 rounded-full peer dark:bg-white/10 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all dark:border-gray-600 peer-checked:bg-primary-600 relative"></div>
+                                    <span className="ml-3 text-xs font-bold text-slate-600 dark:text-slate-400 group-hover:text-primary-500 transition-colors">Include specific start/end times</span>
+                                </label>
+                            </div>
+
+                            <div className="space-y-4">
+                                <div>
+                                    <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-2">Starts On</label>
+                                    <div className="flex gap-2">
+                                        <input type="date" value={data.start_date} onChange={e => setData('start_date', e.target.value)} className="flex-1 rounded-xl border-slate-200 dark:border-white/10 dark:bg-navy-800 dark:text-white text-sm font-medium" />
+                                        {data.include_time && (
+                                            <input type="time" value={data.start_time} onChange={e => setData('start_time', e.target.value)} className="w-32 rounded-xl border-slate-200 dark:border-white/10 dark:bg-navy-800 dark:text-white text-sm font-medium" />
+                                        )}
+                                    </div>
+                                </div>
+                                <div>
+                                    <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-2">Ends On</label>
+                                    <div className="flex gap-2">
+                                        <input type="date" value={data.end_date} onChange={e => setData('end_date', e.target.value)} className="flex-1 rounded-xl border-slate-200 dark:border-white/10 dark:bg-navy-800 dark:text-white text-sm font-medium" />
+                                        {data.include_time && (
+                                            <input type="time" value={data.end_time} onChange={e => setData('end_time', e.target.value)} className="w-32 rounded-xl border-slate-200 dark:border-white/10 dark:bg-navy-800 dark:text-white text-sm font-medium" />
+                                        )}
+                                    </div>
+                                </div>
+                            </div>
                         </div>
 
-                        <div>
-                            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Kode Promo</label>
-                            <input
-                                type="text"
-                                value={data.code}
-                                onChange={e => setData('code', e.target.value.toUpperCase())}
-                                placeholder="Contoh: PROMO2026"
-                                className="w-full rounded-xl border-slate-300 dark:border-white/10 dark:bg-navy-800 dark:text-white focus:border-primary-500 focus:ring-primary-500 uppercase"
-                            />
-                            {errors.code && <p className="text-red-500 text-xs mt-1">{errors.code}</p>}
-                        </div>
-
-                        <div className="grid grid-cols-2 gap-4">
-                            <div>
-                                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Potongan Harga (Rp)</label>
-                                <input
-                                    type="number"
-                                    value={data.discount_amount}
-                                    onChange={e => setData('discount_amount', e.target.value)}
-                                    placeholder="50000"
-                                    className="w-full rounded-xl border-slate-300 dark:border-white/10 dark:bg-navy-800 dark:text-white focus:border-primary-500 focus:ring-primary-500"
-                                />
-                                {errors.discount_amount && <p className="text-red-500 text-xs mt-1">{errors.discount_amount}</p>}
-                            </div>
-                            <div>
-                                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Kuota Aktif</label>
-                                <input
-                                    type="number"
-                                    value={data.quota}
-                                    onChange={e => setData('quota', e.target.value)}
-                                    placeholder="100"
-                                    className="w-full rounded-xl border-slate-300 dark:border-white/10 dark:bg-navy-800 dark:text-white focus:border-primary-500 focus:ring-primary-500"
-                                />
-                                {errors.quota && <p className="text-red-500 text-xs mt-1">{errors.quota}</p>}
-                            </div>
-                        </div>
-
-                        <div className="grid grid-cols-2 gap-4">
-                            <div>
-                                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Tanggal Mulai</label>
-                                <input
-                                    type="date"
-                                    value={data.start_date}
-                                    onChange={e => setData('start_date', e.target.value)}
-                                    className="w-full rounded-xl border-slate-300 dark:border-white/10 dark:bg-navy-800 dark:text-white focus:border-primary-500 focus:ring-primary-500"
-                                />
-                                {errors.start_date && <p className="text-red-500 text-xs mt-1">{errors.start_date}</p>}
-                            </div>
-                            <div>
-                                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Tanggal Berakhir</label>
-                                <input
-                                    type="date"
-                                    value={data.end_date}
-                                    onChange={e => setData('end_date', e.target.value)}
-                                    className="w-full rounded-xl border-slate-300 dark:border-white/10 dark:bg-navy-800 dark:text-white focus:border-primary-500 focus:ring-primary-500"
-                                />
-                                {errors.end_date && <p className="text-red-500 text-xs mt-1">{errors.end_date}</p>}
-                            </div>
-                        </div>
-
-                        <div className="mt-8 flex justify-end space-x-3">
+                        <div className="flex justify-end gap-3 mt-8">
                             <button
                                 type="button"
-                                onClick={closeModal}
-                                className="px-5 py-2.5 rounded-xl text-slate-700 dark:text-slate-300 font-medium hover:bg-slate-100 dark:hover:bg-white/5 transition-colors"
+                                onClick={closeFormModal}
+                                className="px-6 py-2.5 text-xs font-bold text-slate-500 hover:text-slate-700 dark:hover:text-white transition-colors"
                             >
-                                Batal
+                                Cancel
                             </button>
                             <button
                                 type="submit"
                                 disabled={processing}
-                                className="bg-primary-600 hover:bg-primary-500 text-white px-5 py-2.5 rounded-xl font-medium transition-colors disabled:opacity-50"
+                                className="px-8 py-3 bg-primary-600 text-white rounded-xl text-xs font-bold shadow-xl shadow-primary-500/20 hover:bg-primary-700 transition-all active:scale-95 disabled:opacity-50"
                             >
-                                {isEditMode ? 'Simpan Perubahan' : 'Buat Promo'}
+                                {isEditMode ? 'Update Promotion' : 'Create Promotion'}
                             </button>
                         </div>
                     </form>

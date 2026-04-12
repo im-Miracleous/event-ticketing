@@ -31,6 +31,7 @@ class AuthenticatedSessionController extends Controller
      */
     public function store(LoginRequest $request): SymfonyResponse
     {
+        // dd('store');
         $request->authenticate();
 
         $request->session()->regenerate();
@@ -43,7 +44,7 @@ class AuthenticatedSessionController extends Controller
             ? route('admin.dashboard')
             : route('dashboard');
 
-        return Inertia::location(redirect()->intended($defaultRoute)->getTargetUrl());
+        return redirect()->intended($defaultRoute);
     }
 
     /**
