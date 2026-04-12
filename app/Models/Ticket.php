@@ -20,6 +20,11 @@ class Ticket extends Model {
         'ticket_type_id'
     ];
 
+    protected $casts = [
+        'issued_at' => 'datetime',
+        'validated_at' => 'datetime',
+    ];
+
     public function detail() { 
         return $this->belongsTo(TransactionDetail::class, 'transaction_detail_id'); 
     }

@@ -11,6 +11,10 @@ class ValidationLog extends Model {
         'ticket_id'
     ];
 
+    protected $casts = [
+        'validation_time' => 'datetime',
+    ];
+
     public function ticket() { 
         return $this->belongsTo(Ticket::class, 'ticket_id'); 
     }
