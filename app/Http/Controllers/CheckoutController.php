@@ -249,7 +249,7 @@ class CheckoutController extends Controller
             // Mark all tickets as issued
             foreach ($transaction->details as $detail) {
                 foreach ($detail->tickets as $ticket) {
-                    $ticket->update(['ticket_status' => 'Active']);
+                    $ticket->update(['ticket_status' => 'Issued']);
                 }
             }
 

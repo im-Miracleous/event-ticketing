@@ -23,7 +23,7 @@ class AttendeeController extends Controller
 
         $query = Ticket::with(['attendee', 'ticketType', 'detail.transaction'])
             ->whereHas('detail.transaction', function($q) use ($eventIds) {
-                $q->whereIn('event_id', $eventIds)->where('transaction_status', 'success');
+                $q->whereIn('event_id', $eventIds)->where('transaction_status', 'Success');
             });
 
         // Optional filtering by event
@@ -66,7 +66,7 @@ class AttendeeController extends Controller
         $sortDir = $request->input('direction', 'desc') === 'asc' ? 'asc' : 'desc';
         $query->orderBy($sortCol, $sortDir);
 
-        $tickets = $query->paginate(20)->withQueryString();
+        $tickets = $query->paginate($request->input('per_page', 10))->withQueryString();
 
         // Transform the data for the frontend table
         $attendees = $tickets->through(function ($ticket) {
@@ -88,7 +88,7 @@ class AttendeeController extends Controller
         return Inertia::render('Organizer/Attendees/Index', [
             'attendees' => $attendees,
             'events' => $events,
-            'filters' => $request->only(['event_id', 'search', 'status', 'sort', 'direction', 'date_from', 'date_to']),
+            'filters' => $request->only(['event_id', 'search', 'status', 'sort', 'direction', 'date_from', 'date_to', 'per_page']),
         ]);
     }
 }

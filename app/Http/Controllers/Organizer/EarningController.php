@@ -49,19 +49,20 @@ class EarningController extends Controller
 
         // Dynamic sorting
         $sortMap = [
-            'buyer_name'   => 'buyer',
-            'event_name'   => 'event',
+            'buyer_name'   => 'users.name',
+            'event_name'   => 'events.title',
             'total_amount' => 'total_amount',
             'date'         => 'created_at',
         ];
-        $sortCol = $sortMap[$request->input('sort')] ?? 'created_at';
+        $sortKey = $request->input('sort');
+        $sortCol = $sortMap[$sortKey] ?? 'created_at';
         $sortDir = $request->input('direction', 'desc') === 'asc' ? 'asc' : 'desc';
 
-        if ($sortCol === 'buyer') {
+        if ($sortKey === 'buyer_name') {
             $query->leftJoin('users', 'transactions.user_id', '=', 'users.id')
                   ->orderBy('users.name', $sortDir)
                   ->select('transactions.*');
-        } elseif ($sortCol === 'event') {
+        } elseif ($sortKey === 'event_name') {
             $query->leftJoin('events', 'transactions.event_id', '=', 'events.id')
                   ->orderBy('events.title', $sortDir)
                   ->select('transactions.*');
@@ -69,9 +70,9 @@ class EarningController extends Controller
             $query->orderBy($sortCol, $sortDir);
         }
 
-        $transactions = $query->paginate(20)->withQueryString();
+        $transactions = $query->paginate($request->input('per_page', 10))->withQueryString();
         
-        // Transform the data to keep the React component clean
+        // Transform the data for the React component
         $ledger = $transactions->through(function ($tx) {
             return [
                 'id' => $tx->id,
@@ -80,12 +81,12 @@ class EarningController extends Controller
                 'event_name' => $tx->event->title ?? 'Unknown Event',
                 'total_amount' => $tx->total_amount,
                 'date' => $tx->created_at,
-                'payment_method' => $tx->payment->payment_type ?? 'Transfer Bank',
-                'payment_status' => $tx->payment->payment_status ?? 'success',
+                'payment_method' => $tx->payment?->payment_method ?: ($tx->payment?->doku_channel ?: 'Bank Transfer'),
+                'payment_status' => $tx->payment?->payment_status ?? 'success',
             ];
         });
 
-        // Totals mapping for cards
+        // Totals mapping for summary cards
         $totalEarnings = Transaction::whereIn('event_id', $eventIds)
             ->where('transaction_status', 'success')
             ->sum('total_amount');
@@ -97,7 +98,7 @@ class EarningController extends Controller
         return Inertia::render('Organizer/Earnings/Index', [
             'ledger' => $ledger,
             'events' => $events,
-            'filters' => $request->only(['event_id', 'search', 'sort', 'direction', 'date_from', 'date_to']),
+            'filters' => $request->only(['event_id', 'search', 'sort', 'direction', 'date_from', 'date_to', 'per_page']),
             'summary' => [
                 'totalEarnings' => $totalEarnings,
                 'totalTransactions' => $totalTransactions,

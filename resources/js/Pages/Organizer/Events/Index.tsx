@@ -1,9 +1,14 @@
-import React, { useState } from 'react';
+import React, { useState, Fragment } from 'react';
 import DashboardLayout from '@/Layouts/DashboardLayout';
-import { Head, Link, router } from '@inertiajs/react';
-import Modal from '@/Components/Modal';
+import Pagination from '@/Components/Dashboard/Pagination';
+import SortableHeader from '@/Components/Dashboard/SortableHeader';
+import AdvancedFilter, { FilterField, FilterSelect, FilterDateRange } from '@/Components/Dashboard/AdvancedFilter';
 import Tooltip from '@/Components/Dashboard/Tooltip';
+import Modal from '@/Components/Modal';
 import SecondaryButton from '@/Components/SecondaryButton';
+import { Head, Link, router } from '@inertiajs/react';
+import { Menu, Transition } from '@headlessui/react';
+import { MoreVertical, Eye, Edit2, CheckCircle, XCircle, Search, Plus, Archive, Clock, FileText } from 'lucide-react';
 
 const STATUS_TABS = [
     { label: 'All Events', value: 'All' },
@@ -13,19 +18,19 @@ const STATUS_TABS = [
     { label: 'Cancelled', value: 'Cancelled' },
 ];
 
-interface EventRow {
-    id: string;
-    name: string;
-    category: string;
-    date: string;
-    tickets: string;
-    status: string;
-}
-
-export default function Index({ events, filters }: any) {
-    const [activeTab, setActiveTab] = useState(filters?.status || 'All');
+export default function Index({ events, categories, filters }: any) {
     const [search, setSearch] = useState(filters?.search || '');
-    const [openMenuId, setOpenMenuId] = useState<string | null>(null);
+    const activeTab = filters?.status || 'All';
+
+    // Sort state
+    const sort = filters.sort || '';
+    const direction = filters.direction || 'desc';
+
+    // Advanced filter local state
+    const [filterCategory, setFilterCategory] = useState(filters.category_id || '');
+    const [filterDateFrom, setFilterDateFrom] = useState(filters.date_from || '');
+    const [filterDateTo, setFilterDateTo] = useState(filters.date_to || '');
+
     const [confirmModal, setConfirmModal] = useState<{
         isOpen: boolean;
         title: string;
@@ -40,28 +45,65 @@ export default function Index({ events, filters }: any) {
         eventId: '',
     });
 
-    const statusColor = (status: string) => {
-        switch (status) {
-            case 'Active': return 'bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 ring-1 ring-emerald-500/20';
-            case 'Draft': return 'bg-slate-100 dark:bg-white/5 text-slate-500 dark:text-slate-400 ring-1 ring-slate-200 dark:ring-white/10';
-            case 'Cancelled': return 'bg-red-50 dark:bg-red-500/10 text-red-500 dark:text-red-400 ring-1 ring-red-500/20';
-            case 'Completed': return 'bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400 ring-1 ring-blue-500/20';
-            default: return '';
-        }
+    const categoryOptions = categories.map((c: any) => ({ label: c.name, value: c.id }));
+
+    /* ── Helpers ──────────────────────────────────────────────────── */
+
+    const buildParams = (overrides = {}) => {
+        const params: any = {
+            status: activeTab === 'All' ? undefined : activeTab,
+            search: search || undefined,
+            sort: sort || undefined,
+            direction: sort ? direction : undefined,
+            category_id: filterCategory || undefined,
+            date_from: filterDateFrom || undefined,
+            date_to: filterDateTo || undefined,
+            per_page: events.per_page,
+            ...overrides,
+        };
+        Object.keys(params).forEach(k => params[k] === undefined && delete params[k]);
+        return params;
     };
 
     const handleTabChange = (status: string) => {
-        setActiveTab(status);
-        router.get(route('organizer.events.index'), { status, search }, { preserveState: true, replace: true });
+        router.get(route('organizer.events.index'), buildParams({ status: status === 'All' ? undefined : status, page: undefined }), { preserveState: true, replace: true });
     };
 
-    const handleSearch = (e: React.FormEvent) => {
-        e.preventDefault();
-        router.get(route('organizer.events.index'), { status: activeTab, search }, { preserveState: true, replace: true });
+    const handleSearch = (value: string) => {
+        setSearch(value);
+        router.get(route('organizer.events.index'), buildParams({ search: value || undefined, page: undefined }), { preserveState: true, preserveScroll: true, replace: true });
     };
+
+    const handleSort = (column: string, dir: 'asc' | 'desc') => {
+        router.get(route('organizer.events.index'), buildParams({ sort: column, direction: dir, page: undefined }), { preserveState: true, preserveScroll: true, replace: true });
+    };
+
+    const handlePageChange = (page: number) => {
+        router.get(route('organizer.events.index'), buildParams({ page }), { preserveState: true, preserveScroll: true, replace: true });
+    };
+
+    const handlePerPageChange = (perPage: number) => {
+        router.get(route('organizer.events.index'), buildParams({ per_page: perPage, page: undefined }), { preserveState: true, preserveScroll: true, replace: true });
+    };
+
+    const activeAdvancedFilterCount = [filterCategory, filterDateFrom, filterDateTo].filter(Boolean).length;
+
+    const handleApplyFilters = () => {
+        router.get(route('organizer.events.index'), buildParams({ page: undefined }), { preserveState: true, preserveScroll: true, replace: true });
+    };
+
+    const handleClearFilters = () => {
+        setFilterCategory('');
+        setFilterDateFrom('');
+        setFilterDateTo('');
+        router.get(route('organizer.events.index'), buildParams({
+            category_id: undefined, date_from: undefined, date_to: undefined, page: undefined,
+        }), { preserveState: true, preserveScroll: true, replace: true });
+    };
+
+    /* ── Modal helpers ────────────────────────────────────────────── */
 
     const openCompleteModal = (eventId: string, eventName: string) => {
-        setOpenMenuId(null);
         setConfirmModal({
             isOpen: true,
             title: 'Mark as Completed',
@@ -72,7 +114,6 @@ export default function Index({ events, filters }: any) {
     };
 
     const openCancelModal = (eventId: string, eventName: string) => {
-        setOpenMenuId(null);
         setConfirmModal({
             isOpen: true,
             title: 'Cancel Event',
@@ -101,227 +142,264 @@ export default function Index({ events, filters }: any) {
         }
     };
 
-    const eventRows: EventRow[] = events?.data || [];
-    const totalRows = eventRows.length;
+    const statusColor = (status: string) => {
+        switch (status) {
+            case 'Active': return { class: 'bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 ring-1 ring-emerald-500/20', icon: CheckCircle };
+            case 'Draft': return { class: 'bg-slate-100 dark:bg-white/5 text-slate-500 dark:text-slate-400 ring-1 ring-slate-200 dark:ring-white/10', icon: FileText };
+            case 'Cancelled': return { class: 'bg-red-50 dark:bg-red-500/10 text-red-500 dark:text-red-400 ring-1 ring-red-500/20', icon: XCircle };
+            case 'Completed': return { class: 'bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400 ring-1 ring-blue-500/20', icon: Archive };
+            default: return { class: '', icon: Clock };
+        }
+    };
 
     return (
         <DashboardLayout>
-            <Head title="My Events | Organizer" />
+            <Head title="My Events" />
 
-            <div className="mb-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div className="mb-8 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                 <div className="flex items-center gap-4">
                     <div className="w-12 h-12 bg-primary-600 rounded-2xl flex items-center justify-center text-white shadow-xl shadow-primary-500/20 rotate-3 flex-shrink-0">
-                        <svg className="w-7 h-7" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 0 1 2.25-2.25h13.5A2.25 2.25 0 0 1 21 7.5v11.25m-18 0A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75m-18 0v-7.5A2.25 2.25 0 0 1 5.25 9h13.5A2.25 2.25 0 0 1 21 11.25v7.5" /></svg>
+                        <Archive className="w-7 h-7" />
                     </div>
                     <div>
-                        <h1 className="text-2xl font-bold text-slate-900 dark:text-white">My Events</h1>
-                        <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">Manage and monitor all events you've created.</p>
+                        <h1 className="text-2xl font-bold text-slate-900 dark:text-white capitalize">My Events</h1>
+                        <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">Manage and track your organized events.</p>
                     </div>
                 </div>
+                <Link
+                    href={route('organizer.events.create')}
+                    className="inline-flex items-center gap-2 px-5 py-2.5 text-sm font-bold text-white bg-primary-600 rounded-xl hover:bg-primary-700 transition-all shadow-lg shadow-primary-500/25 active:scale-95"
+                >
+                    <Plus className="w-4 h-4" />
+                    Create New Event
+                </Link>
             </div>
 
-            <div className="max-w-7xl mx-auto space-y-6">
+            {/* Toolbar: Search + Advanced Filter */}
+            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 mb-6">
+                <div className="relative w-full sm:w-80">
+                    <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 dark:text-slate-500" />
+                    <input
+                        type="text"
+                        placeholder="Search events…"
+                        value={search}
+                        onChange={(e) => handleSearch(e.target.value)}
+                        className="w-full rounded-2xl border border-slate-200 dark:border-white/10 bg-white dark:bg-white/5 pl-11 pr-4 py-3 text-sm text-slate-700 dark:text-slate-300 placeholder-slate-400 dark:placeholder-slate-500 focus:border-primary-500/40 focus:ring-4 focus:ring-primary-500/10 transition-all shadow-sm"
+                    />
+                </div>
 
                 {/* Status Tabs */}
-                <div className="flex items-center space-x-1 border-b border-slate-200 dark:border-white/5 pb-0">
-                    {STATUS_TABS.map(tab => (
+                <div className="flex items-center gap-1 p-1 rounded-2xl bg-slate-100 dark:bg-white/5 border border-slate-200 dark:border-white/5 overflow-x-auto no-scrollbar">
+                    {STATUS_TABS.map((tab) => (
                         <button
                             key={tab.value}
                             onClick={() => handleTabChange(tab.value)}
-                            className={`px-4 py-2.5 text-sm font-bold transition-colors relative ${activeTab === tab.value
-                                ? 'text-primary-600 dark:text-primary-400'
-                                : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                            className={`px-4 py-2 text-xs font-bold rounded-xl transition-all whitespace-nowrap ${activeTab === tab.value
+                                    ? 'bg-white dark:bg-primary-600 text-slate-900 dark:text-white shadow-sm ring-1 ring-slate-200 dark:ring-transparent'
+                                    : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-white'
                                 }`}
                         >
                             {tab.label}
-                            {activeTab === tab.value && (
-                                <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary-500 rounded-full" />
-                            )}
                         </button>
                     ))}
                 </div>
 
-                {/* Search + Create */}
-                <div className="flex flex-col md:flex-row md:items-center justify-between space-y-4 md:space-y-0">
-                    <Link
-                        href={route('organizer.events.create')}
-                        className="inline-flex items-center gap-2 px-5 py-2.5 text-sm font-bold text-white bg-primary-600 hover:bg-primary-500 rounded-xl transition-all shadow-lg shadow-primary-500/25"
-                    >
-                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
-                        </svg>
-                        Create Event
-                    </Link>
-
-                    <form onSubmit={handleSearch} className="relative w-full md:w-96">
-                        <input
-                            type="text"
-                            placeholder="Search for an event..."
-                            value={search}
-                            onChange={(e) => setSearch(e.target.value)}
-                            className="w-full pl-10 pr-4 py-3 bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-xl text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-primary-500/50 text-sm font-medium"
+                <AdvancedFilter activeCount={activeAdvancedFilterCount} onApply={handleApplyFilters} onClear={handleClearFilters}>
+                    <FilterField label="Category">
+                        <FilterSelect
+                            value={filterCategory}
+                            onChange={setFilterCategory}
+                            options={categoryOptions}
+                            placeholder="All Categories"
                         />
-                        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                            <svg className="w-5 h-5 text-slate-400 dark:text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
-                        </div>
-                    </form>
-                </div>
+                    </FilterField>
+                    <FilterField label="Event Date Range">
+                        <FilterDateRange
+                            from={filterDateFrom}
+                            to={filterDateTo}
+                            onFromChange={setFilterDateFrom}
+                            onToChange={setFilterDateTo}
+                        />
+                    </FilterField>
+                </AdvancedFilter>
+            </div>
 
-                {/* Table */}
-                <div className="rounded-2xl bg-white dark:bg-white/[0.03] border border-slate-200 dark:border-white/5 shadow-sm dark:shadow-none overflow-hidden">
-                    <div className="min-w-full rounded-2xl overflow-auto custom-scrollbar max-h-[calc(100vh-32rem)] sm:max-h-[calc(100vh-28rem)]">
-                        <table className="w-full text-sm border-collapse">
-                            <thead className="sticky top-0 z-10 bg-white dark:bg-[#0f172a] shadow-[0_1px_0_0_rgba(0,0,0,0.05)] dark:shadow-[0_1px_0_0_rgba(255,255,255,0.05)]">
-                                <tr className="text-left text-xs font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider border-b border-slate-100 dark:border-white/5">
-                                    <th className="px-5 py-3">Event Name</th>
-                                    <th className="px-5 py-3">Category</th>
-                                    <th className="px-5 py-3">Date</th>
-                                    <th className="px-5 py-3">Tickets</th>
-                                    <th className="px-5 py-3">Status</th>
-                                    <th className="px-5 py-3 text-right">Actions</th>
+            {/* Table wrapper */}
+            <div className="rounded-3xl bg-white dark:bg-white/[0.03] border border-slate-200 dark:border-white/5 shadow-xl shadow-slate-200/50 dark:shadow-none overflow-hidden">
+                <div className="min-w-full rounded-2xl overflow-x-auto overflow-y-auto custom-scrollbar max-h-[calc(100vh-24rem)]">
+                    <table className="w-full text-sm border-collapse">
+                        <thead className="sticky top-0 z-10 bg-white dark:bg-[#0f172a] shadow-[0_1px_0_0_rgba(0,0,0,0.05)] dark:shadow-[0_1px_0_0_rgba(255,255,255,0.05)]">
+                            <tr className="text-left text-xs font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest border-b border-slate-100 dark:border-white/5">
+                                <SortableHeader label="Event" column="name" currentSort={sort} currentDirection={direction} onSort={handleSort} className="px-6 py-5 border-none" />
+                                <SortableHeader label="Category" column="category" currentSort={sort} currentDirection={direction} onSort={handleSort} className="px-6 py-5 border-none" />
+                                <SortableHeader label="Date" column="date" currentSort={sort} currentDirection={direction} onSort={handleSort} className="px-6 py-5 border-none" />
+                                <th className="px-6 py-5">Tickets Sold</th>
+                                <SortableHeader label="Status" column="status" currentSort={sort} currentDirection={direction} onSort={handleSort} className="px-6 py-5 border-none text-center" />
+                                <th className="px-6 py-5 text-right">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-100 dark:divide-white/5">
+                            {events.data.length === 0 ? (
+                                <tr>
+                                    <td colSpan={6} className="px-6 py-20 text-center">
+                                        <div className="flex flex-col items-center">
+                                            <div className="w-20 h-20 bg-slate-100 dark:bg-white/5 rounded-full flex items-center justify-center mb-6 text-slate-300 dark:text-slate-600">
+                                                <Archive className="w-10 h-10" />
+                                            </div>
+                                            <h3 className="text-xl font-black text-slate-900 dark:text-white mb-2 tracking-tight uppercase">No Events Found</h3>
+                                            <p className="text-slate-500 dark:text-slate-400 text-sm max-w-sm">Try adjusting your search or filters to find what you're looking for.</p>
+                                        </div>
+                                    </td>
                                 </tr>
-                            </thead>
-                            <tbody className="divide-y divide-slate-50 dark:divide-white/[0.02]">
-                                {eventRows.length > 0 ? eventRows.map((event, idx) => {
-                                    const isNearBottom = totalRows <= 2 || idx >= totalRows - 2;
+                            ) : (
+                                events.data.map((event: any, rowIndex: number) => {
+                                    const totalRows = events.data.length;
+                                    const isNearBottom = totalRows <= 2 || rowIndex >= totalRows - 2;
 
                                     return (
-                                        <tr key={event.id} className="hover:bg-slate-50/50 dark:hover:bg-white/[0.02] transition-colors">
-                                            <td className="px-5 py-4">
+                                        <tr key={event.id} className="hover:bg-slate-50 dark:hover:bg-white/[0.02] transition-colors group">
+                                            <td className="px-6 py-4 font-semibold text-slate-900 dark:text-white">
                                                 <Tooltip content={event.name}>
-                                                    <Link href={route('organizer.events.show', event.id)} className="font-semibold text-slate-800 dark:text-white hover:text-primary-600 dark:hover:text-primary-400 transition-colors block truncate max-w-[200px]">
-                                                        {event.name}
-                                                    </Link>
+                                                    <div className="truncate max-w-[200px] group-hover:text-primary-600 transition-colors text-sm tracking-wide">{event.name}</div>
                                                 </Tooltip>
                                             </td>
-                                            <td className="px-5 py-4 text-slate-500 dark:text-slate-400">{event.category}</td>
-                                            <td className="px-5 py-4 text-slate-500 dark:text-slate-400">{event.date}</td>
-                                            <td className="px-5 py-4 text-slate-500 dark:text-slate-400">{event.tickets}</td>
-                                            <td className="px-5 py-4">
-                                                <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-semibold ${statusColor(event.status)}`}>
-                                                    {event.status}
+                                            <td className="px-6 py-4">
+                                                <span className="inline-flex items-center px-2 py-0.5 rounded-lg text-[11px] font-bold bg-primary-50 dark:bg-primary-500/10 text-primary-600 dark:text-primary-400 border border-primary-500/20">
+                                                    {event.category}
                                                 </span>
                                             </td>
-                                            <td className="px-5 py-4 text-right">
-                                                <div className="relative inline-block">
-                                                    <button
-                                                        onClick={() => setOpenMenuId(openMenuId === event.id ? null : event.id)}
-                                                        className="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-white/5 transition-colors text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"
+                                            <td className="px-6 py-4 text-slate-500 dark:text-slate-400 font-medium text-sm whitespace-nowrap">{event.date}</td>
+                                            <td className="px-6 py-4">
+                                                <div className="flex items-center gap-2">
+                                                    <div className="w-full bg-slate-100 dark:bg-white/5 rounded-full h-1.5 max-w-[80px]">
+                                                        <div className="bg-primary-600 h-1.5 rounded-full" style={{ width: `${Math.min(100, (parseInt(event.tickets.split(' / ')[0]) / parseInt(event.tickets.split(' / ')[1])) * 100)}%` }}></div>
+                                                    </div>
+                                                    <span className="text-xs font-bold text-slate-700 dark:text-slate-300">{event.tickets}</span>
+                                                </div>
+                                            </td>
+                                            <td className="px-6 py-4 text-center whitespace-nowrap">
+                                                {(() => {
+                                                    const statusData = statusColor(event.status);
+                                                    const Icon = statusData.icon;
+                                                    return (
+                                                        <span className={`inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-[11px] font-bold uppercase tracking-wider ${statusData.class}`}>
+                                                            <Icon className="w-3 h-3" />
+                                                            {event.status}
+                                                        </span>
+                                                    );
+                                                })()}
+                                            </td>
+                                            <td className="px-6 py-4 text-right whitespace-nowrap">
+                                                <Menu as="div" className="relative inline-block text-left">
+                                                    <div>
+                                                        <Menu.Button className="inline-flex items-center justify-center p-2 rounded-xl text-slate-400 hover:text-slate-600 dark:text-slate-500 dark:hover:text-slate-300 hover:bg-slate-100 dark:hover:bg-white/10 transition-all">
+                                                            <MoreVertical className="w-5 h-5" />
+                                                        </Menu.Button>
+                                                    </div>
+                                                    <Transition
+                                                        as={Fragment}
+                                                        enter="transition ease-out duration-100"
+                                                        enterFrom="transform opacity-0 scale-95"
+                                                        enterTo="transform opacity-100 scale-100"
+                                                        leave="transition ease-in duration-75"
+                                                        leaveFrom="transform opacity-100 scale-100"
+                                                        leaveTo="transform opacity-0 scale-95"
                                                     >
-                                                        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                                                            <path strokeLinecap="round" strokeLinejoin="round" d="M12 6.75a.75.75 0 110-1.5.75.75 0 010 1.5zM12 12.75a.75.75 0 110-1.5.75.75 0 010 1.5zM12 18.75a.75.75 0 110-1.5.75.75 0 010 1.5z" />
-                                                        </svg>
-                                                    </button>
-
-                                                    {openMenuId === event.id && (
-                                                        <>
-                                                            <div className="fixed inset-0 z-40" onClick={() => setOpenMenuId(null)} />
-                                                            <div className={`absolute right-0 z-50 w-48 bg-white dark:bg-navy-800 border border-slate-200 dark:border-white/10 rounded-xl shadow-xl py-1 text-left ${isNearBottom ? 'bottom-full mb-1' : 'top-full mt-1'}`}>
-                                                                <Link
-                                                                    href={route('organizer.events.show', event.id)}
-                                                                    className="block px-4 py-2 text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-white/5"
-                                                                >
-                                                                    View Details
-                                                                </Link>
-                                                                {!['Cancelled', 'Completed'].includes(event.status) && (
-                                                                    <Link
-                                                                        href={route('organizer.events.edit', event.id)}
-                                                                        className="block px-4 py-2 text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-white/5"
-                                                                    >
-                                                                        Edit
-                                                                    </Link>
-                                                                )}
+                                                        <Menu.Items className={`absolute right-0 z-50 w-52 origin-top-right rounded-2xl bg-white dark:bg-navy-900 border border-slate-200 dark:border-white/10 shadow-2xl focus:outline-none ring-1 ring-black/5 dark:ring-transparent ${isNearBottom ? 'bottom-full mb-2' : 'mt-2'}`}>
+                                                            <div className="p-1.5 space-y-1">
+                                                                <Menu.Item>
+                                                                    {({ active }) => (
+                                                                        <Link
+                                                                            href={route('organizer.events.show', event.id)}
+                                                                            className={`${active ? 'bg-slate-50 dark:bg-white/5 text-primary-600 dark:text-primary-400' : 'text-slate-700 dark:text-slate-300'} flex items-center gap-2.5 px-3 py-2 text-xs font-bold rounded-xl transition-all tracking-wider`}
+                                                                        >
+                                                                            <Eye className="w-4 h-4" />
+                                                                            View Details
+                                                                        </Link>
+                                                                    )}
+                                                                </Menu.Item>
+                                                                <Menu.Item>
+                                                                    {({ active }) => (
+                                                                        <Link
+                                                                            href={route('organizer.events.edit', event.id)}
+                                                                            className={`${active ? 'bg-slate-50 dark:bg-white/5 text-primary-600 dark:text-primary-400' : 'text-slate-700 dark:text-slate-300'} flex items-center gap-2.5 px-3 py-2 text-xs font-bold rounded-xl transition-all tracking-wider`}
+                                                                        >
+                                                                            <Edit2 className="w-4 h-4" />
+                                                                            Edit Event
+                                                                        </Link>
+                                                                    )}
+                                                                </Menu.Item>
                                                                 {event.status === 'Active' && (
-                                                                    <button
-                                                                        onClick={() => openCompleteModal(event.id, event.name)}
-                                                                        className="block w-full text-left px-4 py-2 text-sm text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-500/10"
-                                                                    >
-                                                                        Mark as Completed
-                                                                    </button>
+                                                                    <Menu.Item>
+                                                                        {({ active }) => (
+                                                                            <button
+                                                                                onClick={() => openCompleteModal(event.id, event.name)}
+                                                                                className={`${active ? 'bg-blue-50 dark:bg-blue-500/10 text-blue-600' : 'text-blue-600/70'} flex items-center gap-2.5 px-3 py-2 text-xs font-bold rounded-xl transition-all uppercase tracking-wider w-full text-left`}
+                                                                            >
+                                                                                <CheckCircle className="w-4 h-4" />
+                                                                                Mark as Completed
+                                                                            </button>
+                                                                        )}
+                                                                    </Menu.Item>
                                                                 )}
                                                                 {['Active', 'Draft'].includes(event.status) && (
-                                                                    <button
-                                                                        onClick={() => openCancelModal(event.id, event.name)}
-                                                                        className="block w-full text-left px-4 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-500/10"
-                                                                    >
-                                                                        Cancel Event
-                                                                    </button>
+                                                                    <Menu.Item>
+                                                                        {({ active }) => (
+                                                                            <button
+                                                                                onClick={() => openCancelModal(event.id, event.name)}
+                                                                                className={`${active ? 'bg-red-50 dark:bg-red-500/10 text-red-600' : 'text-red-600/70'} flex items-center gap-2.5 px-3 py-2 text-xs font-bold rounded-xl transition-all uppercase tracking-wider w-full text-left`}
+                                                                            >
+                                                                                <XCircle className="w-4 h-4" />
+                                                                                Cancel Event
+                                                                            </button>
+                                                                        )}
+                                                                    </Menu.Item>
                                                                 )}
                                                             </div>
-                                                        </>
-                                                    )}
-                                                </div>
+                                                        </Menu.Items>
+                                                    </Transition>
+                                                </Menu>
                                             </td>
                                         </tr>
                                     );
-                                }) : (
-                                    <tr>
-                                        <td colSpan={6} className="px-5 py-16 text-center">
-                                            <div className="flex flex-col items-center">
-                                                <div className="w-16 h-16 bg-slate-100 dark:bg-white/5 rounded-full flex items-center justify-center mb-4 text-slate-400 dark:text-slate-500">
-                                                    <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
-                                                </div>
-                                                <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-2">No Events Found</h3>
-                                                <p className="text-slate-500 dark:text-slate-400 text-sm max-w-sm mb-6">
-                                                    {activeTab !== 'All' ? `No ${activeTab.toLowerCase()} events found.` : "You haven't created any events yet."}
-                                                </p>
-                                                <Link href={route('organizer.events.create')} className="bg-primary-600 hover:bg-primary-500 text-white font-bold py-2.5 px-6 rounded-xl transition-all shadow-lg shadow-primary-500/25 text-sm">
-                                                    Create Your First Event
-                                                </Link>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                )}
-                            </tbody>
-                        </table>
-                    </div>
+                                })
+                            )}
+                        </tbody>
+                    </table>
                 </div>
 
-                {/* Pagination */}
-                {events?.links && events.links.length > 3 && (
-                    <div className="flex justify-center gap-1">
-                        {events.links.map((link: any, i: number) => (
-                            <button
-                                key={i}
-                                onClick={() => link.url && router.get(link.url, {}, { preserveState: true })}
-                                disabled={!link.url}
-                                className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-colors ${link.active
-                                    ? 'bg-primary-600 text-white'
-                                    : 'text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-white/5'
-                                    } disabled:opacity-30 disabled:cursor-not-allowed`}
-                                dangerouslySetInnerHTML={{ __html: link.label }}
-                            />
-                        ))}
-                    </div>
-                )}
+                <Pagination
+                    currentPage={events.current_page}
+                    totalItems={events.total}
+                    perPage={events.per_page}
+                    onPageChange={handlePageChange}
+                    onPerPageChange={handlePerPageChange}
+                />
             </div>
 
             {/* Confirmation Modal */}
             <Modal show={confirmModal.isOpen} onClose={closeConfirmModal} maxWidth="md">
                 <div className="p-6">
-                    <div className="flex items-center gap-3 mb-4">
-                        <div className={`p-2 rounded-full ${confirmModal.action === 'complete' ? 'bg-blue-100 dark:bg-blue-500/20' : 'bg-red-100 dark:bg-red-500/20'}`}>
-                            {confirmModal.action === 'complete' ? (
-                                <svg className="w-5 h-5 text-blue-600 dark:text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                                    <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                </svg>
-                            ) : (
-                                <svg className="w-5 h-5 text-red-600 dark:text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                                </svg>
-                            )}
+                    <div className="flex items-center gap-4 mb-6">
+                        <div className={`w-12 h-12 rounded-2xl flex items-center justify-center ${
+                            confirmModal.action === 'complete' ? 'bg-blue-100 dark:bg-blue-500/20 text-blue-600' : 'bg-red-100 dark:bg-red-500/20 text-red-600'
+                        }`}>
+                            {confirmModal.action === 'complete' ? <CheckCircle className="w-6 h-6" /> : <XCircle className="w-6 h-6" />}
                         </div>
-                        <h2 className="text-lg font-semibold text-slate-900 dark:text-white">{confirmModal.title}</h2>
+                        <div>
+                            <h2 className="text-xl font-black text-slate-900 dark:text-white uppercase tracking-tight">{confirmModal.title}</h2>
+                            <p className="text-sm font-medium text-slate-500 dark:text-slate-400 mt-1">{confirmModal.message}</p>
+                        </div>
                     </div>
-                    <p className="text-sm font-medium text-slate-700 dark:text-slate-300 mb-6">{confirmModal.message}</p>
                     <div className="flex justify-end gap-3">
-                        <SecondaryButton onClick={closeConfirmModal}>Cancel</SecondaryButton>
+                        <SecondaryButton onClick={closeConfirmModal} className="rounded-xl border-none ring-1 ring-slate-200 dark:ring-white/10 uppercase text-[11px] font-black tracking-widest px-6">Keep it</SecondaryButton>
                         <button
                             onClick={handleConfirmAction}
-                            className={`px-4 py-2 text-sm font-medium text-white rounded-xl transition-colors ${confirmModal.action === 'complete' ? 'bg-blue-600 hover:bg-blue-500' : 'bg-red-600 hover:bg-red-500'
-                                }`}
+                            className={`px-6 py-2.5 text-[11px] font-black tracking-widest uppercase text-white rounded-xl shadow-lg transition-all active:scale-95 ${
+                                confirmModal.action === 'complete' ? 'bg-blue-600 shadow-blue-500/20 hover:bg-blue-700' : 'bg-red-600 shadow-red-500/20 hover:bg-red-700'
+                            }`}
                         >
-                            {confirmModal.action === 'complete' ? 'Mark as Completed' : 'Cancel Event'}
+                            Yes, {confirmModal.action === 'complete' ? 'Complete' : 'Cancel'}
                         </button>
                     </div>
                 </div>

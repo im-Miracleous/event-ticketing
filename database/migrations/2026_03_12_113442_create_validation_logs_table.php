@@ -14,7 +14,7 @@ return new class extends Migration
         Schema::create('validation_logs', function (Blueprint $table) {
             $table->id();
             $table->dateTime('validation_time');
-            $table->enum('result', ['Valid', 'Invalid', 'Expired', 'Already Used']);
+            $table->enum('result', ['Valid', 'Invalid', 'Expired', 'Already Scanned']);
             $table->string('ticket_id', 50)->index('fk_logs_tickets_idx');
             $table->timestamp('created_at')->nullable()->useCurrent();
             $table->timestamp('updated_at')->useCurrentOnUpdate()->nullable()->useCurrent();

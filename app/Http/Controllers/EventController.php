@@ -33,11 +33,11 @@ class EventController extends Controller
     {
         $user = auth()->user();
         if (!$user->organizer) {
-            return redirect()->route('dashboard')->with('error', 'Akun Anda belum terdaftar sebagai Organizer.');
+            return redirect()->route('dashboard')->with('error', 'Your account is not registered as an Organizer.');
         }
 
         $organizerId = $user->organizer->id;
-        $period = $request->input('period', 'monthly');
+        $period = $request->input('period', '7days');
 
         // ── STATS ──
         $events = Event::where('organizer_id', $organizerId)->get();
@@ -55,7 +55,7 @@ class EventController extends Controller
         $totalTickets = TicketType::whereIn('event_id', $eventIds)->sum('quota');
         $checkedIn = Ticket::whereHas('detail.transaction', function($q) use ($eventIds) {
             $q->whereIn('event_id', $eventIds);
-        })->where('ticket_status', 'Used')->count();
+        })->where('ticket_status', 'Scanned')->count();
 
         $uniqueAttendees = $allTransactions->unique('user_id')->count();
 
@@ -77,24 +77,52 @@ class EventController extends Controller
             ->get();
 
         // ── CHARTS: TRANSACTION GRAPH ──
-        $days = $period === 'daily' ? 7 : ($period === 'weekly' ? 28 : 90);
-        $transactionData = Transaction::whereIn('event_id', $eventIds)
+        $days = match($period) {
+            '7days' => 7,
+            '30days' => 30,
+            '1year' => 365,
+            default => 30,
+        };
+
+        $transactionGraph = [];
+        $startDate = now()->subDays($days)->startOfDay();
+        
+        $rawTransactions = Transaction::whereIn('event_id', $eventIds)
             ->where('transaction_status', 'Success')
-            ->where('created_at', '>=', now()->subDays($days))
+            ->where('created_at', '>=', $startDate)
             ->orderBy('created_at')
-            ->get()
-            ->groupBy(function($val) use ($period) {
-                if ($period === 'daily') return Carbon::parse($val->created_at)->format('D');
-                if ($period === 'weekly') return 'Week ' . Carbon::parse($val->created_at)->weekOfYear;
+            ->get();
+
+        if ($period === '1year') {
+            // Group by Month for 1 year
+            $transactionData = $rawTransactions->groupBy(function($val) {
+                return Carbon::parse($val->created_at)->format('M Y');
+            });
+
+            // Generate last 12 months
+            for ($i = 11; $i >= 0; $i--) {
+                $monthDate = now()->subMonths($i);
+                $key = $monthDate->format('M Y');
+                $transactionGraph[] = [
+                    'date' => $key,
+                    'revenue' => isset($transactionData[$key]) ? $transactionData[$key]->sum('total_amount') : 0
+                ];
+            }
+        } else {
+            // Group by Day for 7days and 30days
+            $transactionData = $rawTransactions->groupBy(function($val) {
                 return Carbon::parse($val->created_at)->format('M d');
             });
 
-        $transactionGraph = [];
-        foreach ($transactionData as $key => $items) {
-            $transactionGraph[] = [
-                'date' => $key,
-                'revenue' => $items->sum('total_amount')
-            ];
+            // Generate all days in the range
+            for ($i = $days - 1; $i >= 0; $i--) {
+                $dayDate = now()->subDays($i);
+                $key = $dayDate->format('M d');
+                $transactionGraph[] = [
+                    'date' => $key,
+                    'revenue' => isset($transactionData[$key]) ? $transactionData[$key]->sum('total_amount') : 0
+                ];
+            }
         }
 
         // ── CHARTS: EVENT PERFORMANCE ──
@@ -117,6 +145,7 @@ class EventController extends Controller
                     'buyer_name' => $tx->user->name ?? 'Guest',
                     'event_name' => $tx->event->title ?? 'N/A',
                     'total_amount' => $tx->total_amount,
+                    'payment_method' => $tx->payment?->payment_method ?: ($tx->payment?->doku_channel ?: 'Bank Transfer'),
                     'payment_status' => $tx->transaction_status,
                     'date' => $tx->created_at->format('d M, H:i'),
                 ];
@@ -153,9 +182,14 @@ class EventController extends Controller
             ->where('organizer_id', $organizer->id)
             ->where('status', '!=', 'Deactivated');
 
-        // Status filter
+        // Status filter (from tabs or advanced filter)
         if ($request->filled('status') && $request->status !== 'All') {
             $query->where('status', $request->status);
+        }
+
+        // Category filter
+        if ($request->filled('category_id')) {
+            $query->where('event_category_id', $request->category_id);
         }
 
         // Search filter
@@ -163,7 +197,24 @@ class EventController extends Controller
             $query->where('title', 'like', "%{$request->search}%");
         }
 
-        $query->orderBy('created_at', 'desc');
+        // Date range
+        if ($request->filled('date_from')) {
+            $query->whereDate('event_date', '>=', $request->date_from);
+        }
+        if ($request->filled('date_to')) {
+            $query->whereDate('event_date', '<=', $request->date_to);
+        }
+
+        // Dynamic Sorting
+        $sortMap = [
+            'name'     => 'title',
+            'category' => 'event_category_id',
+            'date'     => 'event_date',
+            'status'   => 'status',
+        ];
+        $sortCol = $sortMap[$request->input('sort')] ?? 'created_at';
+        $sortDir = $request->input('direction', 'desc') === 'asc' ? 'asc' : 'desc';
+        $query->orderBy($sortCol, $sortDir);
 
         $events = $query
             ->paginate($request->input('per_page', 10))
@@ -180,7 +231,8 @@ class EventController extends Controller
 
         return Inertia::render('Organizer/Events/Index', [
             'events' => $events,
-            'filters' => $request->only(['status', 'search', 'per_page']),
+            'categories' => EventCategory::all(['id', 'name']),
+            'filters' => $request->only(['status', 'search', 'per_page', 'sort', 'direction', 'date_from', 'date_to', 'category_id']),
         ]);
     }
 
@@ -271,7 +323,7 @@ class EventController extends Controller
             'quota' => $event->ticketTypes->sum('quota'),
             'checkedIn' => Ticket::whereHas('detail.transaction', function($q) use ($event) {
                 $q->where('event_id', $event->id);
-            })->where('ticket_status', 'Used')->count(),
+            })->where('ticket_status', 'Scanned')->count(),
         ];
 
         // --- Ticket Breakdown ---
@@ -299,11 +351,12 @@ class EventController extends Controller
                 'email' => $t->detail->transaction->user->email ?? '-',
                 'ticket_type' => $t->ticketType->name,
                 'status' => $t->ticket_status,
-                'validated_at' => $t->validated_at ? Carbon::parse($t->validated_at)->format('d M Y, H:i') : null,
+                'qr_code' => $t->qr_code,
+                'validated_at' => $t->validated_at,
             ]);
 
         // --- Recent Transactions ---
-        $recentTransactions = Transaction::with('user')
+        $recentTransactions = Transaction::with(['user', 'payment'])
             ->where('event_id', $event->id)
             ->orderByDesc('created_at')
             ->take(5)
@@ -313,6 +366,7 @@ class EventController extends Controller
                 'buyer_name' => $tx->user->name ?? 'Guest',
                 'amount' => $tx->total_amount,
                 'status' => $tx->transaction_status,
+                'payment_method' => $tx->payment?->payment_method ?: ($tx->payment?->doku_channel ?: 'Bank Transfer'),
                 'date' => $tx->created_at->format('d M, H:i'),
             ]);
 
@@ -442,31 +496,73 @@ class EventController extends Controller
 
     public function transactions(Request $request)
     {
-        $organizerId = auth()->user()->organizer?->id;
-        $transactions = Transaction::with(['event', 'user'])
-            ->whereIn('event_id', Event::where('organizer_id', $organizerId)->pluck('id'))
-            ->orderByDesc('created_at')
-            ->get()
-            ->map(function($tx) {
+        $user = auth()->user();
+        $organizerId = $user->organizer->id;
+        $eventIds = Event::where('organizer_id', $organizerId)->pluck('id');
+
+        $query = Transaction::with(['event', 'user', 'payment'])
+            ->whereIn('event_id', $eventIds);
+
+        // Filters
+        if ($request->filled('search')) {
+            $search = $request->search;
+            $query->where(function($q) use ($search) {
+                $q->where('id', 'like', "%$search%")
+                  ->orWhereHas('user', function($qu) use ($search) {
+                      $qu->where('name', 'like', "%$search%");
+                  })
+                  ->orWhereHas('event', function($qe) use ($search) {
+                      $qe->where('title', 'like', "%$search%");
+                  });
+            });
+        }
+
+        if ($request->filled('status') && $request->status !== 'All') {
+            $query->where('transaction_status', $request->status);
+        }
+
+        if ($request->filled('date_from')) {
+            $query->whereDate('created_at', '>=', $request->date_from);
+        }
+        if ($request->filled('date_to')) {
+            $query->whereDate('created_at', '<=', $request->date_to);
+        }
+
+        // Dynamic Sorting
+        $sortMap = [
+            'id'             => 'id',
+            'buyer'          => 'user_id', // Simplified, could be a join
+            'amount'         => 'total_amount',
+            'date'           => 'created_at',
+            'status'         => 'transaction_status',
+        ];
+        $sortCol = $sortMap[$request->input('sort')] ?? 'created_at';
+        $sortDir = $request->input('direction', 'desc') === 'asc' ? 'asc' : 'desc';
+        $query->orderBy($sortCol, $sortDir);
+
+        $transactions = $query->paginate($request->input('per_page', 10))
+            ->through(function($tx) {
                 return [
                     'id' => $tx->id,
                     'buyer_name' => $tx->user->name ?? 'Guest',
+                    'buyer_email' => $tx->user->email ?? 'N/A',
                     'event_name' => $tx->event->title ?? 'N/A',
                     'total_amount' => $tx->total_amount,
                     'payment_status' => $tx->transaction_status,
-                    'payment_method' => $tx->payment_method,
-                    'date' => $tx->created_at->format('d M Y, H:i'),
+                    'payment_method' => $tx->payment?->payment_method ?: ($tx->payment?->doku_channel ?: 'Bank Transfer'),
+                    'date' => $tx->created_at,
                 ];
             });
 
         return Inertia::render('Organizer/Transactions/Index', [
-            'transactions' => $transactions
+            'transactions' => $transactions,
+            'filters' => $request->only(['search', 'status', 'per_page', 'sort', 'direction', 'date_from', 'date_to'])
         ]);
     }
 
     public function exportSales()
     {
         $organizerId = auth()->user()->organizer?->id;
-        return \Maatwebsite\Excel\Facades\Excel::download(new \App\Exports\OrganizerSalesExport($organizerId), 'laporan-penjualan.xlsx');
+        return \Maatwebsite\Excel\Facades\Excel::download(new \App\Exports\OrganizerSalesExport($organizerId), 'transaction-report.xlsx');
     }
 }

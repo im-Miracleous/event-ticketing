@@ -202,7 +202,7 @@ export function FilterSelect({ value, onChange, options, placeholder = 'All' }: 
     return (
         <Listbox value={value} onChange={onChange}>
             <div className="relative">
-                <Listbox.Button className="relative w-full rounded-xl border border-slate-200 dark:border-white/10 bg-white dark:bg-navy-800/50 px-3 py-2.5 text-left text-sm text-slate-700 dark:text-slate-300 focus:outline-none focus:ring-2 focus:ring-primary-500/20 transition cursor-pointer">
+                <Listbox.Button className="relative w-full rounded-xl border border-slate-200 dark:border-white/10 bg-white dark:bg-navy-800/50 px-3 py-2.5 text-left text-sm text-slate-700 dark:text-slate-300 focus:outline-none focus:ring-2 focus:ring-primary-500/20 transition cursor-pointer appearance-none">
                     <span className="block truncate">{selected ? selected.label : placeholder}</span>
                     <span className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-2">
                         <svg className="h-4 w-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">

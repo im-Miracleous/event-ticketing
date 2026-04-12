@@ -45,7 +45,7 @@ class ValidationLogController extends Controller
             })->count(),
             'checked_in' => Ticket::whereHas('detail.transaction', function ($q) use ($eventIds) {
                 $q->whereIn('event_id', $eventIds);
-            })->where('ticket_status', 'Used')->count(),
+            })->where('ticket_status', 'Scanned')->count(),
         ];
 
         return Inertia::render('Organizer/CheckIn', [
@@ -78,12 +78,12 @@ class ValidationLogController extends Controller
             return redirect()->back()->with('error', 'Tiket tidak ditemukan atau bukan milik event Anda.');
         }
 
-        // DB column is ticket_status, enum values: Active | Used | Cancelled | Expired
-        if ($ticket->ticket_status === 'Used') {
+        // DB column is ticket_status, enum values: Issued | Scanned | Cancelled | Expired
+        if ($ticket->ticket_status === 'Scanned') {
             ValidationLog::create([
                 'ticket_id'       => $ticket->id,
                 'validation_time' => now(),
-                'result'          => 'Already Used',
+                'result'          => 'Already Scanned',
             ]);
             return redirect()->back()->with('error', 'Tiket sudah pernah digunakan (Check-in Gagal).');
         }
@@ -97,9 +97,9 @@ class ValidationLogController extends Controller
             return redirect()->back()->with('error', 'Tiket ' . strtolower($ticket->ticket_status) . ' dan tidak dapat digunakan.');
         }
 
-        // Mark as Used
+        // Mark as Scanned
         $ticket->update([
-            'ticket_status' => 'Used',
+            'ticket_status' => 'Scanned',
             'validated_at'  => now(),
         ]);
 

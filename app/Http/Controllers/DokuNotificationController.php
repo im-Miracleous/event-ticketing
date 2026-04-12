@@ -75,7 +75,7 @@ class DokuNotificationController extends Controller
                 // Activate all tickets
                 foreach ($transaction->details as $detail) {
                     foreach ($detail->tickets as $ticket) {
-                        $ticket->update(['ticket_status' => 'Active']);
+                        $ticket->update(['ticket_status' => 'Issued']);
                     }
                 }
 
