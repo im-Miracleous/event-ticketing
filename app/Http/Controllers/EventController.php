@@ -256,48 +256,72 @@ class EventController extends Controller
         $organizer = $this->organizer();
         $event = Event::with(['category', 'organizer', 'ticketTypes', 'promotions'])->findOrFail($id);
 
-        // Organizer can only view their own events
         if ($event->organizer_id !== $organizer->id) {
             abort(403, 'You are not authorized to view this event.');
         }
 
-        return Inertia::render('Admin/Events/Show', [
-            'event' => [
-                'id' => $event->id,
-                'title' => $event->title,
-                'description' => $event->description,
-                'banner_image' => $event->banner_image,
-                'event_date' => $event->event_date,
-                'start_time' => $event->start_time,
-                'end_time' => $event->end_time,
-                'location' => $event->location,
-                'format' => $event->format,
-                'total_quota' => $event->total_quota,
-                'status' => $event->status,
-                'created_at' => $event->created_at,
-                'category' => $event->category,
-                'organizer' => $event->organizer,
-                'organizer_id' => $event->organizer_id,
-                'ticket_types' => $event->ticketTypes->map(fn ($tt) => [
-                    'id' => $tt->id,
-                    'name' => $tt->name,
-                    'price' => $tt->price,
-                    'quota' => $tt->quota,
-                    'available_stock' => $tt->available_stock,
-                    'description' => $tt->description,
-                ]),
-                'promotions' => $event->promotions->map(fn ($p) => [
-                    'id' => $p->id,
-                    'code' => $p->code,
-                    'discount' => $p->discount_amount,
-                    'type' => $p->discount_amount >= 100 ? 'fixed' : 'percentage',
-                    'valid_until' => $p->end_date,
-                    'status' => Carbon::parse($p->end_date)->isPast() ? 'Expired' : 'Active',
-                ]),
-            ],
-            'canEdit' => true,
-            'isRoot' => false,
-            'isOrganizer' => true,
+        // --- Calculate Stats ---
+        $transactions = Transaction::where('event_id', $event->id)
+            ->where('transaction_status', 'Success')
+            ->get();
+
+        $stats = [
+            'revenue' => $transactions->sum('total_amount'),
+            'sold' => $transactions->count(),
+            'quota' => $event->ticketTypes->sum('quota'),
+            'checkedIn' => Ticket::whereHas('detail.transaction', function($q) use ($event) {
+                $q->where('event_id', $event->id);
+            })->where('ticket_status', 'Used')->count(),
+        ];
+
+        // --- Ticket Breakdown ---
+        $ticketBreakdown = $event->ticketTypes->map(function ($tt) {
+            $sold = Ticket::where('ticket_type_id', $tt->id)
+                ->whereHas('detail.transaction', function($q) {
+                    $q->where('transaction_status', 'Success');
+                })->count();
+            return [
+                'name' => $tt->name,
+                'sold' => $sold,
+                'quota' => $tt->quota,
+            ];
+        });
+
+        // --- Attendees ---
+        $attendees = Ticket::with(['detail.transaction.user', 'ticketType'])
+            ->whereHas('detail.transaction', function($q) use ($event) {
+                $q->where('event_id', $event->id);
+            })
+            ->get()
+            ->map(fn($t) => [
+                'id' => $t->id,
+                'name' => $t->detail->transaction->user->name ?? 'Guest',
+                'email' => $t->detail->transaction->user->email ?? '-',
+                'ticket_type' => $t->ticketType->name,
+                'status' => $t->ticket_status,
+                'validated_at' => $t->validated_at ? Carbon::parse($t->validated_at)->format('d M Y, H:i') : null,
+            ]);
+
+        // --- Recent Transactions ---
+        $recentTransactions = Transaction::with('user')
+            ->where('event_id', $event->id)
+            ->orderByDesc('created_at')
+            ->take(5)
+            ->get()
+            ->map(fn($tx) => [
+                'id' => $tx->id,
+                'buyer_name' => $tx->user->name ?? 'Guest',
+                'amount' => $tx->total_amount,
+                'status' => $tx->transaction_status,
+                'date' => $tx->created_at->format('d M, H:i'),
+            ]);
+
+        return Inertia::render('Organizer/Events/Show', [
+            'event' => $event,
+            'stats' => $stats,
+            'ticketBreakdown' => $ticketBreakdown,
+            'attendees' => $attendees,
+            'recentTransactions' => $recentTransactions,
         ]);
     }
 

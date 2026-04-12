@@ -124,7 +124,7 @@ Route::middleware(['auth', 'verified', 'role:Organizer'])->prefix('organizer')->
 });
 
 // ─── Admin Routes ───────────────────
-Route::middleware(['auth', 'verified'])->prefix('admin')->name('admin.')->group(function () {
+Route::middleware(['auth', 'verified', 'role:Root,Admin'])->prefix('admin')->name('admin.')->group(function () {
     // Dashboard
     Route::get('/dashboard', [Admin\DashboardController::class, 'index'])->name('dashboard');
 

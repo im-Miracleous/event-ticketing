@@ -13,10 +13,10 @@ class CheckRole
      *
      * @param  Closure(Request): (Response)  $next
      */
-    public function handle(Request $request, Closure $next, string $role): Response
+    public function handle(Request $request, Closure $next, ...$roles): Response
     {
-        if (!\Illuminate\Support\Facades\Auth::check() || \Illuminate\Support\Facades\Auth::user()->role !== $role) {
-            abort(403, 'Unauthorized action. You must be an ' . $role . ' to access this page.');
+        if (!\Illuminate\Support\Facades\Auth::check() || !in_array(\Illuminate\Support\Facades\Auth::user()->role, $roles)) {
+            abort(403, 'Unauthorized action. Required role: ' . implode(' or ', $roles));
         }
 
         return $next($request);
