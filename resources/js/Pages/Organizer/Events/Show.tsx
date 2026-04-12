@@ -2,12 +2,12 @@ import React from 'react';
 import DashboardLayout from '@/Layouts/DashboardLayout';
 import { Head, Link, router } from '@inertiajs/react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
-import { 
-    ArrowLeft, 
-    Edit3, 
-    Users, 
-    DollarSign, 
-    CheckCircle, 
+import {
+    ArrowLeft,
+    Edit3,
+    Users,
+    DollarSign,
+    CheckCircle,
     TrendingUp,
     Clock,
     Package,
@@ -26,18 +26,18 @@ export default function Show({ event, stats, ticketBreakdown, attendees, recentT
     const { isDark } = useTheme();
 
     const handleUpdateStatus = (newStatus: string) => {
-        const actionText = newStatus === 'Completed' ? 'Selesaikan' : 'Batalkan';
+        const actionText = newStatus === 'Completed' ? 'Complete' : 'Cancel';
         const confirmButtonColor = newStatus === 'Completed' ? '#10b981' : '#ef4444';
 
         Swal.fire({
-            title: 'Apakah Anda yakin?',
-            text: `Event yang sudah di-${newStatus.toLowerCase()} tidak dapat dikembalikan statusnya.`,
+            title: 'Are you sure?',
+            text: `Once an event is ${newStatus.toLowerCase()}, its status cannot be reversed.`,
             icon: 'warning',
             showCancelButton: true,
             confirmButtonColor: confirmButtonColor,
             cancelButtonColor: '#64748b',
-            confirmButtonText: `Ya, ${actionText}!`,
-            cancelButtonText: 'Batal'
+            confirmButtonText: `Yes, ${actionText} it!`,
+            cancelButtonText: 'No thanks'
         }).then((result) => {
             if (result.isConfirmed) {
                 router.patch(route('organizer.events.updateStatus', event.id), {
@@ -45,8 +45,8 @@ export default function Show({ event, stats, ticketBreakdown, attendees, recentT
                 }, {
                     onSuccess: () => {
                         Swal.fire(
-                            'Berhasil!',
-                            `Status event telah diperbarui menjadi ${newStatus}.`,
+                            'Success!',
+                            `Event status has been updated to ${newStatus}.`,
                             'success'
                         );
                     }
@@ -63,8 +63,8 @@ export default function Show({ event, stats, ticketBreakdown, attendees, recentT
                 {/* Header with Navigation */}
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                     <div className="space-y-1">
-                        <Link 
-                            href="/organizer/events" 
+                        <Link
+                            href="/organizer/events"
                             className="inline-flex items-center text-sm font-semibold text-slate-500 hover:text-primary-600 dark:text-slate-400 dark:hover:text-white transition-colors group"
                         >
                             <ArrowLeft className="w-4 h-4 mr-2 group-hover:-translate-x-1 transition-transform" />
@@ -72,12 +72,11 @@ export default function Show({ event, stats, ticketBreakdown, attendees, recentT
                         </Link>
                         <div className="flex items-center gap-3">
                             <h1 className="text-2xl font-bold text-slate-900 dark:text-white">{event.title}</h1>
-                            <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${
-                                event.status === 'Active' ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20' :
+                            <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${event.status === 'Active' ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20' :
                                 event.status === 'Draft' ? 'bg-slate-500/10 text-slate-600 dark:text-slate-400 border border-slate-500/20' :
-                                event.status === 'Completed' ? 'bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20' :
-                                'bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20'
-                            }`}>
+                                    event.status === 'Completed' ? 'bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20' :
+                                        'bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20'
+                                }`}>
                                 {event.status}
                             </span>
                         </div>
@@ -101,8 +100,8 @@ export default function Show({ event, stats, ticketBreakdown, attendees, recentT
                                 </button>
                             </>
                         )}
-                        <Link 
-                            href={`/organizer/events/${event.id}/edit`} 
+                        <Link
+                            href={`/organizer/events/${event.id}/edit`}
                             className="inline-flex items-center px-4 py-2 rounded-xl bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 text-slate-700 dark:text-white text-sm font-semibold hover:bg-slate-50 dark:hover:bg-white/10 shadow-sm transition-all active:scale-95"
                         >
                             <Edit3 className="w-4 h-4 mr-2" />
@@ -147,27 +146,27 @@ export default function Show({ event, stats, ticketBreakdown, attendees, recentT
                             <ResponsiveContainer width="100%" height="100%">
                                 <BarChart data={ticketBreakdown} margin={{ top: 10, right: 0, left: -20, bottom: 0 }}>
                                     <CartesianGrid strokeDasharray="3 3" stroke={isDark ? "#ffffff05" : "#e2e8f0"} vertical={false} />
-                                    <XAxis 
-                                        dataKey="name" 
-                                        stroke="#64748b" 
-                                        tick={{ fontSize: 11, fontWeight: 500 }} 
+                                    <XAxis
+                                        dataKey="name"
+                                        stroke="#64748b"
+                                        tick={{ fontSize: 11, fontWeight: 500 }}
                                         axisLine={false}
                                         tickLine={false}
                                     />
-                                    <YAxis 
-                                        stroke="#64748b" 
-                                        tick={{ fontSize: 11, fontWeight: 500 }} 
+                                    <YAxis
+                                        stroke="#64748b"
+                                        tick={{ fontSize: 11, fontWeight: 500 }}
                                         axisLine={false}
                                         tickLine={false}
                                     />
-                                    <Tooltip 
-                                        contentStyle={{ 
-                                            backgroundColor: isDark ? '#0f172a' : '#ffffff', 
-                                            borderColor: isDark ? '#1e293b' : '#e2e8f0', 
+                                    <Tooltip
+                                        contentStyle={{
+                                            backgroundColor: isDark ? '#0f172a' : '#ffffff',
+                                            borderColor: isDark ? '#1e293b' : '#e2e8f0',
                                             borderRadius: '0.75rem',
                                             boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)',
                                             fontSize: '12px'
-                                        }} 
+                                        }}
                                         cursor={{ fill: isDark ? '#ffffff05' : '#f8fafc' }}
                                     />
                                     <Bar dataKey="sold" fill="#8b5cf6" radius={[4, 4, 0, 0]} barSize={40} />
@@ -182,28 +181,28 @@ export default function Show({ event, stats, ticketBreakdown, attendees, recentT
                         <div className="h-56 w-full relative">
                             <ResponsiveContainer width="100%" height="100%">
                                 <PieChart>
-                                    <Pie 
-                                        data={ticketBreakdown} 
-                                        dataKey="sold" 
-                                        nameKey="name" 
-                                        cx="50%" 
-                                        cy="50%" 
-                                        outerRadius={80} 
-                                        innerRadius={60} 
-                                        paddingAngle={5} 
+                                    <Pie
+                                        data={ticketBreakdown}
+                                        dataKey="sold"
+                                        nameKey="name"
+                                        cx="50%"
+                                        cy="50%"
+                                        outerRadius={80}
+                                        innerRadius={60}
+                                        paddingAngle={5}
                                         strokeWidth={0}
                                     >
                                         {ticketBreakdown.map((_: any, index: number) => (
                                             <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                                         ))}
                                     </Pie>
-                                    <Tooltip 
-                                        contentStyle={{ 
-                                            backgroundColor: isDark ? '#0f172a' : '#ffffff', 
-                                            borderColor: isDark ? '#1e293b' : '#e2e8f0', 
+                                    <Tooltip
+                                        contentStyle={{
+                                            backgroundColor: isDark ? '#0f172a' : '#ffffff',
+                                            borderColor: isDark ? '#1e293b' : '#e2e8f0',
                                             borderRadius: '0.75rem',
                                             fontSize: '12px'
-                                        }} 
+                                        }}
                                     />
                                 </PieChart>
                             </ResponsiveContainer>
@@ -251,11 +250,10 @@ export default function Show({ event, stats, ticketBreakdown, attendees, recentT
                                             </td>
                                             <td className="py-3 px-3 font-medium text-slate-600 dark:text-slate-400">{attendee.ticket_type}</td>
                                             <td className="py-3 px-6 text-right">
-                                                <span className={`px-2 py-0.5 rounded-md text-[9px] font-black uppercase tracking-wider border ${
-                                                    attendee.status === 'Used' 
-                                                    ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20' 
+                                                <span className={`px-2 py-0.5 rounded-md text-[9px] font-black uppercase tracking-wider border ${attendee.status === 'Used'
+                                                    ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20'
                                                     : 'bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20'
-                                                }`}>
+                                                    }`}>
                                                     {attendee.status}
                                                 </span>
                                             </td>
@@ -291,9 +289,8 @@ export default function Show({ event, stats, ticketBreakdown, attendees, recentT
                                     </div>
                                     <div className="text-right flex-shrink-0">
                                         <div className="text-sm font-bold text-slate-900 dark:text-white">{formatCurrency(tx.amount)}</div>
-                                        <div className={`text-[9px] font-black uppercase tracking-wider ${
-                                            tx.status === 'Success' ? 'text-emerald-600 dark:text-emerald-400' : 'text-amber-600 dark:text-amber-400'
-                                        }`}>
+                                        <div className={`text-[9px] font-black uppercase tracking-wider ${tx.status === 'Success' ? 'text-emerald-600 dark:text-emerald-400' : 'text-amber-600 dark:text-amber-400'
+                                            }`}>
                                             {tx.status}
                                         </div>
                                     </div>
