@@ -6,8 +6,8 @@ import AdvancedFilter, { FilterField, FilterSelect, FilterDateRange } from '@/Co
 import Tooltip from '@/Components/Dashboard/Tooltip';
 import Modal from '@/Components/Modal';
 import { Head, useForm, router, Link } from '@inertiajs/react';
-import { Menu, Transition } from '@headlessui/react';
-import { Tag, Search, Plus, MoreVertical, Edit2, Trash2, Calendar, CreditCard } from 'lucide-react';
+import { Menu, Transition, Portal } from '@headlessui/react';
+import { Tag, Search, Plus, MoreVertical, Edit2, Trash2, Calendar, CreditCard, Clock } from 'lucide-react';
 
 export default function PromotionsIndex({ promotions, events, filters }: any) {
     const [isFormModalOpen, setIsFormModalOpen] = useState(false);
@@ -26,7 +26,7 @@ export default function PromotionsIndex({ promotions, events, filters }: any) {
     const [filterDateFrom, setFilterDateFrom] = useState(filters.date_from || '');
     const [filterDateTo, setFilterDateTo] = useState(filters.date_to || '');
 
-    const { data, setData, post, put, delete: destroy, processing, errors, reset, clearErrors } = useForm({
+    const { data, setData, post, put, delete: destroy, processing, errors, reset, clearErrors, transform } = useForm({
         event_id: '',
         code: '',
         discount_amount: '',
@@ -35,7 +35,10 @@ export default function PromotionsIndex({ promotions, events, filters }: any) {
         min_spending: '',
         quota: '',
         start_date: '',
+        start_time: '00:00',
         end_date: '',
+        end_time: '23:59',
+        include_time: false,
     });
 
     const eventOptions = events.map((e: any) => ({ label: e.title, value: e.id }));
@@ -102,6 +105,9 @@ export default function PromotionsIndex({ promotions, events, filters }: any) {
     const openEditModal = (promo: any) => {
         setIsEditMode(true);
         setEditId(promo.id);
+        const hasStartTime = promo.start_date.includes(' ') && promo.start_date.split(' ')[1] !== '00:00:00';
+        const hasEndTime = promo.end_date.includes(' ') && promo.end_date.split(' ')[1] !== '23:59:00';
+
         setData({
             event_id: promo.event_id,
             code: promo.code,
@@ -111,7 +117,10 @@ export default function PromotionsIndex({ promotions, events, filters }: any) {
             min_spending: promo.min_spending || '',
             quota: promo.quota,
             start_date: promo.start_date.split(' ')[0],
+            start_time: promo.start_date.includes(' ') ? promo.start_date.split(' ')[1].substring(0, 5) : '00:00',
             end_date: promo.end_date.split(' ')[0],
+            end_time: promo.end_date.includes(' ') ? promo.end_date.split(' ')[1].substring(0, 5) : '23:59',
+            include_time: hasStartTime || hasEndTime,
         });
         clearErrors();
         setIsFormModalOpen(true);
@@ -124,6 +133,14 @@ export default function PromotionsIndex({ promotions, events, filters }: any) {
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
+        
+        // Transform data to combine date and time
+        transform((data) => ({
+            ...data,
+            start_date: data.include_time ? `${data.start_date} ${data.start_time}:00` : data.start_date,
+            end_date: data.include_time ? `${data.end_date} ${data.end_time}:00` : data.end_date,
+        }));
+
         if (isEditMode && editId) {
             put(route('organizer.promotions.update', editId), {
                 onSuccess: () => closeFormModal(),
@@ -209,17 +226,17 @@ export default function PromotionsIndex({ promotions, events, filters }: any) {
                 </AdvancedFilter>
             </div>
 
-            <div className="rounded-3xl bg-white dark:bg-white/[0.03] border border-slate-200 dark:border-white/5 shadow-xl shadow-slate-200/50 dark:shadow-none overflow-hidden">
-                <div className="overflow-x-auto overflow-y-auto custom-scrollbar max-h-[calc(100vh-24rem)]">
+            <div className="rounded-3xl bg-white dark:bg-white/[0.03] border border-slate-200 dark:border-white/5 shadow-xl shadow-slate-200/50 dark:shadow-none p-2">
+                <div className="overflow-x-auto overflow-y-auto custom-scrollbar max-h-[calc(100vh-24rem)] px-2">
                     <table className="w-full text-sm border-collapse">
                         <thead className="sticky top-0 z-10 bg-white dark:bg-[#0f172a] shadow-[0_1px_0_0_rgba(0,0,0,0.05)] dark:shadow-[0_1px_0_0_rgba(255,255,255,0.05)]">
-                            <tr className="text-left text-xs font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest border-b border-slate-100 dark:border-white/5">
+                            <tr className="text-left text-xs font-bold text-slate-400 dark:text-slate-500 border-b border-slate-100 dark:border-white/5 uppercase tracking-wider">
                                 <SortableHeader label="Promo Code" column="code" currentSort={sort} currentDirection={direction} onSort={handleSort} className="px-6 py-5 border-none" />
                                 <SortableHeader label="Event" column="event" currentSort={sort} currentDirection={direction} onSort={handleSort} className="px-6 py-5 border-none" />
-                                <th className="px-6 py-5">Discount</th>
+                                <th className="px-6 py-5 font-bold">Discount</th>
                                 <SortableHeader label="Quota" column="quota" currentSort={sort} currentDirection={direction} onSort={handleSort} className="px-6 py-5 border-none" />
-                                <SortableHeader label="Active Until" column="active" currentSort={sort} currentDirection={direction} onSort={handleSort} className="px-6 py-5 border-none" />
-                                <th className="px-6 py-5 text-right">Actions</th>
+                                <SortableHeader label="Active Until" column="active" currentSort={sort} currentDirection={direction} onSort={handleSort} className="px-6 py-5 border-none text-right" />
+                                <th className="px-6 py-5 text-right font-bold">Actions</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-50 dark:divide-white/[0.02]">
@@ -230,16 +247,13 @@ export default function PromotionsIndex({ promotions, events, filters }: any) {
                                             <div className="w-20 h-20 bg-slate-100 dark:bg-white/5 rounded-full flex items-center justify-center mb-6 text-slate-300 dark:text-slate-600">
                                                 <Tag className="w-10 h-10" />
                                             </div>
-                                            <h3 className="text-xl font-black text-slate-900 dark:text-white mb-2 tracking-tight uppercase">No Promotions Found</h3>
-                                            <p className="text-slate-500 dark:text-slate-400 text-sm max-w-sm uppercase">Try adjusting your filters or create a new code.</p>
+                                            <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-2 tracking-tight">No Promotions Found</h3>
+                                            <p className="text-slate-500 dark:text-slate-400 text-sm max-w-sm">Try adjusting your filters or create a new code.</p>
                                         </div>
                                     </td>
                                 </tr>
                             ) : (
-                                promotions.data.map((promo: any, rowIndex: number) => {
-                                    const totalRows = promotions.data.length;
-                                    const isNearBottom = totalRows <= 2 || rowIndex >= totalRows - 2;
-
+                                promotions.data.map((promo: any) => {
                                     return (
                                         <tr key={promo.id} className="hover:bg-slate-50 dark:hover:bg-white/[0.01] transition-colors group">
                                             <td className="px-6 py-4">
@@ -256,50 +270,73 @@ export default function PromotionsIndex({ promotions, events, filters }: any) {
                                             <td className="px-6 py-4 text-slate-500 dark:text-slate-400 font-bold">
                                                 {promo.quota}
                                             </td>
-                                            <td className="px-6 py-4 text-slate-400 dark:text-slate-500 text-[11px] font-bold">
-                                                {promo.end_date.split(' ')[0]}
+                                            <td>
+                                                <div className="flex flex-col gap-1.5 items-end px-6 py-4 whitespace-nowrap">
+                                                    <div className="flex items-center gap-2 text-slate-700 dark:text-slate-200 font-bold text-xs font-mono">
+                                                        <Calendar className="w-3.5 h-3.5 text-primary-500/60" />
+                                                        {new Date(promo.end_date).toLocaleDateString('en-GB', { 
+                                                            day: '2-digit', 
+                                                            month: 'short', 
+                                                            year: 'numeric' 
+                                                        })}
+                                                    </div>
+                                                    <div className="flex items-center gap-2 text-slate-400 dark:text-slate-500 text-xs font-medium">
+                                                        <Clock className="w-3.5 h-3.5 text-slate-300 dark:text-slate-600" />
+                                                        {new Date(promo.end_date).toLocaleTimeString('en-GB', { 
+                                                            hour: '2-digit', 
+                                                            minute: '2-digit',
+                                                            second: '2-digit',
+                                                            timeZoneName: 'short'
+                                                        })}
+                                                    </div>
+                                                </div>
                                             </td>
                                             <td className="px-6 py-4 text-right">
                                                 <Menu as="div" className="relative inline-block text-left">
                                                     <Menu.Button className="p-2 rounded-xl text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 hover:bg-slate-100 dark:hover:bg-white/10 transition-all">
                                                         <MoreVertical className="w-5 h-5" />
                                                     </Menu.Button>
-                                                    <Transition
-                                                        as={Fragment}
-                                                        enter="transition ease-out duration-100"
-                                                        enterFrom="transform opacity-0 scale-95"
-                                                        enterTo="transform opacity-100 scale-100"
-                                                        leave="transition ease-in duration-75"
-                                                        leaveFrom="transform opacity-100 scale-100"
-                                                        leaveTo="transform opacity-0 scale-95"
-                                                    >
-                                                        <Menu.Items className={`absolute right-0 z-50 w-44 origin-top-right rounded-2xl bg-white dark:bg-navy-900 border border-slate-200 dark:border-white/10 shadow-2xl focus:outline-none ring-1 ring-black/5 dark:ring-transparent ${isNearBottom ? 'bottom-full mb-2' : 'mt-2'}`}>
-                                                            <div className="p-1.5 space-y-1">
-                                                                <Menu.Item>
-                                                                    {({ active }) => (
-                                                                        <button
-                                                                            onClick={() => openEditModal(promo)}
-                                                                            className={`${active ? 'bg-slate-50 dark:bg-white/5 text-primary-600 dark:text-primary-400' : 'text-slate-700 dark:text-slate-300'} flex items-center gap-2.5 px-3 py-2 text-xs font-bold rounded-xl transition-all tracking-wider w-full`}
-                                                                        >
-                                                                            <Edit2 className="w-4 h-4" />
-                                                                            Edit Code
-                                                                        </button>
-                                                                    )}
-                                                                </Menu.Item>
-                                                                <Menu.Item>
-                                                                    {({ active }) => (
-                                                                        <button
-                                                                            onClick={() => handleDelete(promo.id)}
-                                                                            className={`${active ? 'bg-red-50 dark:bg-red-500/10 text-red-600' : 'text-red-500/70'} flex items-center gap-2.5 px-3 py-2 text-xs font-bold rounded-xl transition-all uppercase tracking-wider w-full`}
-                                                                        >
-                                                                            <Trash2 className="w-4 h-4" />
-                                                                            Delete
-                                                                        </button>
-                                                                    )}
-                                                                </Menu.Item>
-                                                            </div>
-                                                        </Menu.Items>
-                                                    </Transition>
+                                                    <Portal>
+                                                        <Transition
+                                                            as={Fragment}
+                                                            enter="transition ease-out duration-100"
+                                                            enterFrom="transform opacity-0 scale-95"
+                                                            enterTo="transform opacity-100 scale-100"
+                                                            leave="transition ease-in duration-75"
+                                                            leaveFrom="transform opacity-100 scale-100"
+                                                            leaveTo="transform opacity-0 scale-95"
+                                                        >
+                                                            <Menu.Items 
+                                                                anchor={{ to: 'bottom end', gap: 4 }}
+                                                                className="z-[9999] w-48 rounded-2xl bg-white dark:bg-navy-900 border border-slate-200 dark:border-white/10 shadow-[0_20px_50px_rgba(0,0,0,0.3)] dark:shadow-[0_20px_50px_rgba(0,0,0,0.5)] focus:outline-none ring-1 ring-black/5 dark:ring-transparent"
+                                                            >
+                                                                <div className="p-1.5 space-y-1">
+                                                                    <Menu.Item>
+                                                                        {({ active }) => (
+                                                                            <button
+                                                                                onClick={() => openEditModal(promo)}
+                                                                                className={`${active ? 'bg-primary-50 dark:bg-primary-500/10 text-primary-600 dark:text-primary-400' : 'text-slate-700 dark:text-slate-300'} flex items-center gap-3 px-3.5 py-2.5 text-xs font-bold rounded-xl transition-all w-full`}
+                                                                            >
+                                                                                <Edit2 className="w-4 h-4" />
+                                                                                Edit Code
+                                                                            </button>
+                                                                        )}
+                                                                    </Menu.Item>
+                                                                    <Menu.Item>
+                                                                        {({ active }) => (
+                                                                            <button
+                                                                                onClick={() => handleDelete(promo.id)}
+                                                                                className={`${active ? 'bg-red-50 dark:bg-red-500/10 text-red-600' : 'text-red-500/70'} flex items-center gap-3 px-3.5 py-2.5 text-xs font-bold rounded-xl transition-all w-full`}
+                                                                            >
+                                                                                <Trash2 className="w-4 h-4 text-red-500/60" />
+                                                                                Delete Code
+                                                                            </button>
+                                                                        )}
+                                                                    </Menu.Item>
+                                                                </div>
+                                                            </Menu.Items>
+                                                        </Transition>
+                                                    </Portal>
                                                 </Menu>
                                             </td>
                                         </tr>
@@ -327,7 +364,7 @@ export default function PromotionsIndex({ promotions, events, filters }: any) {
                             <Tag className="w-6 h-6" />
                         </div>
                         <div>
-                            <h2 className="text-xl font-black text-slate-900 dark:text-white uppercase tracking-tight">
+                            <h2 className="text-xl font-bold text-slate-900 dark:text-white tracking-tight">
                                 {isEditMode ? 'Edit Promotion' : 'New Promotion'}
                             </h2>
                             <p className="text-sm font-medium text-slate-500 dark:text-slate-400">Configure your discount code.</p>
@@ -337,11 +374,11 @@ export default function PromotionsIndex({ promotions, events, filters }: any) {
                     <form onSubmit={handleSubmit} className="space-y-5">
                         <div className="space-y-4">
                             <div>
-                                <label className="block text-[10px] font-black uppercase tracking-widest text-slate-400 dark:text-slate-500 mb-2">Apply to Event</label>
+                                <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-2">Apply to Event</label>
                                 <select
                                     value={data.event_id}
                                     onChange={e => setData('event_id', e.target.value)}
-                                    className="w-full rounded-xl border-slate-200 dark:border-white/10 dark:bg-navy-800 dark:text-white focus:ring-primary-500/20 focus:border-primary-500 text-sm font-bold uppercase"
+                                    className="w-full rounded-xl border-slate-200 dark:border-white/10 dark:bg-navy-800 dark:text-white focus:ring-primary-500/20 focus:border-primary-500 text-sm font-medium"
                                     disabled={isEditMode}
                                 >
                                     <option value="">Choose Event</option>
@@ -353,70 +390,93 @@ export default function PromotionsIndex({ promotions, events, filters }: any) {
                             </div>
 
                             <div>
-                                <label className="block text-[10px] font-black uppercase tracking-widest text-slate-400 dark:text-slate-500 mb-2">Promo Code</label>
+                                <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-2">Promo Code</label>
                                 <input
                                     type="text"
                                     value={data.code}
                                     onChange={e => setData('code', e.target.value.toUpperCase())}
-                                    placeholder="E.G. NEWYEAR2026"
-                                    className="w-full rounded-xl border-slate-200 dark:border-white/10 dark:bg-navy-800 dark:text-white focus:ring-primary-500/20 focus:border-primary-500 text-sm font-bold uppercase"
+                                    placeholder="e.g. NEWYEAR2026"
+                                    className="w-full rounded-xl border-slate-200 dark:border-white/10 dark:bg-navy-800 dark:text-white focus:ring-primary-500/20 focus:border-primary-500 text-sm font-medium uppercase tracking-wider"
                                 />
                                 {errors.code && <p className="text-red-500 text-[10px] font-bold mt-1 uppercase">{errors.code}</p>}
                             </div>
 
                             <div className="grid grid-cols-2 gap-4">
                                 <div>
-                                    <label className="block text-[10px] font-black uppercase tracking-widest text-slate-400 dark:text-slate-500 mb-2">Type</label>
+                                    <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-2">Type</label>
                                     <select
                                         value={data.discount_type}
                                         onChange={e => setData('discount_type', e.target.value)}
-                                        className="w-full rounded-xl border-slate-200 dark:border-white/10 dark:bg-navy-800 dark:text-white focus:ring-primary-500/20 focus:border-primary-500 text-sm font-bold uppercase"
+                                        className="w-full rounded-xl border-slate-200 dark:border-white/10 dark:bg-navy-800 dark:text-white focus:ring-primary-500/20 focus:border-primary-500 text-sm font-medium"
                                     >
                                         <option value="fixed">Fixed (Rp)</option>
                                         <option value="percentage">Percent (%)</option>
                                     </select>
                                 </div>
                                 <div>
-                                    <label className="block text-[10px] font-black uppercase tracking-widest text-slate-400 dark:text-slate-500 mb-2">Value</label>
+                                    <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-2">Value</label>
                                     <input
                                         type="number"
                                         value={data.discount_amount}
                                         onChange={e => setData('discount_amount', e.target.value)}
-                                        className="w-full rounded-xl border-slate-200 dark:border-white/10 dark:bg-navy-800 dark:text-white focus:ring-primary-500/20 focus:border-primary-500 text-sm font-bold"
+                                        className="w-full rounded-xl border-slate-200 dark:border-white/10 dark:bg-navy-800 dark:text-white focus:ring-primary-500/20 focus:border-primary-500 text-sm font-medium"
                                     />
                                 </div>
                             </div>
 
                             <div className="grid grid-cols-2 gap-4">
                                 <div>
-                                    <label className="block text-[10px] font-black uppercase tracking-widest text-slate-400 dark:text-slate-500 mb-2">Min Spending</label>
+                                    <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-2">Min Spending</label>
                                     <input
                                         type="number"
                                         value={data.min_spending}
                                         onChange={e => setData('min_spending', e.target.value)}
                                         placeholder="0"
-                                        className="w-full rounded-xl border-slate-200 dark:border-white/10 dark:bg-navy-800 dark:text-white focus:ring-primary-500/20 focus:border-primary-500 text-sm font-bold"
+                                        className="w-full rounded-xl border-slate-200 dark:border-white/10 dark:bg-navy-800 dark:text-white focus:ring-primary-500/20 focus:border-primary-500 text-sm font-medium"
                                     />
                                 </div>
                                 <div>
-                                    <label className="block text-[10px] font-black uppercase tracking-widest text-slate-400 dark:text-slate-500 mb-2">Active Quota</label>
+                                    <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-2">Active Quota</label>
                                     <input
                                         type="number"
                                         value={data.quota}
                                         onChange={e => setData('quota', e.target.value)}
-                                        className="w-full rounded-xl border-slate-200 dark:border-white/10 dark:bg-navy-800 dark:text-white focus:ring-primary-500/20 focus:border-primary-500 text-sm font-bold"
+                                        className="w-full rounded-xl border-slate-200 dark:border-white/10 dark:bg-navy-800 dark:text-white focus:ring-primary-500/20 focus:border-primary-500 text-sm font-medium"
                                     />
                                 </div>
                             </div>
 
-                            <div className="grid grid-cols-2 gap-4">
+                            <div className="pt-2">
+                                <label className="inline-flex items-center cursor-pointer group">
+                                    <input 
+                                        type="checkbox" 
+                                        checked={data.include_time}
+                                        onChange={e => setData('include_time', e.target.checked)}
+                                        className="sr-only peer" 
+                                    />
+                                    <div className="w-9 h-5 bg-slate-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary-300 dark:peer-focus:ring-primary-800 rounded-full peer dark:bg-white/10 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all dark:border-gray-600 peer-checked:bg-primary-600 relative"></div>
+                                    <span className="ml-3 text-xs font-bold text-slate-600 dark:text-slate-400 group-hover:text-primary-500 transition-colors">Include specific start/end times</span>
+                                </label>
+                            </div>
+
+                            <div className="space-y-4">
                                 <div>
-                                    <label className="block text-[10px] font-black uppercase tracking-widest text-slate-400 dark:text-slate-500 mb-2">Starts On</label>
-                                    <input type="date" value={data.start_date} onChange={e => setData('start_date', e.target.value)} className="w-full rounded-xl border-slate-200 dark:border-white/10 dark:bg-navy-800 dark:text-white text-sm font-bold" />
+                                    <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-2">Starts On</label>
+                                    <div className="flex gap-2">
+                                        <input type="date" value={data.start_date} onChange={e => setData('start_date', e.target.value)} className="flex-1 rounded-xl border-slate-200 dark:border-white/10 dark:bg-navy-800 dark:text-white text-sm font-medium" />
+                                        {data.include_time && (
+                                            <input type="time" value={data.start_time} onChange={e => setData('start_time', e.target.value)} className="w-32 rounded-xl border-slate-200 dark:border-white/10 dark:bg-navy-800 dark:text-white text-sm font-medium" />
+                                        )}
+                                    </div>
                                 </div>
                                 <div>
-                                    <label className="block text-[10px] font-black uppercase tracking-widest text-slate-400 dark:text-slate-500 mb-2">Ends On</label>
-                                    <input type="date" value={data.end_date} onChange={e => setData('end_date', e.target.value)} className="w-full rounded-xl border-slate-200 dark:border-white/10 dark:bg-navy-800 dark:text-white text-sm font-bold" />
+                                    <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-2">Ends On</label>
+                                    <div className="flex gap-2">
+                                        <input type="date" value={data.end_date} onChange={e => setData('end_date', e.target.value)} className="flex-1 rounded-xl border-slate-200 dark:border-white/10 dark:bg-navy-800 dark:text-white text-sm font-medium" />
+                                        {data.include_time && (
+                                            <input type="time" value={data.end_time} onChange={e => setData('end_time', e.target.value)} className="w-32 rounded-xl border-slate-200 dark:border-white/10 dark:bg-navy-800 dark:text-white text-sm font-medium" />
+                                        )}
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -425,16 +485,16 @@ export default function PromotionsIndex({ promotions, events, filters }: any) {
                             <button
                                 type="button"
                                 onClick={closeFormModal}
-                                className="px-6 py-2.5 text-[11px] font-black uppercase tracking-widest text-slate-500 hover:text-slate-700 dark:hover:text-white transition-colors"
+                                className="px-6 py-2.5 text-xs font-bold text-slate-500 hover:text-slate-700 dark:hover:text-white transition-colors"
                             >
                                 Cancel
                             </button>
                             <button
                                 type="submit"
                                 disabled={processing}
-                                className="px-8 py-3 bg-primary-600 text-white rounded-xl text-[11px] font-black uppercase tracking-widest shadow-xl shadow-primary-500/20 hover:bg-primary-700 transition-all active:scale-95 disabled:opacity-50"
+                                className="px-8 py-3 bg-primary-600 text-white rounded-xl text-xs font-bold shadow-xl shadow-primary-500/20 hover:bg-primary-700 transition-all active:scale-95 disabled:opacity-50"
                             >
-                                {isEditMode ? 'Save Changes' : 'Create Promo'}
+                                {isEditMode ? 'Update Promotion' : 'Create Promotion'}
                             </button>
                         </div>
                     </form>
