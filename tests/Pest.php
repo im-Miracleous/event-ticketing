@@ -29,10 +29,6 @@ pest()->extend(TestCase::class)
 |
 */
 
-expect()->extend('toBeOne', function () {
-    return $this->toBe(1);
-});
-
 /*
 |--------------------------------------------------------------------------
 | Functions
@@ -44,7 +40,38 @@ expect()->extend('toBeOne', function () {
 |
 */
 
-function something()
+/**
+ * A helper to quickly create an event for testing.
+ */
+function createEvent(array $attributes = [])
 {
-    // ..
+    // Ensure we have a category
+    if (!isset($attributes['event_category_id'])) {
+        $attributes['event_category_id'] = \App\Models\EventCategory::first()->id 
+            ?? \App\Models\EventCategory::create(['name' => 'General', 'description' => 'Gen'])->id;
+    }
+
+    // Ensure we have an organizer
+    if (!isset($attributes['organizer_id'])) {
+        $attributes['organizer_id'] = \App\Models\Organizer::first()->id 
+            ?? \App\Models\Organizer::create([
+                'id' => \Illuminate\Support\Str::uuid(),
+                'name' => 'Default Org',
+                'description' => 'A default organizer for tests',
+                'bank_account' => '12345678',
+                'user_id' => \App\Models\User::factory()->create(['role' => 'Organizer'])->id
+            ])->id;
+    }
+
+    return \App\Models\Event::create(array_merge([
+        'title' => 'Sample Event',
+        'description' => 'Event Description',
+        'event_date' => now()->addDays(7)->format('Y-m-d'),
+        'start_time' => now()->addDays(7)->setTime(10, 0)->toDateTimeString(),
+        'end_time' => now()->addDays(7)->setTime(12, 0)->toDateTimeString(),
+        'location' => 'Jakarta',
+        'format' => 'Offline',
+        'total_quota' => 100,
+        'status' => 'Published',
+    ], $attributes));
 }

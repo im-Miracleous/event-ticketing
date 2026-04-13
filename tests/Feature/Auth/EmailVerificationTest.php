@@ -4,13 +4,10 @@ namespace Tests\Feature\Auth;
 
 use App\Models\User;
 use App\Models\OtpCode;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
 class EmailVerificationTest extends TestCase
 {
-    use RefreshDatabase;
-
     public function test_otp_verification_screen_can_be_rendered(): void
     {
         $this->post('/register', [
