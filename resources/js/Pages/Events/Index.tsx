@@ -101,7 +101,7 @@ function formatCurrency(amount: number) {
 function formatDate(dateStr: string) {
     return new Date(dateStr).toLocaleDateString('en-GB', {
         day: '2-digit', month: 'short', year: 'numeric',
-    }).toUpperCase();
+    });
 }
 
 const CalendarIcon = () => (
@@ -127,7 +127,7 @@ function EventCard({ event, isSaved, onToggleSave }: { event: EventItem; isSaved
     const isSoldOut = event.ticket_types?.every(t => t.available_stock === 0) ?? false;
 
     return (
-        <div className="group relative bg-white dark:bg-slate-900/40 rounded-[2rem] overflow-hidden border border-slate-200 dark:border-slate-800 hover:border-violet-500/50 shadow-sm hover:shadow-2xl hover:shadow-violet-500/10 transition-all duration-500">
+        <Link href={`/events/${event.id}`} className="group relative bg-white dark:bg-slate-900/40 rounded-[2rem] overflow-hidden border border-slate-200 dark:border-slate-800 hover:border-violet-500/50 shadow-sm hover:shadow-2xl hover:shadow-violet-500/10 transition-all duration-500">
             {/* Image Section */}
             <div className="relative aspect-[4/3] overflow-hidden">
                 <img
@@ -156,7 +156,7 @@ function EventCard({ event, isSaved, onToggleSave }: { event: EventItem; isSaved
                             ? 'bg-violet-600 text-white shadow-lg shadow-violet-500/40'
                             : 'bg-black/30 text-white/80 hover:bg-violet-600 hover:text-white'
                         }`}
-                    title={isSaved ? 'Hapus dari simpan' : 'Simpan event'}
+                    title={isSaved ? 'Remove from saved' : 'Save event'}
                 >
                     <svg className="w-4 h-4" fill={isSaved ? 'currentColor' : 'none'} viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                         <path strokeLinecap="round" strokeLinejoin="round" d="M17.593 3.322c1.1.128 1.907 1.077 1.907 2.185V21L12 17.25 4.5 21V5.507c0-1.108.806-2.057 1.907-2.185a48.507 48.507 0 0 1 11.186 0Z" />
@@ -194,17 +194,16 @@ function EventCard({ event, isSaved, onToggleSave }: { event: EventItem; isSaved
                             {minPrice > 0 ? formatCurrency(minPrice) : 'FREE'}
                         </span>
                     </div>
-                    <Link
-                        href={`/events/${event.id}/checkout`}
+                    <div
                         className="p-3 rounded-2xl bg-slate-900 dark:bg-white text-white dark:text-slate-900 hover:bg-violet-600 dark:hover:bg-violet-400 transition-colors"
                     >
                         <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
                             <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3" />
                         </svg>
-                    </Link>
+                    </div>
                 </div>
             </div>
-        </div>
+        </Link>
     );
 }
 
@@ -334,18 +333,18 @@ export default function EventCatalog({ events, trendingEvents, categories, filte
 
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 pb-4 overflow-x-auto no-scrollbar">
                         {trendingEvents.slice(0, 2).map(event => (
-                            <div key={event.id} className="relative h-[300px] rounded-[2.5rem] overflow-hidden group cursor-pointer border border-white/10 shadow-lg">
+                            <Link key={event.id} href={`/events/${event.id}`} className="relative h-[300px] rounded-[2.5rem] overflow-hidden group border border-white/10 shadow-lg">
                                 <img src={event.banner_image ?? ''} className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-1000" />
                                 <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/40 to-transparent" />
                                 <div className="absolute bottom-8 left-8 right-8 text-left">
                                     <span className="inline-block px-3 py-1 bg-violet-600 text-[10px] font-black text-white uppercase rounded-full mb-3 tracking-widest">Featured</span>
-                                    <h3 className="text-2xl font-black text-white mb-2 line-clamp-1">{event.title}</h3>
+                                    <h3 className="text-2xl font-black text-white mb-2 line-clamp-1 group-hover:text-violet-400 transition-colors tracking-tight">{event.title}</h3>
                                     <div className="flex items-center gap-4 text-slate-300 text-sm font-medium">
                                         <span className="flex items-center gap-1.5"><CalendarIcon /> {formatDate(event.event_date)}</span>
                                         <span className="flex items-center gap-1.5"><PinIcon /> {event.location}</span>
                                     </div>
                                 </div>
-                            </div>
+                            </Link>
                         ))}
                     </div>
                 </section>
