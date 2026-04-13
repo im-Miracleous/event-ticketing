@@ -101,12 +101,32 @@ class EventCatalogController extends Controller
             return response()->json($events);
         }
 
-        // Fetch trending events for carousel
-        $trendingEvents = Event::where('status', 'Active')
+        // Fetch trending events for carousel (Randomized but persistent for 1 hour to avoid "jumpscares")
+        $trendingEventIds = session('trending_event_ids', []);
+        $lastRefresh = session('trending_event_last_refresh');
+
+        if (empty($trendingEventIds) || !$lastRefresh || now()->diffInMinutes($lastRefresh) > 60) {
+            $trendingEventIds = Event::where('status', 'Active')
+                ->inRandomOrder()
+                ->limit(5)
+                ->pluck('id')
+                ->toArray();
+            
+            session([
+                'trending_event_ids' => $trendingEventIds,
+                'trending_event_last_refresh' => now()
+            ]);
+        }
+
+        $trendingEvents = Event::whereIn('id', $trendingEventIds)
+            ->where('status', 'Active') // Ensure they are still active
             ->with(['category', 'ticketTypes'])
-            ->orderBy('total_quota', 'desc')
-            ->limit(5)
             ->get();
+
+        // Maintain the stored random order
+        $trendingEvents = $trendingEvents->sortBy(function($event) use ($trendingEventIds) {
+            return array_search($event->id, $trendingEventIds);
+        })->values();
 
         $categories = EventCategory::all();
 
@@ -123,6 +143,50 @@ class EventCatalogController extends Controller
             'trendingEvents' => $trendingEvents,
             'categories' => $categories,
             'filters' => $request->only(['search', 'category', 'location', 'format', 'price_min', 'price_max', 'time', 'date_from', 'date_to', 'sort']),
+            'savedEventIds' => $savedEventIds,
+        ]);
+    }
+
+    /**
+     * Display a single event's detail page.
+     */
+    public function show(Event $event)
+    {
+        $event->load(['category', 'organizer', 'ticketTypes']);
+
+        // Fetch recommended events (same category, excluding current, limit 6)
+        $recommendedEvents = Event::where('status', 'Active')
+            ->where('id', '!=', $event->id)
+            ->where('event_category_id', $event->event_category_id)
+            ->with(['category', 'organizer', 'ticketTypes'])
+            ->orderBy('event_date', 'asc')
+            ->limit(6)
+            ->get();
+
+        // If not enough from the same category, fill with other active events
+        if ($recommendedEvents->count() < 6) {
+            $remaining = 6 - $recommendedEvents->count();
+            $additionalEvents = Event::where('status', 'Active')
+                ->where('id', '!=', $event->id)
+                ->whereNotIn('id', $recommendedEvents->pluck('id')->toArray())
+                ->with(['category', 'organizer', 'ticketTypes'])
+                ->orderBy('event_date', 'asc')
+                ->limit($remaining)
+                ->get();
+            $recommendedEvents = $recommendedEvents->merge($additionalEvents);
+        }
+
+        // Get user's saved event IDs
+        $savedEventIds = [];
+        if (Auth::check()) {
+            $savedEventIds = Wishlist::where('user_id', Auth::id())
+                ->pluck('event_id')
+                ->toArray();
+        }
+
+        return Inertia::render('Events/Show', [
+            'event' => $event,
+            'recommendedEvents' => $recommendedEvents,
             'savedEventIds' => $savedEventIds,
         ]);
     }

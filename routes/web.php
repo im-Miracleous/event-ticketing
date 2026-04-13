@@ -48,8 +48,9 @@ Route::get('/dashboard', function () {
     return redirect()->route('events.index');
 })->middleware(['auth'])->name('dashboard');
 
-Route::middleware('auth')->group(function () {
+Route::middleware(['auth', 'role:User'])->group(function () {
     Route::get('/events', [EventCatalogController::class, 'index'])->name('events.index');
+    Route::get('/events/{event}', [EventCatalogController::class, 'show'])->name('events.show');
     Route::get('/search', [SearchController::class, 'index'])->name('search.index');
 
     // Checkout & Booking
@@ -62,6 +63,8 @@ Route::middleware('auth')->group(function () {
 
     // My Tickets
     Route::get('/my-tickets', [MyTicketsController::class, 'index'])->name('tickets.my');
+    Route::get('/my-tickets/{ticket}', [MyTicketsController::class, 'show'])->name('tickets.show');
+    Route::get('/my-tickets/{ticket}/print', [MyTicketsController::class, 'print'])->name('tickets.print');
 
     // Saved Events (Wishlist)
     Route::get('/saved-events', [WishlistController::class, 'index'])->name('wishlists.index');
@@ -72,8 +75,10 @@ Route::middleware('auth')->group(function () {
     Route::get('/waiting-list', [WaitingListController::class, 'index'])->name('waiting-list.index');
     Route::post('/waiting-list', [WaitingListController::class, 'store'])->name('waiting-list.store');
     Route::post('/waiting-list/{id}/cancel', [WaitingListController::class, 'cancel'])->name('waiting-list.cancel');
+});
 
-    // Account Settings (Profile)
+Route::middleware('auth')->group(function () {
+    // Account Settings (Profile) - Shared by all roles
     Route::get('/settings', [ProfileController::class, 'edit'])->name('settings.edit');
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');

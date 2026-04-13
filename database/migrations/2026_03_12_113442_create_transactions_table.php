@@ -14,7 +14,7 @@ return new class extends Migration
         Schema::create('transactions', function (Blueprint $table) {
             $table->string('id', 50)->primary();
             $table->decimal('total_amount', 10);
-            $table->enum('transaction_status', ['Pending', 'Success', 'Failed', 'Cancelled']);
+            $table->enum('transaction_status', ['Pending', 'Success', 'Failed']);
             $table->char('user_id', 36)->index('fk_trx_users_idx');
             $table->unsignedBigInteger('payment_id')->index('fk_trx_payments_idx');
             $table->char('event_id', 36)->index('fk_trx_events_idx');

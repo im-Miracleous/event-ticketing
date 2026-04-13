@@ -55,7 +55,7 @@ class EventController extends Controller
         $totalTickets = TicketType::whereIn('event_id', $eventIds)->sum('quota');
         $checkedIn = Ticket::whereHas('detail.transaction', function($q) use ($eventIds) {
             $q->whereIn('event_id', $eventIds);
-        })->where('ticket_status', 'Scanned')->count();
+        })->where('ticket_status', 'Checked-In')->count();
 
         $uniqueAttendees = $allTransactions->unique('user_id')->count();
 
@@ -323,7 +323,7 @@ class EventController extends Controller
             'quota' => $event->ticketTypes->sum('quota'),
             'checkedIn' => Ticket::whereHas('detail.transaction', function($q) use ($event) {
                 $q->where('event_id', $event->id);
-            })->where('ticket_status', 'Scanned')->count(),
+            })->where('ticket_status', 'Checked-In')->count(),
         ];
 
         // --- Ticket Breakdown ---

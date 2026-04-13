@@ -45,7 +45,7 @@ class ValidationLogController extends Controller
             })->count(),
             'checked_in' => Ticket::whereHas('detail.transaction', function ($q) use ($eventIds) {
                 $q->whereIn('event_id', $eventIds);
-            })->where('ticket_status', 'Scanned')->count(),
+            })->where('ticket_status', 'Checked-In')->count(),
         ];
 
         return Inertia::render('Organizer/CheckIn', [
@@ -75,31 +75,31 @@ class ValidationLogController extends Controller
 
         if (!$ticket) {
             // Cannot log with null ticket_id due to FK constraint — just return error
-            return redirect()->back()->with('error', 'Tiket tidak ditemukan atau bukan milik event Anda.');
+            return redirect()->back()->with('error', 'Ticket not found or does not belong to your event.');
         }
 
-        // DB column is ticket_status, enum values: Issued | Scanned | Cancelled | Expired
-        if ($ticket->ticket_status === 'Scanned') {
+        // DB column is ticket_status, enum values: Pending | Valid | Checked-In | Expired | Failed
+        if ($ticket->ticket_status === 'Checked-In') {
             ValidationLog::create([
                 'ticket_id'       => $ticket->id,
                 'validation_time' => now(),
-                'result'          => 'Already Scanned',
+                'result'          => 'Already Checked-In',
             ]);
-            return redirect()->back()->with('error', 'Tiket sudah pernah digunakan (Check-in Gagal).');
+            return redirect()->back()->with('error', 'Ticket has already been used (Check-in Failed).');
         }
 
-        if ($ticket->ticket_status === 'Cancelled' || $ticket->ticket_status === 'Expired') {
+        if ($ticket->ticket_status === 'Failed' || $ticket->ticket_status === 'Pending') {
             ValidationLog::create([
                 'ticket_id'       => $ticket->id,
                 'validation_time' => now(),
-                'result'          => 'Expired',
+                'result'          => 'Invalid',
             ]);
-            return redirect()->back()->with('error', 'Tiket ' . strtolower($ticket->ticket_status) . ' dan tidak dapat digunakan.');
+            return redirect()->back()->with('error', 'Ticket is ' . strtolower($ticket->ticket_status) . ' and cannot be used.');
         }
 
-        // Mark as Scanned
+        // Mark as Checked-In
         $ticket->update([
-            'ticket_status' => 'Scanned',
+            'ticket_status' => 'Checked-In',
             'validated_at'  => now(),
         ]);
 
@@ -109,6 +109,6 @@ class ValidationLogController extends Controller
             'result'          => 'Valid',
         ]);
 
-        return redirect()->back()->with('success', 'Check-in BERHASIL! Selamat menikmati acara.');
+        return redirect()->back()->with('success', 'Check-in SUCCESSFUL! Enjoy the event.');
     }
 }

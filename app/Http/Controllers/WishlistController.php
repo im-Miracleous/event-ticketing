@@ -50,7 +50,7 @@ class WishlistController extends Controller
 
         if ($existing) {
             $existing->delete();
-            return back()->with('success', 'Event dihapus dari daftar simpan.');
+            return back()->with('success', 'Event removed from your saved list.');
         }
 
         Wishlist::create([
@@ -58,7 +58,7 @@ class WishlistController extends Controller
             'event_id' => $eventId,
         ]);
 
-        return back()->with('success', 'Event berhasil disimpan!');
+        return back()->with('success', 'Event saved successfully!');
     }
 
     /**

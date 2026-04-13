@@ -14,7 +14,7 @@ return new class extends Migration
         Schema::create('tickets', function (Blueprint $table) {
             $table->string('id', 50)->primary();
             $table->string('qr_code');
-            $table->enum('ticket_status', ['Issued', 'Scanned', 'Cancelled', 'Expired']);
+            $table->enum('ticket_status', ['Pending', 'Valid', 'Checked-In', 'Expired', 'Failed'])->default('Pending');
             $table->timestamp('issued_at');
             $table->timestamp('validated_at')->nullable();
             $table->unsignedBigInteger('transaction_detail_id')->index('fk_tickets_details_idx');

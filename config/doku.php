@@ -32,6 +32,6 @@ return [
     /*
     | Expiry duration for Virtual Account payments (in minutes).
     */
-    'expiry_minutes' => env('DOKU_EXPIRY_MINUTES', 60),
+    'expiry_minutes' => (int) env('DOKU_EXPIRY_MINUTES', 60),
 
 ];

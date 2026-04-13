@@ -46,7 +46,7 @@ class EventSeeder extends Seeder
                 ['title' => $def[0]],
                 [
                     'id'                => Str::uuid()->toString(),
-                    'description'       => fake()->sentence(10),
+                    'description'       => fake()->paragraphs(3, true),
                     'banner_image'      => 'https://picsum.photos/seed/' . Str::slug($def[0]) . '/800/400',
                     'event_date'        => $date,
                     'total_quota'       => $def[3],
@@ -56,6 +56,14 @@ class EventSeeder extends Seeder
                     'event_category_id' => $categories[$def[1]]->id,
                     'organizer_id'      => $organizers[$idx % $organizers->count()]->id,
                     'status'            => $def[4],
+                    'faq'               => [
+                        ['question' => 'What should I bring to the event?', 'answer' => 'Please bring your valid ID and the e-ticket (QR code) that was sent to your email after purchase.'],
+                        ['question' => 'Can I get a refund if I cannot attend?', 'answer' => 'Refunds are available up to 7 days before the event date. After that, tickets are non-refundable but can be transferred to another person.'],
+                        ['question' => 'Is there an age restriction?', 'answer' => 'This event is open to all ages. However, attendees under 17 must be accompanied by a guardian.'],
+                        ['question' => 'Where can I park my vehicle?', 'answer' => 'The venue provides paid parking on-site. We recommend using public transportation or ride-hailing services for convenience.'],
+                    ],
+                    'rules_policies'    => "1. All attendees must present a valid ticket (QR code) and a matching ID at the entrance.\n2. No weapons, illegal substances, or hazardous materials are allowed inside the venue.\n3. The organizer reserves the right to refuse entry or remove any attendee who violates the event rules.\n4. Photography and videography for personal use are allowed. Commercial recording requires prior written permission.\n5. The organizer is not responsible for any lost or stolen personal belongings.\n6. By attending this event, you consent to being photographed or recorded for promotional purposes.\n7. In case of event cancellation due to force majeure, tickets will be refunded within 14 business days.",
+                    'contact_info'      => "Email: support@eventhive.id\nPhone: +62 21 5555 1234\nWhatsApp: +62 812 3456 7890\nWebsite: https://eventhive.id",
                 ]
             );
         }

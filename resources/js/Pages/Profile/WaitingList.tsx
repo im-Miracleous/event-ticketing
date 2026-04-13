@@ -22,11 +22,11 @@ interface WaitingEntry {
 }
 
 function formatDate(d: string) {
-    return new Date(d).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
+    return new Date(d).toLocaleDateString('en-US', { day: 'numeric', month: 'long', year: 'numeric' });
 }
 
 function formatCurrency(n: number) {
-    return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(n);
+    return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(n);
 }
 
 const STATUS_BADGE: Record<string, string> = {
@@ -40,7 +40,7 @@ function WaitingCard({ entry }: { entry: WaitingEntry }) {
     if (!event) return null;
 
     const handleCancel = () => {
-        if (confirm('Kamu yakin ingin keluar dari waiting list?')) {
+        if (confirm('Are you sure you want to leave the waiting list?')) {
             router.post(`/waiting-list/${entry.id}/cancel`, {}, { preserveScroll: true });
         }
     };
@@ -76,14 +76,14 @@ function WaitingCard({ entry }: { entry: WaitingEntry }) {
                     {entry.ticket_type && (
                         <div className="flex items-center gap-3 mb-4">
                             <span className="text-sm text-slate-600 dark:text-slate-400">
-                                Tiket: <span className="font-bold text-slate-900 dark:text-white">{entry.ticket_type.name}</span>
+                                Ticket: <span className="font-bold text-slate-900 dark:text-white">{entry.ticket_type.name}</span>
                             </span>
                             <span className="text-sm font-bold text-violet-600">
                                 {formatCurrency(Number(entry.ticket_type.price))}
                             </span>
                             {isAvailableNow && (
                                 <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400">
-                                    ✓ Tersedia!
+                                    ✓ Available!
                                 </span>
                             )}
                         </div>
@@ -91,7 +91,7 @@ function WaitingCard({ entry }: { entry: WaitingEntry }) {
 
                     <div className="flex items-center justify-between pt-4 border-t border-slate-100 dark:border-slate-800">
                         <span className="text-[10px] text-slate-400 font-mono">
-                            Joined {new Date(entry.joined_at).toLocaleDateString('id-ID')}
+                            Joined {new Date(entry.joined_at).toLocaleDateString('en-US')}
                         </span>
                         <div className="flex items-center gap-2">
                             {entry.status === 'Waiting' && (
@@ -99,7 +99,7 @@ function WaitingCard({ entry }: { entry: WaitingEntry }) {
                                     onClick={handleCancel}
                                     className="px-4 py-2 text-xs font-bold text-red-500 border border-red-200 dark:border-red-800 rounded-xl hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
                                 >
-                                    Keluar
+                                    Leave
                                 </button>
                             )}
                             {isAvailableNow && entry.status === 'Waiting' && (
@@ -107,7 +107,7 @@ function WaitingCard({ entry }: { entry: WaitingEntry }) {
                                     href={`/events/${event.id}/checkout`}
                                     className="px-5 py-2 bg-violet-600 hover:bg-violet-500 text-white rounded-xl font-bold text-xs transition-colors shadow-lg shadow-violet-500/30"
                                 >
-                                    Beli Sekarang →
+                                    Buy Now →
                                 </Link>
                             )}
                         </div>
@@ -136,14 +136,14 @@ export default function WaitingListPage({ entries }: { entries: WaitingEntry[] }
                             <h1 className="text-2xl font-bold text-slate-900 dark:text-white flex items-center gap-3">
                                 Waiting List
                             </h1>
-                            <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">Pantau ketersediaan tiket yang sedang kamu tunggu.</p>
+                            <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">Monitor the availability of tickets you are waiting for.</p>
                         </div>
                     </div>
                     <Link
                         href="/events"
                         className="text-sm font-bold text-violet-600 hover:text-violet-500 transition-colors"
                     >
-                        + Cari Event Baru
+                        + Explore New Events
                     </Link>
                 </div>
 
@@ -154,15 +154,15 @@ export default function WaitingListPage({ entries }: { entries: WaitingEntry[] }
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
                             </svg>
                         </div>
-                        <h3 className="text-lg font-black text-slate-900 dark:text-white mb-2">Belum ada waiting list</h3>
+                        <h3 className="text-lg font-black text-slate-900 dark:text-white mb-2">No waiting list entries yet</h3>
                         <p className="text-slate-500 mb-8 max-w-sm mx-auto text-sm">
-                            Kalau tiket yang kamu incar sudah habis, kamu bisa bergabung ke waiting list.
+                            If the ticket you want is sold out, you can join the waiting list.
                         </p>
                         <Link
                             href="/events"
                             className="px-8 py-3 bg-violet-600 text-white rounded-2xl font-black shadow-lg shadow-violet-500/30 hover:bg-violet-500 transition-colors"
                         >
-                            Jelajahi Event
+                            Explore Events
                         </Link>
                     </div>
                 ) : (
@@ -171,7 +171,7 @@ export default function WaitingListPage({ entries }: { entries: WaitingEntry[] }
                             <>
                                 <h2 className="text-sm font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
                                     <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse" />
-                                    Sedang Menunggu ({active.length})
+                                    In Waiting List ({active.length})
                                 </h2>
                                 <div className="space-y-4">
                                     {active.map(entry => (
@@ -184,7 +184,7 @@ export default function WaitingListPage({ entries }: { entries: WaitingEntry[] }
                         {past.length > 0 && (
                             <>
                                 <h2 className="text-sm font-black text-slate-400 uppercase tracking-widest mt-8">
-                                    Riwayat ({past.length})
+                                    History ({past.length})
                                 </h2>
                                 <div className="space-y-4 opacity-60">
                                     {past.map(entry => (

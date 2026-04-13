@@ -29,14 +29,14 @@ class TransactionSeeder extends Seeder
             $ticketType = $event->ticketTypes->random();
             $qty = rand(1, 3);
             $subtotal = $ticketType->price * $qty;
-            $txnStatus = fake()->randomElement(['Success', 'Success', 'Success', 'Success', 'Pending', 'Failed']);
+            $txnStatus = fake()->randomElement(['Success', 'Success', 'Success', 'Success', 'Failed', 'Failed']);
 
             // Spread transactions over the last 365 days
             $paymentDate = now()->subDays(rand(0, 365))->subHours(rand(0, 23));
 
             $payment = Payment::create([
                 'payment_method'  => fake()->randomElement(['Transfer', 'E-Wallet', 'Credit Card']),
-                'payment_status'  => $txnStatus === 'Success' ? 'Paid' : ($txnStatus === 'Pending' ? 'Pending' : 'Failed'),
+                'payment_status'  => $txnStatus === 'Success' ? 'Success' : 'Failed',
                 'transaction_time' => $paymentDate,
                 'created_at' => $paymentDate,
                 'updated_at' => $paymentDate,
@@ -70,7 +70,7 @@ class TransactionSeeder extends Seeder
                     \App\Models\Ticket::create([
                         'id' => $ticketId,
                         'qr_code' => 'TKT-' . strtoupper(\Illuminate\Support\Str::random(10)),
-                        'ticket_status' => 'Issued', // Matched with migration: Issued, Scanned, Cancelled, Expired
+                        'ticket_status' => 'Valid', // Matched with migration: Pending, Valid, Checked-In, Expired, Failed
                         'issued_at' => $paymentDate,
                         'transaction_detail_id' => $detail->id,
                         'ticket_type_id' => $ticketType->id,
