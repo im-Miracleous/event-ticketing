@@ -29,14 +29,14 @@ class TransactionSeeder extends Seeder
             $ticketType = $event->ticketTypes->random();
             $qty = rand(1, 3);
             $subtotal = $ticketType->price * $qty;
-            $txnStatus = fake()->randomElement(['Success', 'Success', 'Success', 'Success', 'Pending', 'Failed']);
+            $txnStatus = fake()->randomElement(['Success', 'Success', 'Success', 'Success', 'Failed', 'Cancelled']);
 
             // Spread transactions over the last 365 days
             $paymentDate = now()->subDays(rand(0, 365))->subHours(rand(0, 23));
 
             $payment = Payment::create([
                 'payment_method'  => fake()->randomElement(['Transfer', 'E-Wallet', 'Credit Card']),
-                'payment_status'  => $txnStatus === 'Success' ? 'Paid' : ($txnStatus === 'Pending' ? 'Pending' : 'Failed'),
+                'payment_status'  => $txnStatus === 'Success' ? 'Paid' : 'Failed',
                 'transaction_time' => $paymentDate,
                 'created_at' => $paymentDate,
                 'updated_at' => $paymentDate,

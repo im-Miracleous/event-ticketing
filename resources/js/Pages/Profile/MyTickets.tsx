@@ -18,15 +18,16 @@ interface Transaction {
     event: Event;
     payment: Payment | null;
     details: TransactionDetail[];
-    tab: 'upcoming' | 'used' | 'expired' | 'other';
+    tab: 'pending' | 'valid' | 'used' | 'expired' | 'other';
 }
 
 const TABS = [
-    { key: 'all',      label: 'Semua' },
-    { key: 'upcoming', label: 'Akan Datang' },
-    { key: 'used',     label: 'Sudah Digunakan' },
-    { key: 'expired',  label: 'Selesai / Kadaluarsa' },
-    { key: 'other',    label: 'Lainnya' },
+    { key: 'all',      label: 'All' },
+    { key: 'pending',  label: 'Pending' },
+    { key: 'valid',    label: 'Valid' },
+    { key: 'used',     label: 'Used' },
+    { key: 'expired',  label: 'Expired' },
+    { key: 'other',    label: 'Other' },
 ] as const;
 
 type TabKey = (typeof TABS)[number]['key'];
@@ -36,28 +37,40 @@ function formatCurrency(n: number) {
     return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(n);
 }
 function formatDate(d: string) {
-    return new Date(d).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
+    return new Date(d).toLocaleDateString('en-US', { day: 'numeric', month: 'long', year: 'numeric' });
 }
 function formatDateTime(d: string) {
-    return new Date(d).toLocaleString('id-ID', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+    return new Date(d).toLocaleString('en-US', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
 }
 
 const STATUS_BADGE: Record<string, string> = {
     Pending:   'bg-amber-100 text-amber-700',
-    Success:   'bg-emerald-100 text-emerald-700',
+    Success:   'bg-emerald-100 text-emerald-700 text-[10px]',
     Failed:    'bg-red-100 text-red-600',
     Cancelled: 'bg-slate-100 text-slate-500',
 };
 
 const TAB_COLOR: Record<string, string> = {
-    upcoming: 'bg-violet-100 text-violet-700',
-    used:     'bg-blue-100 text-blue-700',
-    expired:  'bg-slate-100 text-slate-500',
-    other:    'bg-amber-100 text-amber-700',
+    pending:   'bg-amber-100 text-amber-700',
+    valid:     'bg-emerald-100 text-emerald-700',
+    used:      'bg-blue-100 text-blue-700',
+    expired:   'bg-orange-100 text-orange-700',
+    failed:    'bg-red-100 text-red-700',
+    cancelled: 'bg-slate-100 text-slate-500',
+    other:     'bg-slate-100 text-slate-500',
 };
 
-// ─── QR Code Component using Google Charts API ────────────────────────────────
-function QRCode({ value, size = 120 }: { value: string; size?: number }) {
+// ─── QR Code Component ───────────────────────────────────────────────────────
+function QRCode({ value, size = 120, isLocked = false }: { value: string; size?: number; isLocked?: boolean }) {
+    if (isLocked) {
+        return (
+            <div className="bg-slate-100 dark:bg-slate-800 rounded-xl flex items-center justify-center border border-slate-200 dark:border-slate-700" style={{ width: size, height: size }}>
+                <svg className="w-8 h-8 text-slate-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 1 0-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 0 0 2.25-2.25v-6.75a2.25 2.25 0 0 0-2.25-2.25H6.75a2.25 2.25 0 0 0-2.25 2.25v6.75a2.25 2.25 0 0 0 2.25 2.25Z" />
+                </svg>
+            </div>
+        );
+    }
     const url = `https://api.qrserver.com/v1/create-qr-code/?size=${size}x${size}&data=${encodeURIComponent(value)}`;
     return (
         <img
@@ -87,7 +100,7 @@ function TicketCard({ transaction }: { transaction: Transaction }) {
                 <img src="https://api.qrserver.com/v1/create-qr-code/?size=120x120&data=${encodeURIComponent(t.qr_code)}" width="120" height="120" />
                 <div>
                     <p style="font-weight:900;font-size:18px;color:#1e1b4b;margin:0 0 4px">${t.ticketType.name}</p>
-                    <p style="color:#6b7280;margin:0 0 2px">Penonton: ${t.attendee?.name ?? '–'}</p>
+                    <p style="color:#6b7280;margin:0 0 2px">Guest: ${t.attendee?.name ?? '–'}</p>
                     <p style="color:#6b7280;margin:0 0 2px">Email: ${t.attendee?.email ?? '–'}</p>
                     <p style="font-family:monospace;font-size:11px;color:#9ca3af;margin:0">ID: ${t.id}</p>
                 </div>
@@ -114,7 +127,7 @@ function TicketCard({ transaction }: { transaction: Transaction }) {
                 <p class="meta">Order ID: <strong>${transaction.id}</strong> &nbsp;|&nbsp; Total: <strong>${formatCurrency(Number(transaction.total_amount))}</strong></p>
                 <hr class="divider" />
                 ${ticketsHtml}
-                <p class="footer">Dicetak melalui EventHive – Tunjukkan QR Code ini saat masuk venue.</p>
+                <p class="footer">Printed via EventHive – Show this QR Code at the venue entry.</p>
             </body>
             </html>
         `);
@@ -123,9 +136,10 @@ function TicketCard({ transaction }: { transaction: Transaction }) {
     };
 
     const tabLabel: Record<string, string> = {
-        upcoming: 'Akan Datang',
-        used:     'Sudah Digunakan',
-        expired:  'Selesai',
+        pending:  'Pending',
+        valid:    'Valid',
+        used:     'Used',
+        expired:  'Expired',
         other:    transaction.transaction_status,
     };
 
@@ -141,7 +155,11 @@ function TicketCard({ transaction }: { transaction: Transaction }) {
                 <div className="flex-1 min-w-0">
                     <div className="flex items-start justify-between gap-2 mb-1">
                         <h3 className="font-black text-slate-900 dark:text-white line-clamp-1 text-base">{transaction.event?.title}</h3>
-                        <span className={`shrink-0 px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider ${TAB_COLOR[transaction.tab] ?? 'bg-slate-100 text-slate-500'}`}>
+                        <span className={`shrink-0 px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider ${
+                            transaction.tab === 'other'
+                            ? (TAB_COLOR[transaction.transaction_status.toLowerCase()] ?? TAB_COLOR.other)
+                            : (TAB_COLOR[transaction.tab] ?? TAB_COLOR.other)
+                        }`}>
                             {tabLabel[transaction.tab]}
                         </span>
                     </div>
@@ -160,14 +178,14 @@ function TicketCard({ transaction }: { transaction: Transaction }) {
             {/* Summary Row */}
             <div className="px-6 pb-5 flex items-center justify-between border-b border-slate-100 dark:border-slate-800">
                 <div className="text-sm text-slate-500">
-                    {transaction.details.reduce((s, d) => s + d.quantity, 0)} tiket &nbsp;·&nbsp;
+                    {transaction.details.reduce((s, d) => s + d.quantity, 0)} tickets &nbsp;·&nbsp;
                     <span className="font-black text-violet-600">{formatCurrency(Number(transaction.total_amount))}</span>
                 </div>
                 <div className="flex items-center gap-2">
                     {transaction.transaction_status === 'Success' && (
                         <button
                             onClick={handlePrint}
-                            title="Download / Cetak E-Ticket"
+                            title="Download / Print E-Ticket"
                             className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-violet-600 border border-violet-300 dark:border-violet-700 rounded-xl hover:bg-violet-50 dark:hover:bg-violet-900/20 transition-colors"
                         >
                             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -176,11 +194,22 @@ function TicketCard({ transaction }: { transaction: Transaction }) {
                             PDF
                         </button>
                     )}
+                    {transaction.transaction_status === 'Pending' && (
+                        <Link
+                            href={`/checkout/${transaction.id}/payment`}
+                            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-amber-600 border border-amber-300 dark:border-amber-700 rounded-xl hover:bg-amber-50 dark:hover:bg-amber-900/20 transition-colors"
+                        >
+                            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v12m-3-2.818.879.659c1.171.879 3.07.879 4.242 0 1.172-.879 1.172-2.303 0-3.182C13.536 12.219 12.768 12 12 12c-.725 0-1.45-.22-2.003-.659-1.106-.879-1.106-2.303 0-3.182s2.9-.879 4.006 0l.415.33M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
+                            </svg>
+                            Pay
+                        </Link>
+                    )}
                     <button
                         onClick={() => setExpanded(p => !p)}
                         className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-slate-600 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 rounded-xl hover:bg-slate-200 transition-colors"
                     >
-                        {expanded ? 'Tutup' : 'Lihat Tiket'}
+                        {expanded ? 'Close' : 'View Tickets'}
                         <svg className={`w-3.5 h-3.5 transition-transform ${expanded ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5" /></svg>
                     </button>
                 </div>
@@ -189,37 +218,41 @@ function TicketCard({ transaction }: { transaction: Transaction }) {
             {/* Expandable Tickets */}
             {expanded && (
                 <div className="p-6 space-y-4 bg-slate-50 dark:bg-slate-900/20">
-                    {transaction.transaction_status !== 'Success' ? (
-                        <div className="text-center py-8 text-slate-400 text-sm font-medium">
-                            {transaction.transaction_status === 'Pending' ? '⏳ Menunggu pembayaran' : `Tiket tidak tersedia – transaksi ${transaction.transaction_status}`}
-                        </div>
-                    ) : allTickets.map((ticket, i) => (
-                        <div key={ticket.id} className="flex items-center gap-5 p-5 bg-white dark:bg-slate-800/60 rounded-2xl border border-slate-200 dark:border-slate-700">
+                    {allTickets.map((ticket, i) => (
+                        <div key={ticket.id} className="group relative flex items-center gap-5 p-5 bg-white dark:bg-slate-800/60 rounded-2xl border border-slate-200 dark:border-slate-700 hover:border-violet-300 dark:hover:border-violet-800 transition-all">
+                            {/* Target link for the whole card */}
+                            <Link href={`/my-tickets/${ticket.id}`} className="absolute inset-0 z-0" />
+
                             {/* QR Code */}
-                            <div className="shrink-0">
-                                <QRCode value={ticket.qr_code} size={100} />
+                            <div className="shrink-0 z-10 p-1 bg-white dark:bg-slate-800 rounded-lg border border-slate-100 dark:border-slate-700 shadow-sm group-hover:shadow-md transition-shadow">
+                                <QRCode value={ticket.qr_code} size={80} isLocked={transaction.transaction_status !== 'Success'} />
                             </div>
 
                             {/* Ticket Info */}
-                            <div className="flex-1 min-w-0">
-                                <div className="flex items-center gap-2 mb-2">
-                                    <span className="font-black text-slate-900 dark:text-white text-sm">{ticket.ticketType.name}</span>
-                                    <span className={`px-2 py-0.5 rounded-full text-[9px] font-black uppercase ${
-                                        ticket.ticket_status === 'Active' ? 'bg-emerald-100 text-emerald-700'
-                                        : ticket.validated_at ? 'bg-blue-100 text-blue-700'
-                                        : 'bg-amber-100 text-amber-700'
-                                    }`}>
-                                        {ticket.validated_at ? 'Sudah Digunakan' : ticket.ticket_status}
-                                    </span>
+                            <div className="flex-1 min-w-0 z-10">
+                                <div className="flex items-center justify-between mb-2">
+                                    <div className="flex items-center gap-2">
+                                        <span className="font-black text-slate-900 dark:text-white text-sm">{ticket.ticketType.name}</span>
+                                        <span className={`px-2 py-0.5 rounded-full text-[9px] font-black uppercase ${
+                                            ticket.validated_at ? 'bg-blue-100 text-blue-700'
+                                            : ticket.ticket_status === 'Issued' ? 'bg-emerald-100 text-emerald-700'
+                                            : ticket.ticket_status === 'Pending' ? 'bg-amber-100 text-amber-700'
+                                            : ticket.ticket_status === 'Expired' ? 'bg-orange-100 text-orange-700'
+                                            : ticket.ticket_status === 'Failed' ? 'bg-red-100 text-red-700'
+                                            : 'bg-slate-100 text-slate-500'
+                                        }`}>
+                                            {ticket.validated_at ? 'Checked-In' : ticket.ticket_status}
+                                        </span>
+                                    </div>
+                                    <svg className="w-4 h-4 text-slate-300 group-hover:text-violet-500 transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5" /></svg>
                                 </div>
                                 <p className="text-xs text-slate-600 dark:text-slate-400 mb-0.5">
-                                    <span className="font-bold">Penonton:</span> {ticket.attendee?.name ?? '–'}
+                                    <span className="font-bold">Guest:</span> {ticket.attendee?.name ?? '–'}
                                 </p>
                                 <p className="text-xs text-slate-500 mb-1">{ticket.attendee?.email ?? '–'}</p>
                                 {ticket.validated_at && (
-                                    <p className="text-[10px] text-blue-500 font-semibold">✓ Check-in: {formatDateTime(ticket.validated_at)}</p>
+                                    <p className="text-[10px] text-blue-500 font-semibold">✓ Checked-In: {formatDateTime(ticket.validated_at)}</p>
                                 )}
-                                <p className="font-mono text-[10px] text-slate-300 mt-1 truncate">{ticket.id}</p>
                             </div>
                         </div>
                     ))}
@@ -242,7 +275,7 @@ export default function MyTickets({ transactions }: { transactions: Transaction[
 
     return (
         <DashboardLayout>
-            <Head title="Tiket Saya – EventHive" />
+            <Head title="My Tickets – EventHive" />
 
             <div className="max-w-4xl mx-auto py-6">
                 {/* Header */}
@@ -252,12 +285,12 @@ export default function MyTickets({ transactions }: { transactions: Transaction[
                             <svg className="w-7 h-7" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M16.5 6v.75m0 3v.75m0 3v.75m0 3V18m-9-5.25h5.25M7.5 15h3M3.375 5.25c-.621 0-1.125.504-1.125 1.125v3.026a2.999 2.999 0 0 1 0 5.198v3.026c0 .621.504 1.125 1.125 1.125h17.25c.621 0 1.125-.504 1.125-1.125v-3.026a2.999 2.999 0 0 1 0-5.198V6.375c0-.621-.504-1.125-1.125-1.125H3.375Z" /></svg>
                         </div>
                         <div>
-                            <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Tiket Saya</h1>
-                            <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">Kelola semua tiket event yang sudah kamu beli.</p>
+                            <h1 className="text-2xl font-bold text-slate-900 dark:text-white">My Tickets</h1>
+                            <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">Manage and access all your event bookings in one place.</p>
                         </div>
                     </div>
                     <Link href="/events" className="text-sm font-bold text-violet-600 hover:text-violet-500 transition-colors">
-                        + Cari Event Baru
+                        + Discover New Events
                     </Link>
                 </div>
 

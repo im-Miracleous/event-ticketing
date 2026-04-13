@@ -27,6 +27,9 @@ return Application::configure(basePath: dirname(__DIR__))
             'doku/notification',
         ]);
 
+        $middleware->trustProxies(at: '*');
+
+
         // Redirect authenticated users away from guest-only pages (login, register)
         // to their role-specific dashboard
         $middleware->redirectGuestsTo(fn (Request $request) => route('login'));
