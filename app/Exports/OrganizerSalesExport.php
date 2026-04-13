@@ -15,7 +15,7 @@ class OrganizerSalesExport implements FromCollection, WithHeadings, WithMapping,
 {
     protected $organizerId;
 
-    public function __construct(int $organizerId)
+    public function __construct(string $organizerId)
     {
         $this->organizerId = $organizerId;
     }

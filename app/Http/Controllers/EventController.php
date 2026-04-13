@@ -37,24 +37,30 @@ class EventController extends Controller
         }
 
         $organizerId = $user->organizer->id;
-        $period = $request->input('period', '7days');
+        $period = $request->input('period', '30days');
+        $dateFrom = $request->input('date_from');
+        $dateTo = $request->input('date_to');
+        $filterEventId = $request->input('event_id');
 
         // ── STATS ──
         $events = Event::where('organizer_id', $organizerId)->get();
         $eventIds = $events->pluck('id');
 
+        // If filtering by specific event, scope eventIds
+        $scopedEventIds = $filterEventId ? $eventIds->intersect([$filterEventId]) : $eventIds;
+
         $totalActiveEvents = $events->where('status', 'Active')->count();
-        
-        $allTransactions = Transaction::whereIn('event_id', $eventIds)
+
+        $allTransactions = Transaction::whereIn('event_id', $scopedEventIds)
             ->where('transaction_status', 'Success')
             ->get();
-            
+
         $totalRevenue = $allTransactions->sum('total_amount');
         $totalTicketsSold = $allTransactions->count();
 
-        $totalTickets = TicketType::whereIn('event_id', $eventIds)->sum('quota');
-        $checkedIn = Ticket::whereHas('detail.transaction', function($q) use ($eventIds) {
-            $q->whereIn('event_id', $eventIds);
+        $totalTickets = TicketType::whereIn('event_id', $scopedEventIds)->sum('quota');
+        $checkedIn = Ticket::whereHas('detail.transaction', function($q) use ($scopedEventIds) {
+            $q->whereIn('event_id', $scopedEventIds);
         })->where('ticket_status', 'Checked-In')->count();
 
         $uniqueAttendees = $allTransactions->unique('user_id')->count();
@@ -70,72 +76,151 @@ class EventController extends Controller
         $ticketTypeSummary = DB::table('tickets_types')
             ->join('events', 'tickets_types.event_id', '=', 'events.id')
             ->where('events.organizer_id', $organizerId)
+            ->when($filterEventId, fn($q) => $q->where('events.id', $filterEventId))
             ->select('tickets_types.name', DB::raw('SUM(tickets_types.quota - tickets_types.available_stock) as sold'))
             ->groupBy('tickets_types.name')
             ->orderByDesc('sold')
             ->take(5)
             ->get();
 
-        // ── CHARTS: TRANSACTION GRAPH ──
-        $days = match($period) {
-            '7days' => 7,
-            '30days' => 30,
-            '1year' => 365,
-            default => 30,
-        };
+        // ── DETERMINE DATE RANGE ──
+        $useCustomRange = $dateFrom && $dateTo;
 
+        if ($useCustomRange) {
+            $startDate = Carbon::parse($dateFrom)->startOfDay();
+            $endDate = Carbon::parse($dateTo)->endOfDay();
+            $days = $startDate->diffInDays($endDate) + 1;
+        } else {
+            $days = match($period) {
+                '7days' => 7,
+                '30days' => 30,
+                '1year' => 365,
+                default => 30,
+            };
+            $startDate = now()->subDays($days)->startOfDay();
+            $endDate = now()->endOfDay();
+        }
+
+        // ── CHARTS: TRANSACTION GRAPH (Revenue + Tickets Sold per Day) ──
         $transactionGraph = [];
-        $startDate = now()->subDays($days)->startOfDay();
-        
-        $rawTransactions = Transaction::whereIn('event_id', $eventIds)
+
+        $rawTransactions = Transaction::whereIn('event_id', $scopedEventIds)
             ->where('transaction_status', 'Success')
-            ->where('created_at', '>=', $startDate)
+            ->whereBetween('created_at', [$startDate, $endDate])
             ->orderBy('created_at')
             ->get();
 
-        if ($period === '1year') {
-            // Group by Month for 1 year
+        // Count tickets sold per transaction (via transaction_details)
+        $ticketCountByTxn = DB::table('transaction_details')
+            ->whereIn('transaction_id', $rawTransactions->pluck('id'))
+            ->select('transaction_id', DB::raw('SUM(quantity) as qty'))
+            ->groupBy('transaction_id')
+            ->pluck('qty', 'transaction_id');
+
+        if ((!$useCustomRange && $period === '1year') || ($useCustomRange && $days > 90)) {
+            // Group by Month
             $transactionData = $rawTransactions->groupBy(function($val) {
-                return Carbon::parse($val->created_at)->format('M Y');
+                return Carbon::parse($val->created_at)->format('Y-m');
             });
 
-            // Generate last 12 months
-            for ($i = 11; $i >= 0; $i--) {
-                $monthDate = now()->subMonths($i);
-                $key = $monthDate->format('M Y');
+            $months = $useCustomRange
+                ? $startDate->diffInMonths($endDate) + 1
+                : 12;
+
+            for ($i = $months - 1; $i >= 0; $i--) {
+                $monthDate = ($useCustomRange ? $endDate->copy() : now())->subMonths($i);
+                $key = $monthDate->format('Y-m');
+                $label = $monthDate->format('M Y');
+                $monthTxns = $transactionData[$key] ?? collect();
                 $transactionGraph[] = [
-                    'date' => $key,
-                    'revenue' => isset($transactionData[$key]) ? $transactionData[$key]->sum('total_amount') : 0
+                    'date' => $label,
+                    'revenue' => $monthTxns->sum('total_amount'),
+                    'tickets_sold' => $monthTxns->sum(fn($tx) => $ticketCountByTxn[$tx->id] ?? 0),
                 ];
             }
         } else {
-            // Group by Day for 7days and 30days
+            // Group by Day
             $transactionData = $rawTransactions->groupBy(function($val) {
-                return Carbon::parse($val->created_at)->format('M d');
+                return Carbon::parse($val->created_at)->format('Y-m-d');
             });
 
-            // Generate all days in the range
             for ($i = $days - 1; $i >= 0; $i--) {
-                $dayDate = now()->subDays($i);
-                $key = $dayDate->format('M d');
+                $dayDate = ($useCustomRange ? $endDate->copy() : now())->subDays($i);
+                $key = $dayDate->format('Y-m-d');
+                $label = $dayDate->format('M d');
+                $dayTxns = $transactionData[$key] ?? collect();
                 $transactionGraph[] = [
-                    'date' => $key,
-                    'revenue' => isset($transactionData[$key]) ? $transactionData[$key]->sum('total_amount') : 0
+                    'date' => $label,
+                    'revenue' => $dayTxns->sum('total_amount'),
+                    'tickets_sold' => $dayTxns->sum(fn($tx) => $ticketCountByTxn[$tx->id] ?? 0),
                 ];
             }
         }
 
-        // ── CHARTS: EVENT PERFORMANCE ──
-        $eventPerformance = $events->map(function($e) use ($allTransactions) {
+        // ── CHARTS: EVENT PERFORMANCE (revenue + tickets per event) ──
+        $eventPerformance = $events->map(function($e) use ($allTransactions, $ticketCountByTxn) {
+            $eventTxns = $allTransactions->where('event_id', $e->id);
             return [
                 'name' => $e->title,
-                'revenue' => $allTransactions->where('event_id', $e->id)->sum('total_amount')
+                'revenue' => $eventTxns->sum('total_amount'),
+                'tickets_sold' => $eventTxns->sum(fn($tx) => $ticketCountByTxn[$tx->id] ?? 0),
             ];
-        })->sortByDesc('revenue')->values()->take(5);
+        })->sortByDesc('revenue')->values()->take(10);
+
+        // ── PER-EVENT DAILY BREAKDOWN ──
+        // Build per-event chart data: each event gets a daily/monthly breakdown
+        $perEventCharts = [];
+        $scopedEvents = $filterEventId
+            ? $events->where('id', $filterEventId)
+            : $events->sortByDesc(fn($e) => $allTransactions->where('event_id', $e->id)->sum('total_amount'))->take(5);
+
+        foreach ($scopedEvents as $event) {
+            $eventTxns = $rawTransactions->where('event_id', $event->id);
+
+            $chartData = [];
+            if ((!$useCustomRange && $period === '1year') || ($useCustomRange && $days > 90)) {
+                // Monthly
+                $grouped = $eventTxns->groupBy(fn($val) => Carbon::parse($val->created_at)->format('Y-m'));
+                $months = $useCustomRange ? $startDate->diffInMonths($endDate) + 1 : 12;
+                for ($i = $months - 1; $i >= 0; $i--) {
+                    $monthDate = ($useCustomRange ? $endDate->copy() : now())->subMonths($i);
+                    $key = $monthDate->format('Y-m');
+                    $label = $monthDate->format('M Y');
+                    $mTxns = $grouped[$key] ?? collect();
+                    $chartData[] = [
+                        'date' => $label,
+                        'revenue' => $mTxns->sum('total_amount'),
+                        'tickets_sold' => $mTxns->sum(fn($tx) => $ticketCountByTxn[$tx->id] ?? 0),
+                    ];
+                }
+            } else {
+                // Daily
+                $grouped = $eventTxns->groupBy(fn($val) => Carbon::parse($val->created_at)->format('Y-m-d'));
+                for ($i = $days - 1; $i >= 0; $i--) {
+                    $dayDate = ($useCustomRange ? $endDate->copy() : now())->subDays($i);
+                    $key = $dayDate->format('Y-m-d');
+                    $label = $dayDate->format('M d');
+                    $dTxns = $grouped[$key] ?? collect();
+                    $chartData[] = [
+                        'date' => $label,
+                        'revenue' => $dTxns->sum('total_amount'),
+                        'tickets_sold' => $dTxns->sum(fn($tx) => $ticketCountByTxn[$tx->id] ?? 0),
+                    ];
+                }
+            }
+
+            $perEventCharts[] = [
+                'event_id' => $event->id,
+                'event_name' => $event->title,
+                'total_revenue' => $eventTxns->sum('total_amount'),
+                'total_tickets' => $eventTxns->sum(fn($tx) => $ticketCountByTxn[$tx->id] ?? 0),
+                'chart' => $chartData,
+            ];
+        }
 
         // ── RECENT TRANSACTIONS ──
         $recentTransactions = Transaction::with(['event', 'user'])
-            ->whereIn('event_id', $eventIds)
+            ->whereIn('event_id', $scopedEventIds)
             ->orderByDesc('created_at')
             ->take(8)
             ->get()
@@ -151,6 +236,9 @@ class EventController extends Controller
                 ];
             });
 
+        // ── EVENT LIST for dropdown filter ──
+        $eventList = $events->map(fn($e) => ['id' => $e->id, 'title' => $e->title])->values();
+
         return Inertia::render('Organizer/Dashboard', [
             'stats' => [
                 'totalActiveEvents' => $totalActiveEvents,
@@ -165,9 +253,14 @@ class EventController extends Controller
             'charts' => [
                 'transactionGraph' => $transactionGraph,
                 'eventPerformance' => $eventPerformance,
+                'perEventCharts' => $perEventCharts,
             ],
             'recentTransactions' => $recentTransactions,
-            'period' => $period
+            'period' => $period,
+            'dateFrom' => $dateFrom,
+            'dateTo' => $dateTo,
+            'filterEventId' => $filterEventId,
+            'eventList' => $eventList,
         ]);
     }
 

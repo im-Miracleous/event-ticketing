@@ -1,5 +1,5 @@
 import DashboardLayout from '@/Layouts/DashboardLayout';
-import { Head, useForm, usePage } from '@inertiajs/react';
+import { Head, useForm, usePage, router } from '@inertiajs/react';
 import React, { FormEvent, useEffect, useState, useRef } from 'react';
 import { Html5Qrcode } from 'html5-qrcode';
 
@@ -99,11 +99,13 @@ export default function CheckIn({ history, stats }: any) {
 
     const handleScanSuccess = (text: string) => {
         setData('code', text);
-        // Using a ref or timeout to trigger form submit to avoid state staleness issues in rapid scans
-        setTimeout(() => {
-            const form = document.getElementById('checkin-form') as HTMLFormElement;
-            form?.dispatchEvent(new Event('submit', { cancelable: true, bubbles: true }));
-        }, 100);
+        // Submit directly via Inertia by using router.post with the scanned value
+        // This avoids DOM event dispatch race conditions
+        if (processing) return;
+        router.post(route('organizer.check-in.store'), { code: text }, {
+            preserveState: true,
+            onSuccess: () => reset('code'),
+        });
     };
 
     const submit = (e: FormEvent) => {
