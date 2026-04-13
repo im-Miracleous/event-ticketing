@@ -24,9 +24,16 @@ class Event extends Model {
         'end_time', 
         'location', 
         'format',
+        'faq',
+        'rules_policies',
+        'contact_info',
         'event_category_id', 
         'organizer_id',
         'status'
+    ];
+
+    protected $casts = [
+        'faq' => 'array',
     ];
     
     public function category() { 
