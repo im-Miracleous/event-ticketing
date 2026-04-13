@@ -12,7 +12,7 @@ class TransactionController extends Controller {
         $data = $request->validate([
             'id' => 'required|string|max:50|unique:transactions',
             'total_amount' => 'required|numeric',
-            'transaction_status' => 'required|in:Pending,Success,Failed,Cancelled',
+            'transaction_status' => 'required|in:Pending,Success,Failed',
             'user_id' => 'required|exists:users,id',
             'payment_id' => 'required|exists:payments,id',
             'event_id' => 'required|exists:events,id',
@@ -25,7 +25,7 @@ class TransactionController extends Controller {
     public function update(Request $request, $id) {
         $transaction = Transaction::findOrFail($id);
         $data = $request->validate([
-            'transaction_status' => 'required|in:Pending,Success,Failed,Cancelled'
+            'transaction_status' => 'required|in:Pending,Success,Failed'
         ]);
         $transaction->update($data);
 
@@ -34,7 +34,7 @@ class TransactionController extends Controller {
 
     public function toggleStatus($id) {
         $transaction = Transaction::findOrFail($id);
-        $transaction->transaction_status = 'Cancelled';
+        $transaction->transaction_status = 'Failed';
         $transaction->save();
         
         return response()->json($transaction);

@@ -47,14 +47,14 @@ class CancelExpiredBooking implements ShouldQueue
                 $transaction->payment->update(['payment_status' => 'Failed']);
             }
 
-            // Cancel all associated tickets
+            // Fail all associated tickets
             foreach ($transaction->details as $detail) {
                 foreach ($detail->tickets as $ticket) {
-                    $ticket->update(['ticket_status' => 'Cancelled']);
+                    $ticket->update(['ticket_status' => 'Failed']);
                 }
             }
 
-            Log::info("Transaction {$this->transactionId} expired and was marked as Failed, tickets cancelled.");
+            Log::info("Transaction {$this->transactionId} expired and was marked as Failed, tickets failed.");
         });
     }
 }

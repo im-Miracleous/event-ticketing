@@ -78,7 +78,7 @@ class ValidationLogController extends Controller
             return redirect()->back()->with('error', 'Ticket not found or does not belong to your event.');
         }
 
-        // DB column is ticket_status, enum values: Issued | Checked-In | Cancelled | Expired
+        // DB column is ticket_status, enum values: Pending | Valid | Checked-In | Expired | Failed
         if ($ticket->ticket_status === 'Checked-In') {
             ValidationLog::create([
                 'ticket_id'       => $ticket->id,
@@ -88,11 +88,11 @@ class ValidationLogController extends Controller
             return redirect()->back()->with('error', 'Ticket has already been used (Check-in Failed).');
         }
 
-        if ($ticket->ticket_status === 'Cancelled') {
+        if ($ticket->ticket_status === 'Failed' || $ticket->ticket_status === 'Pending') {
             ValidationLog::create([
                 'ticket_id'       => $ticket->id,
                 'validation_time' => now(),
-                'result'          => 'Cancelled',
+                'result'          => 'Invalid',
             ]);
             return redirect()->back()->with('error', 'Ticket is ' . strtolower($ticket->ticket_status) . ' and cannot be used.');
         }

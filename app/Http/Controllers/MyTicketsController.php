@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Transaction;
+use App\Models\Ticket;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Inertia\Inertia;
@@ -33,17 +34,17 @@ class MyTicketsController extends Controller
                     $trx->payment->update(['payment_status' => 'Failed']);
                 }
                 
-                // Update all associated tickets to Cancelled
+                // Update all associated tickets to Failed
                 foreach ($trx->details as $detail) {
                     foreach ($detail->tickets as $ticket) {
-                        $ticket->update(['ticket_status' => 'Cancelled']);
+                        $ticket->update(['ticket_status' => 'Failed']);
                     }
                 }
             });
         }
 
-        // Fix inconsistent ticket statuses for failed/cancelled transactions
-        $inconsistent = Transaction::whereIn('transaction_status', ['Failed', 'Cancelled'])
+        // Fix inconsistent ticket statuses for failed transactions
+        $inconsistent = Transaction::where('transaction_status', 'Failed')
             ->where('user_id', $userId)
             ->with('details.tickets')
             ->get();
@@ -51,8 +52,8 @@ class MyTicketsController extends Controller
         foreach ($inconsistent as $trx) {
             foreach ($trx->details as $detail) {
                 foreach ($detail->tickets as $ticket) {
-                    if ($ticket->ticket_status !== 'Cancelled' && $ticket->validated_at === null) {
-                        $ticket->update(['ticket_status' => 'Cancelled']);
+                    if ($ticket->ticket_status !== 'Failed' && $ticket->validated_at === null) {
+                        $ticket->update(['ticket_status' => 'Failed']);
                     }
                 }
             }
@@ -70,7 +71,7 @@ class MyTicketsController extends Controller
             ->map(function ($trx) use ($now) {
                 $eventDate = $trx->event ? $trx->event->event_date : null;
 
-                // Determine tab category
+                // Determine tab category based on ticket status
                 if ($trx->transaction_status === 'Pending') {
                     $tab = 'pending';
                 } elseif ($trx->transaction_status === 'Success') {
@@ -82,10 +83,10 @@ class MyTicketsController extends Controller
                     } elseif ($eventDate && $now->gt($eventDate)) {
                         $tab = 'expired';
                     } else {
-                        $tab = 'valid'; // Success, not used, event is in future
+                        $tab = 'valid';
                     }
                 } else {
-                    $tab = 'other'; // Cancelled / Failed / Refunded
+                    $tab = 'failed'; // Failed
                 }
 
                 return array_merge($trx->toArray(), ['tab' => $tab]);
@@ -98,7 +99,7 @@ class MyTicketsController extends Controller
 
     public function show(string $id)
     {
-        $ticket = \App\Models\Ticket::with([
+        $ticket = Ticket::with([
             'attendee',
             'ticketType',
             'detail.transaction.event',
@@ -111,6 +112,25 @@ class MyTicketsController extends Controller
         }
 
         return Inertia::render('Profile/TicketDetail', [
+            'ticket' => $ticket,
+        ]);
+    }
+
+    public function print(string $id)
+    {
+        $ticket = Ticket::with([
+            'attendee',
+            'ticketType',
+            'detail.transaction.event',
+            'detail.transaction.payment',
+        ])->findOrFail($id);
+
+        // Security: ensure the ticket belongs to the authenticated user
+        if ($ticket->detail->transaction->user_id !== Auth::id()) {
+            abort(403);
+        }
+
+        return Inertia::render('Profile/PrintTicket', [
             'ticket' => $ticket,
         ]);
     }

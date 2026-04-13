@@ -14,7 +14,7 @@ return new class extends Migration
         Schema::create('payments', function (Blueprint $table) {
             $table->id();
             $table->enum('payment_method', ['Cash', 'Transfer', 'E-Wallet', 'Credit Card']);
-            $table->enum('payment_status', ['Pending', 'Paid', 'Failed', 'Cancelled']);
+            $table->enum('payment_status', ['Pending', 'Success', 'Failed']);
             $table->dateTime('transaction_time');
             $table->timestamp('created_at')->nullable()->useCurrent();
             $table->timestamp('updated_at')->useCurrentOnUpdate()->nullable()->useCurrent();

@@ -243,13 +243,13 @@ class CheckoutController extends Controller
             $transaction->update(['transaction_status' => 'Success']);
             $transaction->payment->update([
                 'payment_method' => $request->payment_method,
-                'payment_status' => 'Paid',
+                'payment_status' => 'Success',
             ]);
 
             // Mark all tickets as issued
             foreach ($transaction->details as $detail) {
                 foreach ($detail->tickets as $ticket) {
-                    $ticket->update(['ticket_status' => 'Issued']);
+                    $ticket->update(['ticket_status' => 'Valid']);
                 }
             }
 
@@ -280,9 +280,9 @@ class CheckoutController extends Controller
                     $detail->ticketType->increment('available_stock', $detail->quantity);
                 }
             }
-            $transaction->update(['transaction_status' => 'Cancelled']);
+            $transaction->update(['transaction_status' => 'Failed']);
             if ($transaction->payment) {
-                $transaction->payment->update(['payment_status' => 'Cancelled']);
+                $transaction->payment->update(['payment_status' => 'Failed']);
             }
         });
 

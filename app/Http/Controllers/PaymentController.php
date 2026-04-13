@@ -11,7 +11,7 @@ class PaymentController extends Controller {
     public function store(Request $request) {
         $data = $request->validate([
             'payment_method' => 'required|in:Cash,Transfer,E-Wallet,Credit Card',
-            'payment_status' => 'required|in:Pending,Paid,Failed,Cancelled',
+            'payment_status' => 'required|in:Pending,Success,Failed',
             'transaction_time' => 'required|date'
         ]);
 
@@ -20,7 +20,7 @@ class PaymentController extends Controller {
 
     public function toggleStatus($id) {
         $payment = Payment::findOrFail($id);
-        $payment->payment_status = 'Cancelled';
+        $payment->payment_status = 'Failed';
         $payment->save();
         
         return response()->json($payment);

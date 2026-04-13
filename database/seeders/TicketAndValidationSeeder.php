@@ -22,13 +22,13 @@ class TicketAndValidationSeeder extends Seeder
             $details = TransactionDetail::with('ticketType')->limit(20)->get();
             foreach ($details as $detail) {
                 for ($q = 0; $q < min($detail->quantity, 2); $q++) {
-                    $ticketStatus = fake()->randomElement(['Issued', 'Scanned', 'Cancelled']);
+                    $ticketStatus = fake()->randomElement(['Valid', 'Checked-In', 'Failed']);
                     $ticket = Ticket::create([
                         'id'                    => Str::uuid()->toString(),
                         'qr_code'               => 'QR-' . Str::upper(Str::random(8)),
                         'ticket_status'         => $ticketStatus,
                         'issued_at'             => now()->subDays(rand(1, 30)),
-                        'validated_at'          => $ticketStatus === 'Scanned' ? now()->subDays(rand(0, 5)) : null,
+                        'validated_at'          => $ticketStatus === 'Checked-In' ? now()->subDays(rand(0, 5)) : null,
                         'transaction_detail_id' => $detail->id,
                         'ticket_type_id'        => $detail->ticket_type_id,
                     ]);
@@ -44,7 +44,7 @@ class TicketAndValidationSeeder extends Seeder
                     ]);
 
                     // Add validation log for used tickets
-                    if ($ticketStatus === 'Scanned') {
+                    if ($ticketStatus === 'Checked-In') {
                         ValidationLog::create([
                             'validation_time' => $ticket->validated_at,
                             'result'          => 'Valid',

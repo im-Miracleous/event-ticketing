@@ -26,7 +26,7 @@ function formatDate(d: string) {
 
 export default function CheckoutResult({ transaction }: { transaction: Transaction }) {
     const isSuccess = transaction.transaction_status === 'Success';
-    const isCancelled = transaction.transaction_status === 'Cancelled';
+    const isFailed = transaction.transaction_status === 'Failed';
     const isPending = transaction.transaction_status === 'Pending';
 
     return (
@@ -93,7 +93,7 @@ export default function CheckoutResult({ transaction }: { transaction: Transacti
                         <div>
                             <p className="text-xs text-slate-400 font-black uppercase tracking-widest mb-1">Status</p>
                             <span className={`inline-block px-2 py-0.5 rounded-full text-xs font-black ${
-                                isSuccess ? 'bg-emerald-100 text-emerald-700' : isCancelled ? 'bg-red-100 text-red-600' : 'bg-amber-100 text-amber-600'
+                                isSuccess ? 'bg-emerald-100 text-emerald-700' : isFailed ? 'bg-red-100 text-red-600' : 'bg-amber-100 text-amber-600'
                             }`}>{transaction.transaction_status}</span>
                         </div>
                     </div>

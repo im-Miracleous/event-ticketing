@@ -64,6 +64,7 @@ Route::middleware(['auth', 'role:User'])->group(function () {
     // My Tickets
     Route::get('/my-tickets', [MyTicketsController::class, 'index'])->name('tickets.my');
     Route::get('/my-tickets/{ticket}', [MyTicketsController::class, 'show'])->name('tickets.show');
+    Route::get('/my-tickets/{ticket}/print', [MyTicketsController::class, 'print'])->name('tickets.print');
 
     // Saved Events (Wishlist)
     Route::get('/saved-events', [WishlistController::class, 'index'])->name('wishlists.index');

@@ -68,14 +68,14 @@ class DokuNotificationController extends Controller
             if ($transactionStatus === 'SUCCESS') {
                 $transaction->update(['transaction_status' => 'Success']);
                 $payment->update([
-                    'payment_status'    => 'Paid',
+                    'payment_status'    => 'Success',
                     'doku_raw_response' => $data,
                 ]);
 
                 // Activate all tickets
                 foreach ($transaction->details as $detail) {
                     foreach ($detail->tickets as $ticket) {
-                        $ticket->update(['ticket_status' => 'Issued']);
+                        $ticket->update(['ticket_status' => 'Valid']);
                     }
                 }
 

@@ -21,7 +21,7 @@ class UserSeeder extends Seeder
                 ['email' => env('DEFAULT_ADMIN_EMAIL')],
                 [
                     'name' => 'System Admin',
-                    'username' => 'sysadmin',
+                    'username' => 'testadmin',
                     'role' => 'Admin',
                     'password' => env('DEFAULT_ADMIN_PASSWORD'), // plain text, auto-hashed by cast
                     'email_verified_at' => now(),
@@ -35,7 +35,7 @@ class UserSeeder extends Seeder
                 ['email' => env('DEFAULT_ORGANIZER_EMAIL')],
                 [
                     'name' => 'Main Organizer',
-                    'username' => 'eventorganizer',
+                    'username' => 'testorganizer',
                     'role' => 'Organizer',
                     'password' => env('DEFAULT_ORGANIZER_PASSWORD'), // plain text, auto-hashed by cast
                     'email_verified_at' => now(),
