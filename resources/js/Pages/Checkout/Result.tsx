@@ -27,27 +27,31 @@ function formatDate(d: string) {
 export default function CheckoutResult({ transaction }: { transaction: Transaction }) {
     const isSuccess = transaction.transaction_status === 'Success';
     const isCancelled = transaction.transaction_status === 'Cancelled';
+    const isPending = transaction.transaction_status === 'Pending';
 
     return (
         <DashboardLayout>
-            <Head title={`Booking ${isSuccess ? 'Berhasil' : 'Dibatalkan'} – EventHive`} />
+            <Head title={`Booking ${isSuccess ? 'Berhasil' : isPending ? 'Menunggu' : 'Dibatalkan'} – EventHive`} />
 
             <div className="max-w-2xl mx-auto py-10 space-y-8">
                 {/* Status Banner */}
                 <div className={`text-center py-12 rounded-[2.5rem] ${
                     isSuccess ? 'bg-emerald-50 dark:bg-emerald-900/10 border border-emerald-200 dark:border-emerald-800'
+                    : isPending ? 'bg-amber-50 dark:bg-amber-900/10 border border-amber-200 dark:border-amber-800'
                     : 'bg-red-50 dark:bg-red-900/10 border border-red-200 dark:border-red-800'
                 }`}>
                     <div className={`w-20 h-20 mx-auto mb-4 rounded-full flex items-center justify-center text-4xl ${
-                        isSuccess ? 'bg-emerald-100 dark:bg-emerald-900/30' : 'bg-red-100 dark:bg-red-900/30'
+                        isSuccess ? 'bg-emerald-100 dark:bg-emerald-900/30' : isPending ? 'bg-amber-100 dark:bg-amber-900/30' : 'bg-red-100 dark:bg-red-900/30'
                     }`}>
-                        {isSuccess ? '✓' : '✕'}
+                        {isSuccess ? '✓' : isPending ? '⏳' : '✕'}
                     </div>
-                    <h1 className={`text-2xl font-black mb-2 ${isSuccess ? 'text-emerald-700' : 'text-red-600'}`}>
-                        {isSuccess ? 'Pembayaran Berhasil!' : 'Transaksi Dibatalkan'}
+                    <h1 className={`text-2xl font-black mb-2 ${isSuccess ? 'text-emerald-700' : isPending ? 'text-amber-700' : 'text-red-600'}`}>
+                        {isSuccess ? 'Pembayaran Berhasil!' : isPending ? 'Menunggu Pembayaran' : 'Transaksi Dibatalkan'}
                     </h1>
                     <p className="text-slate-500 text-sm">
-                        {isSuccess ? 'Tiket kamu sudah siap. Tunjukkan QR code saat masuk event.' : 'Stok tiket telah dikembalikan.'}
+                        {isSuccess ? 'Tiket kamu sudah siap. Tunjukkan QR code saat masuk event.' 
+                         : isPending ? 'Segera selesaikan pembayaran sebelum waktu habis.'
+                         : 'Stok tiket telah dikembalikan.'}
                     </p>
                 </div>
 
@@ -102,10 +106,12 @@ export default function CheckoutResult({ transaction }: { transaction: Transacti
                         {transaction.details.flatMap(d => d.tickets).map((ticket, i) => (
                             <div key={ticket.id} className="bg-white dark:bg-slate-900/40 border border-slate-200 dark:border-slate-800 rounded-[2rem] p-6 flex items-center gap-6">
                                 {/* Simple QR placeholder visualisation */}
-                                <div className="shrink-0 w-20 h-20 bg-slate-900 dark:bg-white rounded-2xl flex items-center justify-center">
-                                    <svg className="w-12 h-12 text-white dark:text-slate-900" viewBox="0 0 24 24" fill="currentColor">
-                                        <path d="M3 3h8v8H3V3zm2 2v4h4V5H5zm6 0h2v2h-2V5zm2 2h2v2h-2V7zm2-2h4v4h-4V5zm2 2v2h2V7h-2zM3 13h8v8H3v-8zm2 2v4h4v-4H5zm6 0h2v2h-2v-2zm0 4h2v2h-2v-2zm4-4h2v2h-2v-2zm2 2h2v2h-2v-2zm0 2h-2v2h2v-2z"/>
-                                    </svg>
+                                <div className="shrink-0">
+                                    <img 
+                                        src={`https://api.qrserver.com/v1/create-qr-code/?size=100x100&data=${encodeURIComponent(ticket.qr_code)}`} 
+                                        alt="QR Code" 
+                                        className="w-20 h-20 rounded-xl"
+                                    />
                                 </div>
                                 <div>
                                     <p className="font-black text-slate-900 dark:text-white">Tiket #{i + 1}</p>
@@ -124,8 +130,13 @@ export default function CheckoutResult({ transaction }: { transaction: Transacti
                         Kembali ke Katalog
                     </Link>
                     {isSuccess && (
-                        <Link href="/profile" className="flex-1 text-center py-4 rounded-2xl bg-violet-600 text-white font-black shadow-lg shadow-violet-500/30 hover:bg-violet-500 transition-all">
+                        <Link href="/my-tickets" className="flex-1 text-center py-4 rounded-2xl bg-violet-600 text-white font-black shadow-lg shadow-violet-500/30 hover:bg-violet-500 transition-all">
                             Lihat Tiket Saya
+                        </Link>
+                    )}
+                    {isPending && (
+                        <Link href={`/checkout/${transaction.id}/payment`} className="flex-1 text-center py-4 rounded-2xl bg-violet-600 text-white font-black shadow-lg shadow-violet-500/30 hover:bg-violet-500 transition-all">
+                            Lanjutkan Pembayaran
                         </Link>
                     )}
                 </div>

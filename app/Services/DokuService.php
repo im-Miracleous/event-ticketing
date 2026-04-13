@@ -50,7 +50,7 @@ class DokuService
     public function createVirtualAccount(array $params): ?array
     {
         $requestId = Str::uuid()->toString();
-        $requestTimestamp = now()->toIso8601String();
+        $requestTimestamp = gmdate("Y-m-d\TH:i:s\Z");
         $requestTarget = '/checkout/v1/payment';
 
         $expiryMinutes = config('doku.expiry_minutes', 60);
@@ -60,13 +60,8 @@ class DokuService
             'order' => [
                 'amount' => $params['amount'],
                 'invoice_number' => $params['invoice_number'],
-
-                'currency' => 'IDR',
                 'callback_url' => $appUrl . '/checkout/' . $params['invoice_number'] . '/result',
-                'callback_url_cancel' => $appUrl . '/events',
                 'auto_redirect' => true,
-                'disable_retry_payment' => true,
-                'language' => 'ID',
             ],
             'payment' => [
                 'payment_due_date' => (int) $expiryMinutes,
