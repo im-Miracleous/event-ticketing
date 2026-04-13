@@ -54,7 +54,7 @@ class WaitingListController extends Controller
             ->exists();
 
         if ($exists) {
-            return back()->withErrors(['message' => 'Kamu sudah ada di waiting list untuk tiket ini.']);
+            return back()->withErrors(['message' => 'You are already in the waiting list for this ticket.']);
         }
 
         WaitingList::create([
@@ -64,7 +64,7 @@ class WaitingListController extends Controller
             'user_id'        => $userId,
         ]);
 
-        return back()->with('success', 'Berhasil bergabung ke waiting list!');
+        return back()->with('success', 'Successfully joined the waiting list!');
     }
 
     /**
@@ -78,6 +78,6 @@ class WaitingListController extends Controller
 
         $entry->update(['status' => 'Cancelled']);
 
-        return back()->with('success', 'Berhasil keluar dari waiting list.');
+        return back()->with('success', 'Successfully left the waiting list.');
     }
 }

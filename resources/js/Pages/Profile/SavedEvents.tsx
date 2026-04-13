@@ -22,11 +22,11 @@ interface WishlistEntry {
 }
 
 function formatCurrency(n: number) {
-    return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(n);
+    return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(n);
 }
 
 function formatDate(d: string) {
-    return new Date(d).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
+    return new Date(d).toLocaleDateString('en-US', { day: 'numeric', month: 'long', year: 'numeric' });
 }
 
 function SavedEventCard({ entry, onUnsave }: { entry: WishlistEntry; onUnsave: () => void }) {
@@ -86,16 +86,16 @@ function SavedEventCard({ entry, onUnsave }: { entry: WishlistEntry; onUnsave: (
 
                     <div className="flex items-center justify-between pt-4 border-t border-slate-100 dark:border-slate-800">
                         <div>
-                            <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">Mulai dari</span>
+                            <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">Starting from</span>
                             <p className="text-lg font-black text-slate-900 dark:text-white">
-                                {minPrice > 0 ? formatCurrency(minPrice) : 'GRATIS'}
+                                {minPrice > 0 ? formatCurrency(minPrice) : 'FREE'}
                             </p>
                         </div>
                         <div className="flex items-center gap-2">
                             <button
                                 onClick={onUnsave}
                                 className="p-2.5 rounded-xl border border-red-200 dark:border-red-800 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
-                                title="Hapus dari simpan"
+                                title="Remove from saved"
                             >
                                 <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
                                     <path d="M17.593 3.322c1.1.128 1.907 1.077 1.907 2.185V21L12 17.25 4.5 21V5.507c0-1.108.806-2.057 1.907-2.185a48.507 48.507 0 0 1 11.186 0Z" />
@@ -106,7 +106,7 @@ function SavedEventCard({ entry, onUnsave }: { entry: WishlistEntry; onUnsave: (
                                     href={`/events/${event.id}/checkout`}
                                     className="px-5 py-2.5 bg-violet-600 hover:bg-violet-500 text-white rounded-xl font-bold text-sm transition-colors shadow-lg shadow-violet-500/30"
                                 >
-                                    Beli Tiket
+                                    Buy Tickets
                                 </Link>
                             )}
                         </div>
@@ -136,16 +136,16 @@ export default function SavedEvents({ wishlists }: { wishlists: WishlistEntry[] 
                         </div>
                         <div>
                             <h1 className="text-2xl font-bold text-slate-900 dark:text-white flex items-center gap-3">
-                                Event Tersimpan
+                                Saved Events
                             </h1>
-                            <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">Daftar event yang sudah kamu simpan untuk nanti.</p>
+                            <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">List of events you've saved for later.</p>
                         </div>
                     </div>
                     <Link
                         href="/events"
                         className="text-sm font-bold text-violet-600 hover:text-violet-500 transition-colors"
                     >
-                        + Cari Event Baru
+                        + Explore New Events
                     </Link>
                 </div>
 
@@ -156,15 +156,15 @@ export default function SavedEvents({ wishlists }: { wishlists: WishlistEntry[] 
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M17.593 3.322c1.1.128 1.907 1.077 1.907 2.185V21L12 17.25 4.5 21V5.507c0-1.108.806-2.057 1.907-2.185a48.507 48.507 0 0 1 11.186 0Z" />
                             </svg>
                         </div>
-                        <h3 className="text-lg font-black text-slate-900 dark:text-white mb-2">Belum ada event tersimpan</h3>
+                        <h3 className="text-lg font-black text-slate-900 dark:text-white mb-2">No saved events yet</h3>
                         <p className="text-slate-500 mb-8 max-w-sm mx-auto text-sm">
-                            Simpan event favoritmu agar mudah ditemukan nanti!
+                            Save your favorite events to find them easily later!
                         </p>
                         <Link
                             href="/events"
                             className="px-8 py-3 bg-violet-600 text-white rounded-2xl font-black shadow-lg shadow-violet-500/30 hover:bg-violet-500 transition-colors"
                         >
-                            Jelajahi Event
+                            Explore Events
                         </Link>
                     </div>
                 ) : (
