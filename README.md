@@ -235,6 +235,14 @@ DOKU_NOTIFICATION_URL=http://your-public-url.com/doku/notification
 DOKU_EXPIRY_MINUTES=60
 ```
 
+**Real-time Notifications (Laravel Reverb):**
+Since we don't share WebSocket keys in the repository, you need to generate your own local Reverb keys:
+```bash
+# This will generate REVERB_APP_ID, REVERB_APP_KEY, and REVERB_APP_SECRET in your .env
+php artisan reverb:install
+```
+*Note: If prompted to run migrations or publish configurations, you can usually skip them as they are already included in the repository.*
+
 ---
 
 #### Step 4 — Database Setup
@@ -281,6 +289,7 @@ The application is now accessible at: **[http://localhost:8000](http://localhost
 > ```bash
 > composer run dev
 > ```
+> *Note: On Windows, the `pail` log tailing is disabled in this script for compatibility.*
 
 ---
 
