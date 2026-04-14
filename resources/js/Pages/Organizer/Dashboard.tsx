@@ -333,7 +333,7 @@ export default function Dashboard({ auth, stats, charts, period, dateFrom, dateT
                                         }}
                                         itemStyle={{ fontSize: '12px', fontWeight: 'bold' }}
                                         labelStyle={{ fontSize: '12px', fontWeight: '800', marginBottom: '4px', color: isDark ? '#f8fafc' : '#0f172a' }}
-                                        formatter={(value: any, name: string) => {
+                                        formatter={(value: any, name: any) => {
                                             if (name === 'revenue') return [formatCurrency(value), 'Revenue'];
                                             return [value + ' tickets', 'Tickets Sold'];
                                         }}
@@ -407,7 +407,7 @@ export default function Dashboard({ auth, stats, charts, period, dateFrom, dateT
                                             border: 'none'
                                         }}
                                         cursor={{ fill: isDark ? '#ffffff05' : '#f8fafc' }}
-                                        formatter={(value: any, name: string) => {
+                                        formatter={(value: any, name: any) => {
                                             if (name === 'revenue') return [formatCurrency(value), 'Revenue'];
                                             return [value, 'Tickets Sold'];
                                         }}
@@ -488,7 +488,7 @@ export default function Dashboard({ auth, stats, charts, period, dateFrom, dateT
                                                         padding: '10px 14px'
                                                     }}
                                                     labelStyle={{ fontSize: '11px', fontWeight: '800', color: isDark ? '#f8fafc' : '#0f172a' }}
-                                                    formatter={(value: any, name: string) => {
+                                                    formatter={(value: any, name: any) => {
                                                         if (name === 'tickets_sold') return [value + ' tickets', 'Sold'];
                                                         return [formatCurrency(value), 'Revenue'];
                                                     }}
