@@ -1,6 +1,6 @@
 import { Head, Link, router, usePage } from '@inertiajs/react';
 import DashboardLayout from '@/Layouts/DashboardLayout';
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 
 /* ─── Type Definitions ─────────────────────────────────────── */
 interface TicketType {
@@ -8,6 +8,18 @@ interface TicketType {
     name: string;
     price: number;
     available_stock: number;
+}
+
+interface Promotion {
+    id: number;
+    code: string;
+    discount_amount: number;
+    discount_type: 'percentage' | 'fixed';
+    max_discount_amount: number | null;
+    min_spending: number;
+    quota: number;
+    start_date: string | null;
+    end_date: string | null;
 }
 
 interface Event {
@@ -21,6 +33,7 @@ interface Event {
     format: string;
     rules_policies: string | null;
     ticket_types: TicketType[];
+    promotions: Promotion[];
 }
 
 interface CartItem {
@@ -193,6 +206,11 @@ export default function CheckoutShow({ event }: Props) {
     const [attendees, setAttendees] = useState<Attendee[]>([]);
     const [privacyAgreed, setPrivacyAgreed] = useState(false);
 
+    // Promotions
+    const [promoInput, setPromoInput] = useState('');
+    const [appliedPromo, setAppliedPromo] = useState<Promotion | null>(null);
+    const [promoMessage, setPromoMessage] = useState<{ type: 'error' | 'success', text: string } | null>(null);
+
     // Payment
     const [submitting, setSubmitting] = useState(false);
     const [submitErrors, setSubmitErrors] = useState<Record<string, string>>({});
@@ -200,6 +218,35 @@ export default function CheckoutShow({ event }: Props) {
     // Computed
     const totalTickets = useMemo(() => cart.reduce((s, c) => s + c.quantity, 0), [cart]);
     const totalPrice = useMemo(() => cart.reduce((s, c) => s + c.ticket_type.price * c.quantity, 0), [cart]);
+    
+    const discount = useMemo(() => {
+        if (!appliedPromo) return 0;
+        if (totalPrice < appliedPromo.min_spending) return 0;
+        
+        let d = 0;
+        if (appliedPromo.discount_type === 'percentage') {
+            d = totalPrice * (appliedPromo.discount_amount / 100);
+            if (appliedPromo.max_discount_amount) {
+                d = Math.min(d, appliedPromo.max_discount_amount);
+            }
+        } else {
+            d = appliedPromo.discount_amount;
+        }
+        return Math.min(d, totalPrice); // Can't discount more than total
+    }, [appliedPromo, totalPrice]);
+    
+    const finalPrice = totalPrice - discount;
+
+    // Watch for price changes that might invalidate promo
+    useEffect(() => {
+        if (appliedPromo && totalPrice < appliedPromo.min_spending) {
+            setAppliedPromo(null);
+            setPromoMessage({ type: 'error', text: 'Promo removed: Minimum spending is no longer met.' });
+        }
+        if (totalPrice === 0 && appliedPromo) {
+             setAppliedPromo(null);
+        }
+    }, [totalPrice, appliedPromo]);
 
     /* ─── Cart Actions ─── */
     const updateQty = (ticketType: TicketType, delta: number) => {
@@ -258,6 +305,45 @@ export default function CheckoutShow({ event }: Props) {
         setAttendees(prev => prev.map((a, i) => i === idx ? { ...a, [field]: value } : a));
     };
 
+    const handleApplyPromo = () => {
+        setPromoMessage(null);
+        if (!promoInput.trim()) return;
+
+        const promo = event.promotions?.find(p => p.code.toLowerCase() === promoInput.trim().toLowerCase());
+        
+        if (!promo) {
+            setPromoMessage({ type: 'error', text: 'Kode promo tidak ditemukan.' });
+            return;
+        }
+        if (promo.quota <= 0) {
+            setPromoMessage({ type: 'error', text: 'Kuota promo sudah habis.' });
+            return;
+        }
+        if (totalPrice < promo.min_spending) {
+            setPromoMessage({ type: 'error', text: `Minimal belanja ${formatCurrency(promo.min_spending)} diperlukan.` });
+            return;
+        }
+
+        const now = new Date();
+        if (promo.start_date && new Date(promo.start_date) > now) {
+            setPromoMessage({ type: 'error', text: 'Promo belum aktif.' });
+            return;
+        }
+        if (promo.end_date && new Date(promo.end_date) < now) {
+            setPromoMessage({ type: 'error', text: 'Promo sudah kadaluarsa.' });
+            return;
+        }
+
+        setAppliedPromo(promo);
+        setPromoMessage({ type: 'success', text: 'Promo berhasil digunakan!' });
+    };
+
+    const handleRemovePromo = () => {
+        setAppliedPromo(null);
+        setPromoInput('');
+        setPromoMessage(null);
+    };
+
     /* ─── Submit Order ─── */
     const submitOrder = () => {
         setSubmitting(true);
@@ -266,6 +352,7 @@ export default function CheckoutShow({ event }: Props) {
             event_id: event.id,
             items: cart.map(c => ({ ticket_type_id: c.ticket_type_id, quantity: c.quantity })),
             attendees: attendees as any,
+            promotion_id: appliedPromo?.id,
         }, {
             onError: (errs: any) => {
                 setSubmitErrors(errs);
@@ -505,7 +592,7 @@ export default function CheckoutShow({ event }: Props) {
 
                                         <div className="flex justify-between font-black pt-3 border-t border-slate-200 dark:border-slate-700">
                                             <span className="text-slate-900 dark:text-white">Total</span>
-                                            <span className="text-violet-600 text-lg">{formatCurrency(totalPrice)}</span>
+                                            <span className="text-violet-600 text-lg">{formatCurrency(finalPrice)}</span>
                                         </div>
                                     </div>
                                 </div>
@@ -588,9 +675,53 @@ export default function CheckoutShow({ event }: Props) {
                                 ))}
                             </div>
 
-                            <div className="flex justify-between font-black text-slate-900 dark:text-white py-4 border-t border-slate-100 dark:border-slate-800 mb-6">
-                                <span>Total</span>
-                                <span className="text-violet-600">{formatCurrency(totalPrice)}</span>
+                            {/* Promo Code Input (Only if total Price > 0) */}
+                            {totalPrice > 0 && (
+                                <div className="mb-6 pt-4 border-t border-slate-100 dark:border-slate-800">
+                                    <label className="block text-xs font-bold text-slate-500 mb-2">Promo Code</label>
+                                    {!appliedPromo ? (
+                                        <div className="flex gap-2">
+                                            <input 
+                                                type="text" 
+                                                value={promoInput} 
+                                                onChange={e => setPromoInput(e.target.value)} 
+                                                placeholder="Enter code..." 
+                                                className="flex-1 rounded-xl bg-slate-50 border border-slate-200 px-4 py-2 text-sm focus:ring-2 focus:ring-violet-500 outline-none uppercase"
+                                            />
+                                            <button onClick={handleApplyPromo} className="px-4 py-2 bg-slate-900 text-white text-sm font-bold rounded-xl hover:bg-slate-800 transition-colors">Apply</button>
+                                        </div>
+                                    ) : (
+                                        <div className="flex items-center justify-between p-3 bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800 rounded-xl">
+                                            <div className="flex items-center gap-2 text-sm">
+                                                <span className="text-emerald-600 font-black">✓</span>
+                                                <span className="font-bold text-slate-900 dark:text-white">{appliedPromo.code}</span>
+                                            </div>
+                                            <button onClick={handleRemovePromo} className="text-xs text-red-500 hover:text-red-700 font-bold">Remove</button>
+                                        </div>
+                                    )}
+                                    {promoMessage && (
+                                        <p className={`mt-2 text-xs font-bold ${promoMessage.type === 'error' ? 'text-red-500' : 'text-emerald-600'}`}>
+                                            {promoMessage.text}
+                                        </p>
+                                    )}
+                                </div>
+                            )}
+
+                            <div className="space-y-2 py-4 border-t border-slate-100 dark:border-slate-800 mb-6">
+                                <div className="flex justify-between font-bold text-sm text-slate-600">
+                                    <span>Subtotal</span>
+                                    <span>{formatCurrency(totalPrice)}</span>
+                                </div>
+                                {discount > 0 && (
+                                    <div className="flex justify-between font-bold text-sm text-emerald-600">
+                                        <span>Discount ({appliedPromo?.code})</span>
+                                        <span>-{formatCurrency(discount)}</span>
+                                    </div>
+                                )}
+                                <div className="flex justify-between font-black text-slate-900 dark:text-white text-lg pt-2 mt-2 border-t border-slate-100 dark:border-slate-800">
+                                    <span>Total</span>
+                                    <span className="text-violet-600">{formatCurrency(finalPrice)}</span>
+                                </div>
                             </div>
 
                             {/* Action Buttons */}

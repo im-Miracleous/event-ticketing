@@ -1,29 +1,27 @@
 <?php
 
-use Illuminate\Foundation\Application;
-use Illuminate\Support\Facades\Route;
-use Inertia\Inertia;
-
+use App\Http\Controllers\Admin;
+use App\Http\Controllers\CheckoutController;
+use App\Http\Controllers\DokuNotificationController;
 // General Controllers
-use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\EventCatalogController;
 use App\Http\Controllers\EventController;
-use App\Http\Controllers\SearchController;
-use App\Http\Controllers\CheckoutController;
 use App\Http\Controllers\MyTicketsController;
-use App\Http\Controllers\WishlistController;
-use App\Http\Controllers\WaitingListController;
-use App\Http\Controllers\DokuNotificationController;
-use App\Http\Controllers\TicketTypeController;
-use App\Http\Controllers\ValidationLogController;
-
-// Organizer Controllers
+use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\Organizer\AttendeeController as OrganizerAttendeeController;
 use App\Http\Controllers\Organizer\EarningController as OrganizerEarningController;
 use App\Http\Controllers\Organizer\PromotionController as OrganizerPromotionController;
-
+use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\SearchController;
+use App\Http\Controllers\TicketTypeController;
+use App\Http\Controllers\ValidationLogController;
+// Organizer Controllers
+use App\Http\Controllers\WaitingListController;
+use App\Http\Controllers\WishlistController;
+use Illuminate\Foundation\Application;
 // Admin Controllers
-use App\Http\Controllers\Admin;
+use Illuminate\Support\Facades\Route;
+use Inertia\Inertia;
 
 Route::get('/', function () {
     return Inertia::render('Welcome', [
@@ -36,7 +34,7 @@ Route::get('/', function () {
 
 Route::get('/dashboard', function () {
     $user = auth()->user();
-    
+
     if (in_array($user->role, ['Root', 'Admin'])) {
         return redirect()->route('admin.dashboard');
     }
@@ -59,7 +57,8 @@ Route::middleware(['auth', 'role:User'])->group(function () {
     Route::get('/checkout/{transactionId}/payment', [CheckoutController::class, 'payment'])->name('checkout.payment');
     Route::post('/checkout/{transactionId}/confirm', [CheckoutController::class, 'confirmPayment'])->name('checkout.confirm');
     Route::post('/checkout/{transactionId}/cancel', [CheckoutController::class, 'cancel'])->name('checkout.cancel');
-    Route::get('/checkout/{transactionId}/result', [CheckoutController::class, 'result'])->name('checkout.result');
+    Route::match(['get', 'post'], '/checkout/{transactionId}/result', [CheckoutController::class, 'result'])->name('checkout.result');
+    Route::get('/checkout/{transactionId}/sync-payment', [CheckoutController::class, 'syncPaymentStatus'])->name('checkout.sync-payment');
 
     // My Tickets
     Route::get('/my-tickets', [MyTicketsController::class, 'index'])->name('tickets.my');
@@ -83,11 +82,11 @@ Route::middleware('auth')->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
-    
+
     // Notifications
-    Route::get('/notifications', [\App\Http\Controllers\NotificationController::class, 'index'])->name('notifications.index');
-    Route::post('/notifications/{id}/mark-read', [\App\Http\Controllers\NotificationController::class, 'markAsRead'])->name('notifications.markRead');
-    Route::post('/notifications/mark-all-read', [\App\Http\Controllers\NotificationController::class, 'markAllAsRead'])->name('notifications.markAllRead');
+    Route::get('/notifications', [NotificationController::class, 'index'])->name('notifications.index');
+    Route::post('/notifications/{id}/mark-read', [NotificationController::class, 'markAsRead'])->name('notifications.markRead');
+    Route::post('/notifications/mark-all-read', [NotificationController::class, 'markAllAsRead'])->name('notifications.markAllRead');
 });
 
 // DOKU Payment Notification Webhook (no auth, CSRF-exempt)
@@ -99,7 +98,7 @@ Route::middleware(['auth', 'verified', 'role:Organizer'])->prefix('organizer')->
     Route::get('/', function () {
         return redirect()->route('organizer.dashboard');
     });
-    
+
     Route::get('/dashboard', [EventController::class, 'dashboard'])->name('dashboard');
     Route::get('/export-sales', [EventController::class, 'exportSales'])->name('export-sales');
 
@@ -113,7 +112,7 @@ Route::middleware(['auth', 'verified', 'role:Organizer'])->prefix('organizer')->
     Route::patch('/events/{event}/status', [EventController::class, 'updateStatus'])->name('events.updateStatus');
 
     Route::get('/transactions', [EventController::class, 'transactions'])->name('transactions.index');
-    
+
     // Promotions
     Route::resource('promotions', OrganizerPromotionController::class)->except(['create', 'show', 'edit']);
 

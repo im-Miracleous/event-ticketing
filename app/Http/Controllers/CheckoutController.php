@@ -29,8 +29,15 @@ class CheckoutController extends Controller
     {
         $event->load(['category', 'organizer', 'ticketTypes']);
 
+        // Load promotions that apply to this specific event OR all events (global)
+        $promotions = \App\Models\Promotion::where(function ($q) use ($event) {
+            $q->where('event_id', $event->id)->orWhereNull('event_id');
+        })->where('quota', '>', 0)
+          ->where('end_date', '>=', now())
+          ->get();
+
         return Inertia::render('Checkout/Show', [
-            'event' => $event,
+            'event' => $event->setAttribute('promotions', $promotions),
         ]);
     }
 
@@ -47,6 +54,7 @@ class CheckoutController extends Controller
             'attendees' => 'required|array',
             'attendees.*.name' => 'required|string|max:100',
             'attendees.*.email' => 'required|email|max:100',
+            'promotion_id' => 'nullable|integer|exists:promotions,id',
         ]);
 
         $result = DB::transaction(function () use ($request, $dokuService) {
@@ -71,6 +79,38 @@ class CheckoutController extends Controller
                     'quantity' => $item['quantity'],
                     'subtotal' => $subtotal,
                 ];
+            }
+
+            // Apply promotion if provided
+            $discount = 0;
+            if ($request->promotion_id) {
+                // Accept promos that are event-specific OR global (null event_id)
+                $promotion = \App\Models\Promotion::lockForUpdate()
+                    ->where('id', $request->promotion_id)
+                    ->where(function ($q) use ($request) {
+                        $q->where('event_id', $request->event_id)->orWhereNull('event_id');
+                    })
+                    ->firstOrFail();
+                
+                if ($promotion->quota <= 0) abort(422, 'Kuota promo sudah habis.');
+                if ($totalAmount < $promotion->min_spending) abort(422, 'Tidak mencapai minimum belanja untuk promo ini.');
+                if ($promotion->start_date && now()->isBefore($promotion->start_date)) abort(422, 'Promo belum aktif.');
+                if ($promotion->end_date && now()->isAfter($promotion->end_date)) abort(422, 'Promo sudah kadaluarsa.');
+
+                if (strtolower($promotion->discount_type) === 'percentage') {
+                    $d = $totalAmount * ($promotion->discount_amount / 100);
+                    if ($promotion->max_discount_amount) {
+                        $d = min($d, $promotion->max_discount_amount);
+                    }
+                    $discount = $d;
+                } else {
+                    $discount = $promotion->discount_amount;
+                }
+                
+                $discount = min($discount, $totalAmount);
+                $totalAmount -= $discount;
+                
+                $promotion->decrement('quota');
             }
 
             $transactionId = 'TRX-' . strtoupper(Str::random(12));
@@ -102,12 +142,14 @@ class CheckoutController extends Controller
                 }
             }
 
+            $isFree = $totalAmount == 0;
+
             // Create payment record
             $payment = Payment::create([
                 'payment_method' => 'Transfer',
-                'payment_status' => 'Pending',
+                'payment_status' => $isFree ? 'Success' : 'Pending',
                 'transaction_time' => now(),
-                'doku_invoice_number' => $isDokuEnabled ? $transactionId : null,
+                'doku_invoice_number' => $isDokuEnabled && !$isFree ? $transactionId : null,
                 'doku_payment_url' => $dokuPaymentUrl,
                 'doku_va_number' => $dokuVaNumber,
                 'doku_raw_response' => $dokuResponse,
@@ -117,11 +159,12 @@ class CheckoutController extends Controller
             $transaction = Transaction::create([
                 'id' => $transactionId,
                 'total_amount' => $totalAmount,
-                'transaction_status' => 'Pending',
+                'transaction_status' => $isFree ? 'Success' : 'Pending',
                 'user_id' => Auth::id(),
                 'payment_id' => $payment->id,
                 'event_id' => $request->event_id,
-                'expires_at' => $expiresAt,
+                'promotion_id' => $request->promotion_id,
+                'expires_at' => $isFree ? null : $expiresAt,
             ]);
 
             $attendeeIdx = 0;
@@ -139,7 +182,7 @@ class CheckoutController extends Controller
                     $ticket = Ticket::create([
                         'id' => 'TKT-' . strtoupper(Str::random(12)),
                         'qr_code' => Str::uuid(),
-                        'ticket_status' => 'Pending',
+                        'ticket_status' => $isFree ? 'Valid' : 'Pending',
                         'issued_at' => now(),
                         'transaction_detail_id' => $detail->id,
                         'ticket_type_id' => $item['ticket_type']->id,
@@ -162,23 +205,35 @@ class CheckoutController extends Controller
                 }
             }
 
-            // Dispatch auto-cancel job
-            CancelExpiredBooking::dispatch($transaction->id)->delay($expiresAt);
-
-            // Send Booking Pending Email
-            $transaction->load('event');
-            Mail::to(Auth::user()->email)->send(new BookingPendingMail($transaction));
+            if (!$isFree) {
+                // Dispatch auto-cancel job for pending transactions
+                CancelExpiredBooking::dispatch($transaction->id)->delay($expiresAt);
+                
+                // Send Booking Pending Email
+                $transaction->load('event');
+                Mail::to(Auth::user()->email)->send(new BookingPendingMail($transaction));
+            } else {
+                // Send E-Ticket directly for free tickets
+                $transaction->load('event', 'details.ticketType', 'details.tickets.attendee');
+                Mail::to(Auth::user()->email)->send(new ETicketMail($transaction));
+            }
 
             return [
                 'transaction' => $transaction,
                 'doku_payment_url' => $dokuPaymentUrl,
-                'is_doku' => $isDokuEnabled && $totalAmount > 0,
+                'is_doku' => $isDokuEnabled && !$isFree,
+                'is_free' => $isFree,
             ];
         });
 
         // If DOKU is enabled and we got a payment URL, redirect to DOKU
         if ($result['is_doku'] && $result['doku_payment_url']) {
             return Inertia::location($result['doku_payment_url']);
+        }
+
+        // If it's a completely free transaction, redirect straight to the success result page
+        if ($result['is_free']) {
+            return redirect()->route('checkout.result', $result['transaction']->id)->with('success', 'Pemesanan tiket gratis berhasil.');
         }
 
         // Fallback to manual payment page
@@ -286,13 +341,13 @@ class CheckoutController extends Controller
             }
         });
 
-        return redirect()->route('events.index')->with('success', 'Transaksi berhasil dibatalkan.');
+        return redirect()->route('checkout.result', $transactionId)->with('success', 'Transaksi berhasil dibatalkan.');
     }
 
     /**
      * Show booking result page.
      */
-    public function result(string $transactionId)
+    public function result(Request $request, string $transactionId, DokuService $dokuService)
     {
         $transaction = Transaction::with([
             'event',
@@ -303,8 +358,94 @@ class CheckoutController extends Controller
             ->where('user_id', Auth::id())
             ->firstOrFail();
 
+        // 1. Check for POST data from DOKU (Redirection with results)
+        if ($request->isMethod('post')) {
+            $data = $request->all();
+            $status = strtoupper($data['transaction']['status'] ?? ($data['status'] ?? ''));
+            
+            if ($status === 'SUCCESS' || $status === 'FAILED' || $status === 'CANCEL' || $status === 'CANCELLED') {
+                $this->updateTransactionStatus($transaction, $status, $data);
+                return redirect()->route('checkout.result', $transactionId);
+            }
+        }
+
+        // 2. Check for manual cancellation via GET query parameters
+        if ($transaction->transaction_status === 'Pending') {
+            $queryParams = [
+                strtoupper($request->query('status', '')),
+                strtoupper($request->query('res', '')),
+                strtoupper($request->query('result', '')),
+                $request->query('response_code', '')
+            ];
+
+            if (array_intersect($queryParams, ['CANCEL', 'CANCELLED', 'FAILED', '0002', '5001'])) {
+                $this->updateTransactionStatus($transaction, 'FAILED');
+                return redirect()->route('checkout.result', $transactionId)->with('error', 'Pesanan dibatalkan.');
+            }
+        }
+
+        // 3. Fallback: Sync status via API if still pending
+        if ($transaction->transaction_status === 'Pending' && $transaction->payment && $transaction->payment->doku_invoice_number) {
+            // We'll try common status check endpoints
+            $dokuStatus = $dokuService->checkPaymentStatus($transaction->payment->doku_invoice_number);
+            
+            if ($dokuStatus && isset($dokuStatus['transaction']['status'])) {
+                $this->updateTransactionStatus($transaction, strtoupper($dokuStatus['transaction']['status']), $dokuStatus);
+            }
+        }
+
         return Inertia::render('Checkout/Result', [
             'transaction' => $transaction,
         ]);
+    }
+
+    /**
+     * Helper to update transaction status and restore stock if failed.
+     */
+    private function updateTransactionStatus($transaction, $status, $rawData = null)
+    {
+        if ($transaction->transaction_status !== 'Pending') return;
+
+        DB::transaction(function () use ($transaction, $status, $rawData) {
+            if ($status === 'SUCCESS') {
+                $transaction->update(['transaction_status' => 'Success']);
+                if ($transaction->payment) {
+                    $transaction->payment->update(['payment_status' => 'Success', 'doku_raw_response' => $rawData]);
+                }
+                foreach ($transaction->details as $detail) {
+                    foreach ($detail->tickets as $ticket) {
+                        $ticket->update(['ticket_status' => 'Valid']);
+                    }
+                }
+            } elseif (in_array($status, ['FAILED', 'EXPIRED', 'DENIED', 'CANCEL', 'CANCELLED'])) {
+                $transaction->update(['transaction_status' => 'Failed']);
+                if ($transaction->payment) {
+                    $transaction->payment->update(['payment_status' => 'Failed', 'doku_raw_response' => $rawData]);
+                }
+                // Restore stock
+                foreach ($transaction->details as $detail) {
+                    if ($detail->ticketType) {
+                        $detail->ticketType->increment('available_stock', $detail->quantity);
+                    }
+                }
+            }
+        });
+    }
+
+
+    /**
+     * Sync transaction status with DOKU manually.
+     */
+    public function syncPaymentStatus(string $transactionId)
+    {
+        $transaction = Transaction::with('payment')
+            ->where('id', $transactionId)
+            ->where('user_id', Auth::id())
+            ->firstOrFail();
+
+        // If still pending, we might want to check the actual status via API
+        // For now, we'll just return to the result page which will trigger a re-render
+        return redirect()->route('checkout.result', $transactionId)
+            ->with('info', 'Status pembayaran sedang diverifikasi.');
     }
 }
