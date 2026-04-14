@@ -46,6 +46,7 @@
 | 💾 **Saved Events** | Users can bookmark events they are interested in for later access. |
 | 📊 **Analytics** | Organizers have access to sales and attendance analytics with interactive charts. |
 | 🏷️ **Promotions** | Organizers can create and schedule discount promo codes for their events. |
+| 🔔 **Notifications** | Real-time push notifications and global stacked toasts for live feedback. |
 
 ---
 
@@ -73,6 +74,7 @@
 | `tightenco/ziggy` | Makes Laravel named routes available in JavaScript/TypeScript. |
 | `laravel/breeze` | Scaffolding for authentication (login, register, etc.). |
 | `pestphp/pest` | Modern, expressive PHP testing framework. |
+| `laravel/reverb` | Real-time WebSocket server for Laravel. |
 
 ### 📦 JavaScript/Node Dependencies (NPM)
 
@@ -87,6 +89,8 @@
 | `lodash` | Utility functions for data manipulation. |
 | `axios` | Promise-based HTTP client for API requests. |
 | `concurrently` | Runs multiple commands simultaneously (e.g., dev server + queue worker). |
+| `laravel-echo` | JavaScript library for subscribing to channels and listening for events. |
+| `pusher-js` | Pusher specialized library for WebSocket communication. |
 
 ### 💳 Payment Gateway
 
@@ -265,10 +269,15 @@ php artisan serve
 npm run dev
 ```
 
+**Terminal 3 — WebSockets (Laravel Reverb):**
+```bash
+php artisan reverb:start
+```
+
 The application is now accessible at: **[http://localhost:8000](http://localhost:8000)**
 
 > [!NOTE]
-> **Shortcut:** You can also run everything at once using the Composer `dev` script, which starts the Laravel server, queue worker, log viewer, and Vite all simultaneously:
+> **Shortcut:** You can also run everything at once using the Composer `dev` script, which starts the Laravel server, Reverb (Broadcasting), queue worker, and Vite all simultaneously:
 > ```bash
 > composer run dev
 > ```
