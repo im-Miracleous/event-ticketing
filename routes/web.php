@@ -168,6 +168,7 @@ Route::middleware(['auth', 'verified', 'role:Root,Admin'])->prefix('admin')->nam
     Route::post('/promotions', [Admin\PromotionController::class, 'store'])->name('promotions.store');
     Route::get('/promotions/{id}', [Admin\PromotionController::class, 'show'])->name('promotions.show');
     Route::put('/promotions/{id}', [Admin\PromotionController::class, 'update'])->name('promotions.update');
+    Route::patch('/promotions/{id}/terms', [Admin\PromotionController::class, 'updateTerms'])->name('promotions.updateTerms');
     Route::delete('/promotions/{id}', [Admin\PromotionController::class, 'destroy'])->name('promotions.destroy');
 
     // Validation Logs

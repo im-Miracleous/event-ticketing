@@ -27,6 +27,7 @@ interface PromotionItem {
     end_date: string;
     event_id: string;
     terms_and_conditions: string | null;
+    banner_url: string | null;
 }
 
 interface PaginatedPromotions {
@@ -75,6 +76,7 @@ export default function AdminPromotions({ promotions, events, filters }: Props) 
         end_date: '',
         event_id: '',
         terms_and_conditions: '',
+        banner: null as File | string | null,
     });
 
     // Sort state
@@ -146,20 +148,55 @@ export default function AdminPromotions({ promotions, events, filters }: Props) 
             end_date: p.end_date || '',
             event_id: p.event_id || '',
             terms_and_conditions: p.terms_and_conditions || '',
+            banner: p.banner_url || null,
         });
         clearErrors();
         setShowModal(true);
     };
 
+    // Auto-open edit modal from URL
+    useEffect(() => {
+        const urlParams = new URLSearchParams(window.location.search);
+        const editId = urlParams.get('edit');
+        if (editId) {
+            const promoToEdit = promotions.data.find(p => String(p.id) === editId);
+            if (promoToEdit) {
+                openEdit(promoToEdit);
+                // Clear the param without reloading
+                const newUrl = window.location.pathname;
+                window.history.replaceState({}, '', newUrl);
+            }
+        }
+    }, [promotions.data]);
+
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
+        
+        // Ensure event_id is properly handled for "All Events"
+        const submitData = {
+            ...data,
+            event_id: data.event_id === '' ? null : data.event_id,
+        };
+
         if (isEdit && editingId) {
-            put(route('admin.promotions.update', editingId), {
-                onSuccess: () => setShowModal(false),
+            // Use POST with _method: put for multipart compatibility in Laravel
+            router.post(route('admin.promotions.update', editingId), {
+                ...submitData,
+                _method: 'put',
+            }, {
+                onSuccess: () => {
+                    setShowModal(false);
+                    reset();
+                },
+                forceFormData: true,
             });
         } else {
-            post(route('admin.promotions.store'), {
-                onSuccess: () => setShowModal(false),
+            router.post(route('admin.promotions.store'), submitData, {
+                onSuccess: () => {
+                    setShowModal(false);
+                    reset();
+                },
+                forceFormData: true,
             });
         }
     };
@@ -362,13 +399,19 @@ export default function AdminPromotions({ promotions, events, filters }: Props) 
             </div>
 
             {/* Add/Edit Promo Modal */}
-            <Modal show={showModal} onClose={() => setShowModal(false)} maxWidth="lg">
-                <div className="p-6 bg-white dark:bg-navy-900 rounded-xl">
-                    <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-6">
-                        {isEdit ? 'Edit Promo Code' : 'Create Promo Code'}
-                    </h3>
+             <Modal show={showModal} onClose={() => setShowModal(false)} maxWidth="2xl">
+                <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] w-full max-w-2xl shadow-2xl relative animate-in fade-in zoom-in duration-300 flex flex-col max-h-[90vh]">
+                    {/* Header */}
+                    <div className="flex items-center justify-between p-8 border-b border-slate-100 dark:border-white/5 shrink-0">
+                        <h2 className="text-2xl font-bold text-slate-900 dark:text-white">
+                            {isEdit ? 'Update Promo Code' : 'New Promo Code'}
+                        </h2>
+                        <button onClick={() => setShowModal(false)} className="text-slate-400 hover:text-slate-600 dark:hover:text-white transition-colors">
+                            <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+                        </button>
+                    </div>
 
-                    <form onSubmit={handleSubmit} className="space-y-4">
+                    <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-8 no-scrollbar">
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div className="md:col-span-2">
                                 <label className="block text-sm mb-1.5 font-semibold text-slate-700 dark:text-slate-300">Promo Code</label>
@@ -383,17 +426,27 @@ export default function AdminPromotions({ promotions, events, filters }: Props) 
                             </div>
 
                             <div className="md:col-span-2">
-                                <label className="block text-sm mb-1.5 font-semibold text-slate-700 dark:text-slate-300">Target Event</label>
-                                <select 
-                                    value={data.event_id} 
-                                    onChange={(e) => setData('event_id', e.target.value)}
-                                    className="w-full rounded-xl border border-slate-200 dark:border-white/10 bg-white dark:bg-white/5 px-4 py-2.5 text-sm text-slate-700 dark:text-slate-300 focus:border-primary-500/40 focus:ring-2 focus:ring-primary-500/20 transition"
-                                >
-                                    <option value="">Select Event</option>
-                                    {events.map((ev) => (
-                                        <option key={ev.id} value={ev.id}>{ev.title}</option>
-                                    ))}
-                                </select>
+                                <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">Target Event <span className="text-slate-400 font-normal lowercase">(optional — leave blank to apply to all events)</span></label>
+                                <div className="relative">
+                                    <div className="absolute left-4 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
+                                        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                                            <path strokeLinecap="round" strokeLinejoin="round" d="M12 21a9.004 9.004 0 0 0 8.716-6.747M12 21a9.004 9.004 0 0 1-8.716-6.747M12 21c2.485 0 4.5-4.03 4.5-9S14.485 3 12 3m0 18c-2.485 0-4.5-4.03-4.5-9S9.515 3 12 3m0 0a8.997 8.997 0 0 1 7.843 4.582M12 3a8.997 8.997 0 0 0-7.843 4.582m15.686 0A11.953 11.953 0 0 1 12 10.5c-2.998 0-5.74-1.1-7.843-2.918m15.686 0A8.959 8.959 0 0 1 21 12c0 .778-.099 1.533-.284 2.253m0 0A17.919 17.919 0 0 1 12 16.5c-3.162 0-6.133-.815-8.716-2.247m0 0A9.015 9.015 0 0 1 3 12c0-1.605.42-3.113 1.157-4.418" />
+                                        </svg>
+                                    </div>
+                                    <select 
+                                        value={data.event_id} 
+                                        onChange={(e) => setData('event_id', e.target.value)}
+                                        className="w-full rounded-2xl border-2 border-slate-100 dark:border-white/5 bg-slate-50 dark:bg-white/5 pl-12 pr-10 py-3 text-sm font-bold text-slate-900 dark:text-white focus:border-violet-500 focus:ring-4 focus:ring-violet-500/10 transition-all appearance-none cursor-pointer"
+                                    >
+                                        <option value="">🌐 All Events (Global Promo)</option>
+                                        {events.map((ev: any) => (
+                                            <option key={ev.id} value={ev.id}>{ev.title}</option>
+                                        ))}
+                                    </select>
+                                    <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
+                                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}><path strokeLinecap="round" strokeLinejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" /></svg>
+                                    </div>
+                                </div>
                                 {errors.event_id && <p className="mt-1 text-xs text-red-500">{errors.event_id}</p>}
                             </div>
 
@@ -485,6 +538,50 @@ export default function AdminPromotions({ promotions, events, filters }: Props) 
                             </div>
 
                             <div className="md:col-span-2">
+                                <label className="block text-sm mb-1.5 font-semibold text-slate-700 dark:text-slate-300">Promotional Banner</label>
+                                <div className="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-slate-200 dark:border-white/10 border-dashed rounded-xl hover:border-primary-500/40 transition-colors group">
+                                    <div className="space-y-1 text-center">
+                                        {data.banner ? (
+                                            <div className="relative inline-block">
+                                                <img 
+                                                    src={typeof data.banner === 'string' ? data.banner : URL.createObjectURL(data.banner)} 
+                                                    className="max-h-48 rounded-lg shadow-lg mb-4" 
+                                                    alt="Preview" 
+                                                />
+                                                <button 
+                                                    type="button"
+                                                    onClick={() => setData('banner', null)}
+                                                    className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 shadow-lg hover:bg-red-600 transition-colors"
+                                                >
+                                                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" /></svg>
+                                                </button>
+                                            </div>
+                                        ) : (
+                                            <>
+                                                <svg className="mx-auto h-12 w-12 text-slate-400 group-hover:text-primary-500 transition-colors" stroke="currentColor" fill="none" viewBox="0 0 48 48" aria-hidden="true">
+                                                    <path d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                                                </svg>
+                                                <div className="flex text-sm text-slate-600 dark:text-slate-400">
+                                                    <label className="relative cursor-pointer bg-white dark:bg-transparent rounded-md font-bold text-primary-600 hover:text-primary-500">
+                                                        <span>Upload a file</span>
+                                                        <input 
+                                                            type="file" 
+                                                            className="sr-only" 
+                                                            onChange={(e) => setData('banner', e.target.files?.[0] || null)} 
+                                                            accept="image/*"
+                                                        />
+                                                    </label>
+                                                    <p className="pl-1">or drag and drop</p>
+                                                </div>
+                                                <p className="text-xs text-slate-500 uppercase font-bold tracking-widest mt-2">PNG, JPG, GIF up to 2MB</p>
+                                            </>
+                                        )}
+                                    </div>
+                                </div>
+                                {errors.banner && <p className="mt-1 text-xs text-red-500 font-bold">{errors.banner}</p>}
+                            </div>
+
+                            <div className="md:col-span-2">
                                 <label className="block text-sm mb-1.5 font-semibold text-slate-700 dark:text-slate-300">Terms and Conditions</label>
                                 <textarea 
                                     value={data.terms_and_conditions}
@@ -497,7 +594,7 @@ export default function AdminPromotions({ promotions, events, filters }: Props) 
                             </div>
                         </div>
 
-                        <div className="flex items-center justify-end gap-3 mt-8">
+                        <div className="flex items-center justify-end gap-3 mt-12 pt-8 border-t border-slate-100 dark:border-white/5">
                             <button 
                                 type="button"
                                 onClick={() => setShowModal(false)} 
@@ -508,7 +605,7 @@ export default function AdminPromotions({ promotions, events, filters }: Props) 
                             <button 
                                 type="submit"
                                 disabled={processing}
-                                className="px-6 py-2.5 rounded-xl bg-primary-600 hover:bg-primary-700 disabled:opacity-50 text-white text-sm font-bold transition-all shadow-lg shadow-primary-500/25"
+                                className="px-8 py-3 rounded-xl bg-violet-600 hover:bg-violet-700 disabled:opacity-50 text-white text-sm font-bold transition-all shadow-xl shadow-violet-500/30 active:scale-95"
                             >
                                 {processing ? 'Saving...' : (isEdit ? 'Update Promo Code' : 'Generate Promo Code')}
                             </button>

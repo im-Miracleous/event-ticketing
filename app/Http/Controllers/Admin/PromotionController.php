@@ -15,7 +15,7 @@ class PromotionController extends Controller
      */
     public function index(Request $request)
     {
-        $query = Promotion::with('event');
+        $query = Promotion::with('event')->withCount('transactions');
 
         // Search
         if ($request->filled('search')) {
@@ -76,7 +76,8 @@ class PromotionController extends Controller
                     'usage'      => $usedCount . ' / ' . $p->quota,
                     'validUntil' => Carbon::parse($p->end_date)->format('M d, Y'),
                     'status'     => $status,
-                    'event'      => $p->event->title ?? '—',
+                    'event'      => $p->event->title ?? 'All Events',
+                    'event_id'   => $p->event_id ?? '',
                     'discount_type' => $p->discount_type,
                     'discount_amount' => $p->discount_amount,
                     'max_discount_amount' => $p->max_discount_amount,
@@ -84,6 +85,7 @@ class PromotionController extends Controller
                     'start_date' => Carbon::parse($p->start_date)->format('Y-m-d'),
                     'end_date' => Carbon::parse($p->end_date)->format('Y-m-d'),
                     'terms_and_conditions' => $p->terms_and_conditions,
+                    'banner_url' => $p->banner_path ? asset('storage/' . $p->banner_path) : null,
                 ];
             });
 
@@ -99,7 +101,9 @@ class PromotionController extends Controller
      */
     public function show(int $id)
     {
-        $promotion = Promotion::with('event')->findOrFail($id);
+        $promotion = Promotion::withCount('transactions')
+            ->with('event')
+            ->findOrFail($id);
 
         return Inertia::render('Admin/Promotions/Show', [
             'promotion' => [
@@ -110,11 +114,13 @@ class PromotionController extends Controller
                 'max_discount_amount' => $promotion->max_discount_amount,
                 'min_spending'        => $promotion->min_spending,
                 'quota'               => $promotion->quota,
+                'used_count'          => $promotion->transactions_count,
                 'start_date'          => Carbon::parse($promotion->start_date)->format('M d, Y'),
                 'end_date'            => Carbon::parse($promotion->end_date)->format('M d, Y'),
-                'event'               => $promotion->event->title ?? '—',
+                'event'               => $promotion->event?->title ?? 'All Events',
                 'event_id'            => $promotion->event_id,
                 'terms_and_conditions' => $promotion->terms_and_conditions,
+                'banner_url'          => $promotion->banner_path ? asset('storage/' . $promotion->banner_path) : null,
                 'created_at'          => $promotion->created_at->format('M d, Y H:i'),
                 'status'              => Carbon::parse($promotion->end_date)->isPast() ? 'Expired' : 'Active',
             ]
@@ -126,22 +132,29 @@ class PromotionController extends Controller
      */
     public function store(Request $request)
     {
-        $request->validate([
-            'code'            => 'required|string|max:20|unique:promotions,code',
-            'discount_amount' => 'required|numeric|min:1',
-            'discount_type'   => 'required|in:fixed,percentage',
-            'max_discount_amount' => 'nullable|numeric|min:1',
-            'min_spending'    => 'nullable|numeric|min:0',
-            'quota'           => 'required|integer|min:1',
-            'start_date'      => 'required|date',
-            'end_date'        => 'required|date|after:start_date',
-            'event_id'        => 'required|exists:events,id',
+        $data = $request->validate([
+            'code'                => 'required|unique:promotions,code',
+            'discount_type'       => 'required|in:fixed,percentage',
+            'discount_amount'     => 'required|numeric|min:0',
+            'max_discount_amount' => 'nullable|numeric|min:0',
+            'min_spending'        => 'nullable|numeric|min:0',
+            'quota'               => 'required|integer|min:1',
+            'start_date'          => 'required|date',
+            'end_date'            => 'required|date|after_or_equal:start_date',
+            'event_id'            => 'nullable|exists:events,id',
             'terms_and_conditions' => 'nullable|string',
+            'banner'              => 'nullable|image|max:2048',
         ]);
 
-        Promotion::create($request->only('code', 'discount_amount', 'discount_type', 'max_discount_amount', 'min_spending', 'quota', 'start_date', 'end_date', 'event_id', 'terms_and_conditions'));
+        $data['event_id'] = $request->input('event_id') ?: null;
 
-        return back()->with('success', 'Promotion created successfully.');
+        if ($request->hasFile('banner')) {
+            $data['banner_path'] = $request->file('banner')->store('promotions', 'public');
+        }
+
+        Promotion::create($data);
+
+        return redirect()->route('admin.promotions.index')->with('success', 'Promotion created successfully.');
     }
 
     /**
@@ -150,23 +163,45 @@ class PromotionController extends Controller
     public function update(Request $request, int $id)
     {
         $promotion = Promotion::findOrFail($id);
+        $data = $request->validate([
+            'code'                => 'required|unique:promotions,code,' . $id,
+            'discount_type'       => 'required|in:fixed,percentage',
+            'discount_amount'     => 'required|numeric|min:0',
+            'max_discount_amount' => 'nullable|numeric|min:0',
+            'min_spending'        => 'nullable|numeric|min:0',
+            'quota'               => 'required|integer|min:1',
+            'start_date'          => 'required|date',
+            'end_date'            => 'required|date|after_or_equal:start_date',
+            'event_id'            => 'nullable|exists:events,id',
+            'terms_and_conditions' => 'nullable|string',
+            'banner'              => 'nullable|image|max:2048',
+        ]);
 
-        $request->validate([
-            'code'            => 'required|string|max:20|unique:promotions,code,' . $id,
-            'discount_amount' => 'required|numeric|min:1',
-            'discount_type'   => 'required|in:fixed,percentage',
-            'max_discount_amount' => 'nullable|numeric|min:1',
-            'min_spending'    => 'nullable|numeric|min:0',
-            'quota'           => 'required|integer|min:1',
-            'start_date'      => 'required|date',
-            'end_date'        => 'required|date|after:start_date',
-            'event_id'        => 'required|exists:events,id',
+        $data['event_id'] = $request->input('event_id') ?: null;
+
+        if ($request->hasFile('banner')) {
+            // Delete old banner if exists
+            if ($promotion->banner_path) {
+                \Storage::disk('public')->delete($promotion->banner_path);
+            }
+            $data['banner_path'] = $request->file('banner')->store('promotions', 'public');
+        }
+
+        $promotion->update($data);
+
+        return redirect()->route('admin.promotions.index')->with('success', 'Promotion updated successfully.');
+    }
+
+    public function updateTerms(Request $request, int $id)
+    {
+        $promotion = Promotion::findOrFail($id);
+        $data = $request->validate([
             'terms_and_conditions' => 'nullable|string',
         ]);
 
-        $promotion->update($request->only('code', 'discount_amount', 'discount_type', 'max_discount_amount', 'min_spending', 'quota', 'start_date', 'end_date', 'event_id', 'terms_and_conditions'));
+        $promotion->update($data);
 
-        return back()->with('success', 'Promotion updated successfully.');
+        return back()->with('success', 'Terms updated successfully.');
     }
 
     /**

@@ -138,9 +138,24 @@ class EventCatalogController extends Controller
                 ->toArray();
         }
 
+        // Fetch global promotions that have banners for the top-level carousel
+        $globalPromotions = \App\Models\Promotion::whereNull('event_id')
+            ->whereNotNull('banner_path')
+            ->where('start_date', '<=', now())
+            ->where('end_date', '>=', now())
+            ->get()
+            ->map(function($p) {
+                return [
+                    'id' => $p->id,
+                    'code' => $p->code,
+                    'banner_url' => asset('storage/' . $p->banner_path),
+                ];
+            });
+
         return Inertia::render('Events/Index', [
             'events' => $events,
             'trendingEvents' => $trendingEvents,
+            'globalPromotions' => $globalPromotions,
             'categories' => $categories,
             'filters' => $request->only(['search', 'category', 'location', 'format', 'price_min', 'price_max', 'time', 'date_from', 'date_to', 'sort']),
             'savedEventIds' => $savedEventIds,
