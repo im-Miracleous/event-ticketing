@@ -1,5 +1,5 @@
 import DashboardLayout from '@/Layouts/DashboardLayout';
-import { Head, useForm, Link, usePage } from '@inertiajs/react';
+import { Head, useForm, Link, usePage, router } from '@inertiajs/react';
 import React, { FormEvent, useState } from 'react';
 import { formatCurrency } from '@/utils/currency';
 
@@ -32,10 +32,10 @@ export default function EditEvent({ event, categories, organizers, existingTicke
         title: event.title || '',
         description: event.description || '',
         banner_image: null as File | null,
-        event_date: event.event_date ? event.event_date.split(' ')[0] : '', 
+        event_date: event.event_date ? event.event_date.split('T')[0] : '', 
         total_quota: event.total_quota?.toString() || '',
-        start_time: event.start_time || '',
-        end_time: event.end_time || '',
+        start_time: event.start_time ? event.start_time.substring(0, 16) : '',
+        end_time: event.end_time ? event.end_time.substring(0, 16) : '',
         location: event.location || '',
         format: event.format || 'Offline',
         event_category_id: event.event_category_id || '',
@@ -80,12 +80,13 @@ export default function EditEvent({ event, categories, organizers, existingTicke
             quota: parseInt(tt.quota) || 0,
         }));
 
-        data.ticket_types = ticketData as any;
-        if (totalFromTickets > 0) {
-            data.total_quota = totalFromTickets.toString();
-        }
-
-        put(route(routeName, event.id));
+        // Use router.post with formData to support file uploads and _method spoofing
+        router.post(route(routeName, event.id), {
+            ...data,
+            _method: 'put',
+            ticket_types: ticketData,
+            total_quota: totalFromTickets > 0 ? totalFromTickets.toString() : data.total_quota,
+        });
     };
 
     const backRoute = isOrganizer ? 'organizer.events.index' : 'admin.events.index';

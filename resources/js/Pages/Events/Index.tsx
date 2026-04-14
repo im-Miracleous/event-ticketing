@@ -120,7 +120,7 @@ const PinIcon = () => (
 function EventCard({ event, isSaved, onToggleSave }: { event: EventItem; isSaved: boolean; onToggleSave: () => void }) {
     const minPrice = event.ticket_types?.length > 0
         ? Math.min(...event.ticket_types.map(t => Number(t.price)))
-        : 0;
+        : null;
 
     const fallbackImg = `https://images.unsplash.com/photo-1501281668745-f7f57925c3b4?q=80&w=800&auto=format&fit=crop`;
 
@@ -191,7 +191,7 @@ function EventCard({ event, isSaved, onToggleSave }: { event: EventItem; isSaved
                     <div className="flex flex-col">
                         <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">Price starts from</span>
                         <span className="text-lg font-black text-slate-900 dark:text-white">
-                            {minPrice > 0 ? formatCurrency(minPrice) : 'FREE'}
+                            {minPrice !== null ? (minPrice > 0 ? formatCurrency(minPrice) : 'FREE') : 'N/A'}
                         </span>
                     </div>
                     <div

@@ -162,8 +162,8 @@ export default function EventShow({ event, recommendedEvents, savedEventIds = []
 
     const minPrice = event.ticket_types?.length > 0
         ? Math.min(...event.ticket_types.map(t => Number(t.price)))
-        : 0;
-    const isSoldOut = event.ticket_types?.every(t => t.available_stock === 0) ?? false;
+        : null;
+    const isSoldOut = event.ticket_types?.length > 0 ? event.ticket_types.every(t => t.available_stock === 0) : true;
     const fallbackImg = `https://images.unsplash.com/photo-1501281668745-f7f57925c3b4?q=80&w=2000&auto=format&fit=crop`;
 
     const tabs = [
@@ -393,7 +393,7 @@ export default function EventShow({ event, recommendedEvents, savedEventIds = []
                             <div>
                                 <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1">Price starts from</p>
                                 <p className="text-3xl font-black text-violet-600">
-                                    {minPrice > 0 ? formatCurrency(minPrice) : 'FREE'}
+                                    {minPrice !== null ? (minPrice > 0 ? formatCurrency(minPrice) : 'FREE') : 'N/A'}
                                 </p>
                             </div>
 

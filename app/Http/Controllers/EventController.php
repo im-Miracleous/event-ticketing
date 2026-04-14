@@ -529,34 +529,47 @@ class EventController extends Controller
         $ticketTypesData = $data['ticket_types'] ?? null;
         unset($data['ticket_types']);
 
-        $event->update($data);
+        \DB::transaction(function () use ($event, $data, $ticketTypesData) {
+            $event->update($data);
 
-        // Sync ticket types if provided
-        if ($ticketTypesData !== null) {
-            $existingIds = $event->ticketTypes()->pluck('id')->toArray();
-            $incomingIds = array_filter(array_column($ticketTypesData, 'id'));
+            if ($ticketTypesData !== null) {
+                $existingIds = $event->ticketTypes()->pluck('id')->toArray();
+                $incomingIds = array_filter(array_column($ticketTypesData, 'id'));
 
-            // Delete removed ticket types
-            $toDelete = array_diff($existingIds, $incomingIds);
-            TicketType::whereIn('id', $toDelete)->delete();
+                $toDelete = array_diff($existingIds, $incomingIds);
+                foreach ($toDelete as $idToDelete) {
+                    $hasTickets = \DB::table('tickets')->where('ticket_type_id', $idToDelete)->exists();
+                    if (!$hasTickets) {
+                        TicketType::where('id', $idToDelete)->delete();
+                    } else {
+                        \Log::warning("Cannot delete ticket type $idToDelete as it has active tickets.");
+                    }
+                }
 
-            foreach ($ticketTypesData as $tt) {
-                if (! empty($tt['id'])) {
-                    TicketType::where('id', $tt['id'])->update([
-                        'name' => $tt['name'],
-                        'price' => $tt['price'],
-                        'quota' => $tt['quota'],
-                    ]);
-                } else {
-                    $event->ticketTypes()->create([
-                        'name' => $tt['name'],
-                        'price' => $tt['price'],
-                        'quota' => $tt['quota'],
-                        'available_stock' => $tt['quota'],
-                    ]);
+                foreach ($ticketTypesData as $tt) {
+                    if (! empty($tt['id'])) {
+                        $ticketType = TicketType::findOrFail($tt['id']);
+                        $oldQuota = $ticketType->quota;
+                        $newQuota = $tt['quota'];
+                        $diff = $newQuota - $oldQuota;
+
+                        $ticketType->update([
+                            'name' => $tt['name'],
+                            'price' => $tt['price'],
+                            'quota' => $newQuota,
+                            'available_stock' => max(0, $ticketType->available_stock + $diff),
+                        ]);
+                    } else {
+                        $event->ticketTypes()->create([
+                            'name' => $tt['name'],
+                            'price' => $tt['price'],
+                            'quota' => $tt['quota'],
+                            'available_stock' => $tt['quota'],
+                        ]);
+                    }
                 }
             }
-        }
+        });
 
         return redirect()->route('organizer.events.show', $id)->with('success', 'Event updated successfully.');
     }
