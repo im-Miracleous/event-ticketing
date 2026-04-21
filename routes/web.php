@@ -133,6 +133,7 @@ Route::middleware(['auth', 'verified', 'role:Organizer'])->prefix('organizer')->
     // Check-In (QR Scanner)
     Route::get('/check-in', [ValidationLogController::class, 'index'])->name('check-in');
     Route::post('/check-in', [ValidationLogController::class, 'store'])->name('check-in.store');
+    Route::post('/check-in/verify', [ValidationLogController::class, 'verify'])->name('check-in.verify');
 });
 
 // ─── Admin Routes ───────────────────

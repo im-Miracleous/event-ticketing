@@ -191,7 +191,7 @@ function TicketCard({ transaction }: { transaction: Transaction }) {
                         return (
                             <Link 
                                 key={ticket.id} 
-                                href={`/my-tickets/${ticket.id}`}
+                                href={`/my-tickets/${ticket.qr_code}`}
                                 className="group relative flex items-center gap-5 p-5 bg-white dark:bg-slate-800/60 rounded-2xl border border-slate-200 dark:border-slate-700 hover:border-violet-300 dark:hover:border-violet-800 transition-all"
                             >
                                 {/* QR Code */}
