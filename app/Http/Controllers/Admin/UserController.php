@@ -3,8 +3,10 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\Transaction;
 use App\Models\User;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
 
 class UserController extends Controller
@@ -63,8 +65,12 @@ class UserController extends Controller
             ]);
 
         return Inertia::render('Admin/Users/Index', [
-            'users'   => $users,
-            'filters' => $request->only(['role', 'search', 'per_page', 'sort', 'direction', 'registered_from', 'registered_to', 'user_status']),
+            'users'    => $users,
+            'filters'  => $request->only(['role', 'search', 'per_page', 'sort', 'direction', 'registered_from', 'registered_to', 'user_status']),
+            'authUser' => [
+                'id'   => auth()->id(),
+                'role' => auth()->user()->role,
+            ],
         ]);
     }
 
@@ -205,15 +211,38 @@ class UserController extends Controller
     {
         $request->validate([
             'status' => 'required|in:Active,Suspended,Banned',
+            'reason' => 'nullable|string|max:500',
         ]);
 
         $user = User::findOrFail($id);
-        
+        $currentUser = auth()->user();
+
+        // Cannot change Root status
         if ($user->role === 'Root') {
             return back()->with('error', 'Cannot change the status of the Root account.');
         }
 
-        $user->update(['status' => $request->status]);
+        // Admins cannot suspend/ban themselves
+        if ($currentUser->id === $user->id) {
+            return back()->with('error', 'You cannot change your own account status.');
+        }
+
+        // Only Root can suspend/ban Admins
+        if ($user->role === 'Admin' && $currentUser->role !== 'Root') {
+            return back()->with('error', 'Only Root accounts can suspend or ban Admin users.');
+        }
+
+        // ── Ban: detach user from transactions & restore ticket stock ──
+        if ($request->status === 'Banned' && $user->status !== 'Banned') {
+            DB::transaction(function () use ($user) {
+                $this->detachAndRestoreStock($user);
+            });
+        }
+
+        $user->update([
+            'status'        => $request->status,
+            'status_reason' => $request->status === 'Active' ? null : $request->reason,
+        ]);
 
         return back()->with('success', "User status updated to {$request->status}.");
     }
@@ -221,13 +250,54 @@ class UserController extends Controller
     public function destroy(string $id)
     {
         $user = User::findOrFail($id);
+        $currentUser = auth()->user();
 
         if ($user->role === 'Root') {
             return back()->with('error', 'Cannot delete a Root user.');
         }
 
-        $user->delete();
+        // Admins cannot delete themselves
+        if ($currentUser->id === $user->id) {
+            return back()->with('error', 'You cannot delete your own account.');
+        }
 
-        return back()->with('success', 'User deleted successfully.');
+        // Only Root can delete Admins
+        if ($user->role === 'Admin' && $currentUser->role !== 'Root') {
+            return back()->with('error', 'Only Root accounts can delete Admin users.');
+        }
+
+        DB::transaction(function () use ($user) {
+            $this->detachAndRestoreStock($user);
+            $user->delete();
+        });
+
+        return redirect()->route('admin.users.index')->with('success', 'User deleted successfully.');
+    }
+
+    // ─── Helper: Detach transactions & restore stock ─────────────────
+    
+    /**
+     * For all Pending/Success transactions belonging to the user:
+     *  1. Restore available_stock on each TicketType
+     *  2. Set user_id = null so the user loses access but records are preserved
+     */
+    private function detachAndRestoreStock(User $user): void
+    {
+        $transactions = Transaction::with('details.ticketType')
+            ->where('user_id', $user->id)
+            ->whereIn('transaction_status', ['Pending', 'Success'])
+            ->lockForUpdate()
+            ->get();
+
+        foreach ($transactions as $transaction) {
+            foreach ($transaction->details as $detail) {
+                if ($detail->ticketType) {
+                    $detail->ticketType->increment('available_stock', $detail->quantity);
+                }
+            }
+
+            // Detach user — transaction/ticket status stays as-is
+            $transaction->update(['user_id' => null]);
+        }
     }
 }
