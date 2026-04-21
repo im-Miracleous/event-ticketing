@@ -19,9 +19,35 @@ use App\Http\Controllers\ValidationLogController;
 use App\Http\Controllers\WaitingListController;
 use App\Http\Controllers\WishlistController;
 use Illuminate\Foundation\Application;
-// Admin Controllers
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
+use Illuminate\Support\Facades\Http;
+
+// Dev-only tunnel health check endpoint
+Route::get('/_dev/tunnel-status', function () {
+    if (!app()->environment('local')) abort(404);
+    
+    $configUrl = config('app.url');
+    $isProcessRunning = false;
+    $actualUrl = null;
+    
+    try {
+        $apiResponse = Http::timeout(1)->get('http://127.0.0.1:4040/api/tunnels')->json();
+        if ($apiResponse) {
+            $isProcessRunning = true;
+            $actualUrl = $apiResponse['tunnels'][0]['public_url'] ?? null;
+        }
+    } catch (\Exception $e) {}
+
+    return response()->json([
+        'configured_url' => $configUrl,
+        'is_ngrok' => str_contains($configUrl, 'ngrok'),
+        'current_host' => request()->getHost(),
+        'is_matching' => str_contains(request()->getHost(), parse_url($configUrl, PHP_URL_HOST) ?? $configUrl),
+        'process_running' => $isProcessRunning,
+        'actual_url' => $actualUrl,
+    ]);
+});
 
 Route::get('/', function () {
     return Inertia::render('Welcome', [
