@@ -40,6 +40,16 @@ class HandleInertiaRequests extends Middleware
                 ...(new Ziggy)->toArray(),
                 'location' => $request->url(),
             ],
+            'tunnel_status' => function () use ($request) {
+                if (!app()->environment('local')) return null;
+                $configUrl = config('app.url');
+                return [
+                    'configured_url' => $configUrl,
+                    'is_ngrok' => str_contains($configUrl, 'ngrok'),
+                    'current_host' => $request->getHost(),
+                    'is_matching' => str_contains($request->getHost(), parse_url($configUrl, PHP_URL_HOST) ?? $configUrl),
+                ];
+            },
             'currency' => fn () => AppSetting::get('currency', 'IDR'),
             'flash' => [
                 'success' => fn () => $request->session()->get('success'),

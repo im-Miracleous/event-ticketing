@@ -56,7 +56,9 @@ class DokuService
 
         $expiryMinutes = config('doku.expiry_minutes', 60);
 
-        $appUrl = rtrim(config('app.url', 'https://dosinyam.com'), '/');
+        // Use current request URL for callback if we are in local to ensure browser can redirect back
+        $appUrl = app()->environment('local') ? request()->root() : rtrim(config('app.url', 'https://dosinyam.com'), '/');
+        
         $body = [
             'order' => [
                 'amount' => $params['amount'],

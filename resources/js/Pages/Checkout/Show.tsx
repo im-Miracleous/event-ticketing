@@ -341,8 +341,20 @@ export default function CheckoutShow({ event }: Props) {
         setPromoMessage(null);
     };
 
+    const { tunnel_status } = usePage().props as any;
+
     /* ─── Submit Order ─── */
-    const submitOrder = () => {
+    const submitOrder = async () => {
+        // Pre-flight check for tunnel health if in local and using ngrok
+        if (tunnel_status?.is_ngrok && !tunnel_status.is_matching) {
+            const confirmProceed = window.confirm(
+                "Warning: You are not using the configured ngrok tunnel URL. \n\n" +
+                "The payment gateway might not be able to redirect you back to this local session, or webhooks might fail. \n\n" +
+                "Are you sure you want to proceed anyway?"
+            );
+            if (!confirmProceed) return;
+        }
+
         setSubmitting(true);
         setSubmitErrors({});
         router.post('/checkout', {

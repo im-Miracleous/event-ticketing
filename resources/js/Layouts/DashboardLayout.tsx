@@ -4,6 +4,7 @@ import { useTheme } from '@/hooks/useTheme';
 import { PropsWithChildren, useState } from 'react';
 import type { UserRole } from '@/config/navigation';
 import { usePage } from '@inertiajs/react';
+import TunnelHealthBanner from '@/Components/TunnelHealthBanner';
 
 export default function DashboardLayout({ children }: PropsWithChildren) {
     const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -25,6 +26,7 @@ export default function DashboardLayout({ children }: PropsWithChildren) {
 
     return (
         <div className="min-h-screen bg-slate-50 text-slate-800 dark:bg-navy-950 dark:text-slate-200 selection:bg-primary-500/30">
+            <TunnelHealthBanner />
             <Sidebar
                 isOpen={sidebarOpen}
                 isCollapsed={sidebarCollapsed}
