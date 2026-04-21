@@ -18,7 +18,7 @@ interface Transaction {
     event: Event;
     payment: Payment | null;
     details: TransactionDetail[];
-    tab: 'pending' | 'valid' | 'used' | 'expired' | 'failed';
+    tab: 'pending' | 'valid' | 'partial' | 'used' | 'expired' | 'failed';
 }
 
 const TABS = [
@@ -67,6 +67,7 @@ const PAYMENT_STATUS_BADGE: Record<string, string> = {
 const TAB_COLOR: Record<string, string> = {
     pending: 'bg-amber-100 text-amber-700',
     valid:   'bg-emerald-100 text-emerald-700',
+    partial: 'bg-indigo-100 text-indigo-700',
     used:    'bg-blue-100 text-blue-700',
     expired: 'bg-orange-100 text-orange-700',
     failed:  'bg-red-100 text-red-600',
@@ -105,6 +106,7 @@ function TicketCard({ transaction }: { transaction: Transaction }) {
     const tabLabel: Record<string, string> = {
         pending: 'Pending',
         valid:   'Valid',
+        partial: 'Partial Check-In',
         used:    'Checked-In',
         expired: 'Expired',
         failed:  'Failed',
@@ -229,10 +231,24 @@ function TicketCard({ transaction }: { transaction: Transaction }) {
 export default function MyTickets({ transactions }: { transactions: Transaction[] }) {
     const [activeTab, setActiveTab] = useState<TabKey>('all');
 
-    const filtered = activeTab === 'all' ? transactions : transactions.filter(t => t.tab === activeTab);
+    const filtered = activeTab === 'all' 
+        ? transactions 
+        : transactions.filter(t => {
+            if (activeTab === 'valid') return t.tab === 'valid' || t.tab === 'partial';
+            if (activeTab === 'used') return t.tab === 'used' || t.tab === 'partial';
+            return t.tab === activeTab;
+        });
 
     const counts = TABS.reduce((acc, t) => {
-        acc[t.key] = t.key === 'all' ? transactions.length : transactions.filter(tx => tx.tab === t.key).length;
+        if (t.key === 'all') {
+            acc[t.key] = transactions.length;
+        } else if (t.key === 'valid') {
+            acc[t.key] = transactions.filter(tx => tx.tab === 'valid' || tx.tab === 'partial').length;
+        } else if (t.key === 'used') {
+            acc[t.key] = transactions.filter(tx => tx.tab === 'used' || tx.tab === 'partial').length;
+        } else {
+            acc[t.key] = transactions.filter(tx => tx.tab === t.key).length;
+        }
         return acc;
     }, {} as Record<string, number>);
 

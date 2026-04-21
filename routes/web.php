@@ -74,6 +74,9 @@ Route::middleware(['auth', 'role:User'])->group(function () {
     Route::get('/waiting-list', [WaitingListController::class, 'index'])->name('waiting-list.index');
     Route::post('/waiting-list', [WaitingListController::class, 'store'])->name('waiting-list.store');
     Route::post('/waiting-list/{id}/cancel', [WaitingListController::class, 'cancel'])->name('waiting-list.cancel');
+
+    // Promotions (Public Detail View)
+    Route::get('/promos/{code}', [\App\Http\Controllers\PromotionDetailController::class, 'show'])->name('promos.public.show');
 });
 
 Route::middleware('auth')->group(function () {
@@ -169,6 +172,7 @@ Route::middleware(['auth', 'verified', 'role:Root,Admin'])->prefix('admin')->nam
     Route::get('/promotions/{id}', [Admin\PromotionController::class, 'show'])->name('promotions.show');
     Route::put('/promotions/{id}', [Admin\PromotionController::class, 'update'])->name('promotions.update');
     Route::patch('/promotions/{id}/terms', [Admin\PromotionController::class, 'updateTerms'])->name('promotions.updateTerms');
+    Route::post('/promotions/{id}/banner', [Admin\PromotionController::class, 'updateBanner'])->name('promotions.updateBanner');
     Route::delete('/promotions/{id}', [Admin\PromotionController::class, 'destroy'])->name('promotions.destroy');
 
     // Validation Logs

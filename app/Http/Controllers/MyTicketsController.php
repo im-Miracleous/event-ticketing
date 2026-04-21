@@ -75,11 +75,15 @@ class MyTicketsController extends Controller
                 if ($trx->transaction_status === 'Pending') {
                     $tab = 'pending';
                 } elseif ($trx->transaction_status === 'Success') {
-                    // Check if any ticket has been scanned (validated_at set)
-                    $hasUsed = $trx->details->flatMap->tickets->contains(fn($t) => $t->validated_at !== null);
+                    // Check check-in progress
+                    $allTickets = $trx->details->flatMap->tickets;
+                    $totalCount = $allTickets->count();
+                    $usedCount  = $allTickets->filter(fn($t) => $t->validated_at !== null)->count();
                     
-                    if ($hasUsed) {
-                        $tab = 'used';
+                    if ($usedCount === $totalCount && $totalCount > 0) {
+                        $tab = 'used'; // Fully checked in
+                    } elseif ($usedCount > 0) {
+                        $tab = 'partial'; // Partially checked in
                     } elseif ($eventDate && $now->gt($eventDate)) {
                         $tab = 'expired';
                     } else {

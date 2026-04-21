@@ -7,14 +7,23 @@ use App\Models\Event;
 use App\Models\Ticket;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Log;
 use Inertia\Inertia;
 
 class ValidationLogController extends Controller
 {
     public function index(Request $request)
     {
-        $organizerId = Auth::user()->organizer?->id;
-        $eventIds = Event::where('organizer_id', $organizerId)->pluck('id');
+        $user = Auth::user();
+        $isAdmin = in_array($user->role, ['Root', 'Admin']);
+        $organizerId = $user->organizer?->id;
+
+        // If user is organizer, only show their events. If Admin, show all.
+        $eventQuery = Event::query();
+        if (!$isAdmin) {
+            $eventQuery->where('organizer_id', $organizerId);
+        }
+        $eventIds = $eventQuery->pluck('id');
 
         // Recent scan history (last 15 logs)
         // Correct relation chain: ticket -> detail (TransactionDetail) -> transaction -> event
@@ -56,27 +65,48 @@ class ValidationLogController extends Controller
 
     public function store(Request $request)
     {
-        $request->validate([
-            'code' => 'required|string',
+        $user = Auth::user();
+        $isAdmin = in_array($user->role, ['Root', 'Admin']);
+        $organizerId = $user->organizer?->id;
+        $code = trim($request->code);
+
+        Log::info("Ticket Scan Attempt", [
+            'user_id' => $user->id,
+            'role' => $user->role,
+            'organizer_id' => $organizerId,
+            'code' => $code
         ]);
 
-        $organizerId = Auth::user()->organizer?->id;
-
-        // Find ticket by QR code or ID
-        // Relation chain: Ticket -> detail (TransactionDetail) -> transaction (Transaction) -> event (Event)
+        // Find ticket by QR code or ID (don't restrict by organizer yet for better error reporting)
         $ticket = Ticket::with(['detail.transaction.event', 'detail.ticketType'])
-            ->where(function ($q) use ($request) {
-                $q->where('id', $request->code)->orWhere('qr_code', $request->code);
-            })
-            ->whereHas('detail.transaction.event', function ($q) use ($organizerId) {
-                $q->where('organizer_id', $organizerId);
-            })
-            ->first();
+            ->where(function ($q) use ($code) {
+                $q->where('id', $code)
+                  ->orWhere('qr_code', $code)
+                  ->orWhere('id', strtolower($code))
+                  ->orWhere('qr_code', strtolower($code))
+                  ->orWhere('id', strtoupper($code))
+                  ->orWhere('qr_code', strtoupper($code));
+            })->first();
 
         if (!$ticket) {
-            // Cannot log with null ticket_id due to FK constraint — just return error
-            return redirect()->back()->with('error', 'Ticket not found or does not belong to your event.');
+            Log::warning("Ticket Scan Failed: Not Found", ['code' => $code]);
+            return redirect()->back()->with('error', 'Ticket not found in system.');
         }
+
+        // Only restrict by organizer if the user is not an admin
+        if (!$isAdmin) {
+            $ticketEventOrganizerId = $ticket->detail->transaction->event->organizer_id;
+            if ($ticketEventOrganizerId !== $organizerId) {
+                Log::warning("Ticket Scan Failed: Wrong Organizer", [
+                    'ticket_id' => $ticket->id,
+                    'event_organizer' => $ticketEventOrganizerId,
+                    'scanner_organizer' => $organizerId
+                ]);
+                return redirect()->back()->with('error', 'This ticket belongs to an event from another organizer.');
+            }
+        }
+
+        Log::info("Ticket Found", ['ticket_id' => $ticket->id, 'status' => $ticket->ticket_status]);
 
         // DB column is ticket_status, enum values: Pending | Valid | Checked-In | Expired | Failed
         if ($ticket->ticket_status === 'Checked-In') {
@@ -88,7 +118,16 @@ class ValidationLogController extends Controller
             return redirect()->back()->with('error', 'Ticket has already been used (Check-in Failed).');
         }
 
-        if ($ticket->ticket_status === 'Failed' || $ticket->ticket_status === 'Pending') {
+        if ($ticket->ticket_status === 'Expired') {
+            ValidationLog::create([
+                'ticket_id'       => $ticket->id,
+                'validation_time' => now(),
+                'result'          => 'Expired',
+            ]);
+            return redirect()->back()->with('error', 'Ticket has expired and cannot be used.');
+        }
+
+        if ($ticket->ticket_status !== 'Valid') {
             ValidationLog::create([
                 'ticket_id'       => $ticket->id,
                 'validation_time' => now(),

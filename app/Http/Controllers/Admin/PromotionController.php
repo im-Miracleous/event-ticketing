@@ -115,15 +115,18 @@ class PromotionController extends Controller
                 'min_spending'        => $promotion->min_spending,
                 'quota'               => $promotion->quota,
                 'used_count'          => $promotion->transactions_count,
-                'start_date'          => Carbon::parse($promotion->start_date)->format('M d, Y'),
-                'end_date'            => Carbon::parse($promotion->end_date)->format('M d, Y'),
+                'start_date'          => Carbon::parse($promotion->start_date)->format('Y-m-d'),
+                'end_date'            => Carbon::parse($promotion->end_date)->format('Y-m-d'),
+                'start_date_formatted' => Carbon::parse($promotion->start_date)->format('M d, Y'),
+                'end_date_formatted' => Carbon::parse($promotion->end_date)->format('M d, Y'),
                 'event'               => $promotion->event?->title ?? 'All Events',
                 'event_id'            => $promotion->event_id,
                 'terms_and_conditions' => $promotion->terms_and_conditions,
                 'banner_url'          => $promotion->banner_path ? asset('storage/' . $promotion->banner_path) : null,
                 'created_at'          => $promotion->created_at->format('M d, Y H:i'),
                 'status'              => Carbon::parse($promotion->end_date)->isPast() ? 'Expired' : 'Active',
-            ]
+            ],
+            'events' => \App\Models\Event::where('status', 'Active')->get(['id', 'title']),
         ]);
     }
 
@@ -202,6 +205,34 @@ class PromotionController extends Controller
         $promotion->update($data);
 
         return back()->with('success', 'Terms updated successfully.');
+    }
+
+    public function updateBanner(Request $request, int $id)
+    {
+        $promotion = Promotion::findOrFail($id);
+        
+        if ($request->input('action') === 'delete') {
+            if ($promotion->banner_path) {
+                \Storage::disk('public')->delete($promotion->banner_path);
+                $promotion->update(['banner_path' => null]);
+            }
+            return back()->with('success', 'Banner deleted successfully.');
+        }
+
+        $request->validate([
+            'banner' => 'required|image|max:2048',
+        ]);
+
+        if ($request->hasFile('banner')) {
+            // Delete old banner if exists
+            if ($promotion->banner_path) {
+                \Storage::disk('public')->delete($promotion->banner_path);
+            }
+            $path = $request->file('banner')->store('promotions', 'public');
+            $promotion->update(['banner_path' => $path]);
+        }
+
+        return back()->with('success', 'Banner updated successfully.');
     }
 
     /**

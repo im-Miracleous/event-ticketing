@@ -36,6 +36,8 @@ export default function CheckIn({ history, stats }: any) {
     const [scannerLoaded, setScannerLoaded] = useState(false);
     const qrRef = useRef<Html5Qrcode | null>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
+    const [isLocked, setIsLocked] = useState(false);
+    const lastScanRef = useRef<{ code: string; time: number } | null>(null);
 
     useEffect(() => {
         if (flash?.success) {
@@ -98,12 +100,28 @@ export default function CheckIn({ history, stats }: any) {
     };
 
     const handleScanSuccess = (text: string) => {
+        const now = Date.now();
+
+        // 1. Prevent overlapping requests
+        if (isLocked || processing) return;
+
+        // 2. Prevent immediate re-scan of the SAME code (3s cooldown)
+        if (lastScanRef.current?.code === text && now - lastScanRef.current.time < 3000) {
+            return;
+        }
+
+        setIsLocked(true);
+        lastScanRef.current = { code: text, time: now };
+        
         setData('code', text);
-        // Submit directly via Inertia by using router.post with the scanned value
-        // This avoids DOM event dispatch race conditions
-        if (processing) return;
+
         router.post(route('organizer.check-in.store'), { code: text }, {
             preserveState: true,
+            onStart: () => setIsLocked(true),
+            onFinish: () => {
+                // Keep locked for a tiny bit longer to allow UI to breathe
+                setTimeout(() => setIsLocked(false), 500);
+            },
             onSuccess: () => reset('code'),
         });
     };

@@ -173,10 +173,15 @@ export default function AdminPromotions({ promotions, events, filters }: Props) 
         e.preventDefault();
         
         // Ensure event_id is properly handled for "All Events"
-        const submitData = {
+        // Also ensure we only send the banner if it's a new file (not the existing URL string)
+        const submitData: any = {
             ...data,
             event_id: data.event_id === '' ? null : data.event_id,
         };
+
+        if (typeof data.banner === 'string') {
+            delete submitData.banner;
+        }
 
         if (isEdit && editingId) {
             // Use POST with _method: put for multipart compatibility in Laravel
