@@ -78,22 +78,19 @@ function StepIndicator({ currentStep }: { currentStep: StepKey }) {
         <div className="flex items-center gap-2 sm:gap-3 mb-10">
             {STEPS.map((s, i) => (
                 <div key={s.key} className="flex items-center gap-2">
-                    <div className={`w-9 h-9 rounded-full flex items-center justify-center text-sm font-black transition-all duration-300 ${
-                        i < currentIdx
-                            ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-500/30'
-                            : i === currentIdx
+                    <div className={`w-9 h-9 rounded-full flex items-center justify-center text-sm font-black transition-all duration-300 ${i < currentIdx
+                        ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-500/30'
+                        : i === currentIdx
                             ? 'bg-violet-600 text-white shadow-lg shadow-violet-500/30'
                             : 'bg-slate-100 dark:bg-slate-800 text-slate-400'
-                    }`}>
+                        }`}>
                         {i < currentIdx ? '✓' : i + 1}
                     </div>
-                    <span className={`text-sm font-bold hidden sm:block ${
-                        i === currentIdx ? 'text-slate-900 dark:text-white' : 'text-slate-400'
-                    }`}>{s.label}</span>
+                    <span className={`text-sm font-bold hidden sm:block ${i === currentIdx ? 'text-slate-900 dark:text-white' : 'text-slate-400'
+                        }`}>{s.label}</span>
                     {i < STEPS.length - 1 && (
-                        <div className={`w-8 h-0.5 hidden sm:block transition-colors ${
-                            i < currentIdx ? 'bg-emerald-500' : 'bg-slate-200 dark:bg-slate-700'
-                        }`} />
+                        <div className={`w-8 h-0.5 hidden sm:block transition-colors ${i < currentIdx ? 'bg-emerald-500' : 'bg-slate-200 dark:bg-slate-700'
+                            }`} />
                     )}
                 </div>
             ))}
@@ -218,11 +215,11 @@ export default function CheckoutShow({ event }: Props) {
     // Computed
     const totalTickets = useMemo(() => cart.reduce((s, c) => s + c.quantity, 0), [cart]);
     const totalPrice = useMemo(() => cart.reduce((s, c) => s + c.ticket_type.price * c.quantity, 0), [cart]);
-    
+
     const discount = useMemo(() => {
         if (!appliedPromo) return 0;
         if (totalPrice < appliedPromo.min_spending) return 0;
-        
+
         let d = 0;
         if (appliedPromo.discount_type === 'percentage') {
             d = totalPrice * (appliedPromo.discount_amount / 100);
@@ -234,7 +231,7 @@ export default function CheckoutShow({ event }: Props) {
         }
         return Math.min(d, totalPrice); // Can't discount more than total
     }, [appliedPromo, totalPrice]);
-    
+
     const finalPrice = totalPrice - discount;
 
     // Watch for price changes that might invalidate promo
@@ -244,7 +241,7 @@ export default function CheckoutShow({ event }: Props) {
             setPromoMessage({ type: 'error', text: 'Promo removed: Minimum spending is no longer met.' });
         }
         if (totalPrice === 0 && appliedPromo) {
-             setAppliedPromo(null);
+            setAppliedPromo(null);
         }
     }, [totalPrice, appliedPromo]);
 
@@ -310,7 +307,7 @@ export default function CheckoutShow({ event }: Props) {
         if (!promoInput.trim()) return;
 
         const promo = event.promotions?.find(p => p.code.toLowerCase() === promoInput.trim().toLowerCase());
-        
+
         if (!promo) {
             setPromoMessage({ type: 'error', text: 'Kode promo tidak ditemukan.' });
             return;
@@ -390,11 +387,10 @@ export default function CheckoutShow({ event }: Props) {
                                 {event.ticket_types.length === 0 ? (
                                     <p className="text-slate-500">No ticket types available for this event yet.</p>
                                 ) : event.ticket_types.map(tt => (
-                                    <div key={tt.id} className={`p-6 rounded-[2rem] border-2 transition-all duration-300 ${
-                                        getQty(tt.id) > 0
-                                            ? 'border-violet-500 bg-violet-50 dark:bg-violet-900/20 shadow-lg shadow-violet-500/10'
-                                            : 'border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900/40'
-                                    }`}>
+                                    <div key={tt.id} className={`p-6 rounded-[2rem] border-2 transition-all duration-300 ${getQty(tt.id) > 0
+                                        ? 'border-violet-500 bg-violet-50 dark:bg-violet-900/20 shadow-lg shadow-violet-500/10'
+                                        : 'border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900/40'
+                                        }`}>
                                         <div className="flex items-start justify-between gap-4">
                                             <div>
                                                 <h3 className="text-lg font-black text-slate-900 dark:text-white">{tt.name}</h3>
@@ -681,12 +677,12 @@ export default function CheckoutShow({ event }: Props) {
                                     <label className="block text-xs font-bold text-slate-500 mb-2">Promo Code</label>
                                     {!appliedPromo ? (
                                         <div className="flex gap-2">
-                                            <input 
-                                                type="text" 
-                                                value={promoInput} 
-                                                onChange={e => setPromoInput(e.target.value)} 
-                                                placeholder="Enter code..." 
-                                                className="flex-1 rounded-xl bg-slate-50 border border-slate-200 px-4 py-2 text-sm focus:ring-2 focus:ring-violet-500 outline-none uppercase"
+                                            <input
+                                                type="text"
+                                                value={promoInput}
+                                                onChange={e => setPromoInput(e.target.value)}
+                                                placeholder="Enter code..."
+                                                className="flex-1 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white px-4 py-2 text-sm focus:ring-2 focus:ring-violet-500 outline-none uppercase transition-all"
                                             />
                                             <button onClick={handleApplyPromo} className="px-4 py-2 bg-slate-900 text-white text-sm font-bold rounded-xl hover:bg-slate-800 transition-colors">Apply</button>
                                         </div>
@@ -708,7 +704,7 @@ export default function CheckoutShow({ event }: Props) {
                             )}
 
                             <div className="space-y-2 py-4 border-t border-slate-100 dark:border-slate-800 mb-6">
-                                <div className="flex justify-between font-bold text-sm text-slate-600">
+                                <div className="flex justify-between font-bold text-sm text-slate-600 dark:text-slate-300">
                                     <span>Subtotal</span>
                                     <span>{formatCurrency(totalPrice)}</span>
                                 </div>
