@@ -15,10 +15,15 @@ class Promotion extends Model {
         'start_date', 
         'end_date', 
         'event_id',
-        'terms_and_conditions'
+        'terms_and_conditions',
+        'banner_path'
     ];
 
     public function event() {
         return $this->belongsTo(Event::class, 'event_id', 'id');
+    }
+
+    public function transactions() {
+        return $this->hasMany(Transaction::class, 'promotion_id');
     }
 }

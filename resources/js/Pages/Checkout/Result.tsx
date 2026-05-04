@@ -135,9 +135,14 @@ export default function CheckoutResult({ transaction }: { transaction: Transacti
                         </Link>
                     )}
                     {isPending && (
+                        <>
                         <Link href={`/checkout/${transaction.id}/payment`} className="flex-1 text-center py-4 rounded-2xl bg-violet-600 text-white font-black shadow-lg shadow-violet-500/30 hover:bg-violet-500 transition-all">
                             Lanjutkan Pembayaran
                         </Link>
+                        <Link href={`/checkout/${transaction.id}/sync-payment`} className="flex-1 text-center py-4 rounded-2xl border border-violet-600 text-violet-600 font-bold hover:bg-violet-50 transition-all">
+                            Refresh Status
+                        </Link>
+                        </>
                     )}
                 </div>
             </div>

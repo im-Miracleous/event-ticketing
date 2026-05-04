@@ -89,7 +89,7 @@ export default function OtpVerify({ email }: { email: string }) {
                 <div className="h-1 w-12 bg-primary-500 mx-auto rounded-full mb-6" />
                 <p className="text-slate-400 text-sm max-w-xs mx-auto">
                     We've sent a 6-digit verification code to <br />
-                    <span className="text-slate-900 dark:text-white font-semibold">{email}</span>
+                    <span className="text-slate-900 dark:text-white font-semibold">{maskedEmail}</span>
                 </p>
             </div>
 
@@ -97,33 +97,36 @@ export default function OtpVerify({ email }: { email: string }) {
 
             <form onSubmit={submit} className="space-y-8">
                 {/* Digit Inputs */}
-                <div>
-                    <label htmlFor="code" className="input-label text-center block w-full mb-4">
-                        Verification Code
-                    </label>
-                    <input
-                        id="code"
-                        type="text"
-                        name="code"
-                        value={data.code}
-                        className="input-field text-center text-4xl tracking-[0.75em] font-black placeholder:text-slate-200 dark:placeholder:text-white/5 py-6"
-                        placeholder="000000"
-                        maxLength={6}
-                        onChange={(e) => setData('code', e.target.value.replace(/\D/g, ''))}
-                        required
-                        autoFocus
-                    />
+                <div className="flex justify-between gap-2 sm:gap-4">
+                    {digits.map((digit, index) => (
+                        <input
+                            key={index}
+                            ref={(el) => (inputRefs.current[index] = el)}
+                            type="text"
+                            inputMode="numeric"
+                            autoComplete="one-time-code"
+                            value={digit}
+                            onChange={(e) => handleDigitChange(index, e.target.value)}
+                            onKeyDown={(e) => handleKeyDown(index, e)}
+                            onPaste={handlePaste}
+                            className="w-full h-14 sm:h-16 text-center text-2xl font-black rounded-2xl bg-slate-100 dark:bg-white/5 border border-slate-200 dark:border-white/10 text-slate-900 dark:text-white focus:ring-4 focus:ring-primary-500/20 focus:border-primary-500/50 transition-all duration-300 shadow-inner"
+                            maxLength={1}
+                            required={index === 0}
+                            autoFocus={index === 0}
+                        />
+                    ))}
                 </div>
 
                 <div className="space-y-4">
                     <button
+                        type="submit"
                         className="w-full py-4 rounded-2xl bg-gradient-to-r from-primary-600 to-primary-700 text-white font-bold text-sm uppercase tracking-widest
                             hover:from-primary-500 hover:to-primary-600 focus:outline-none focus:ring-4 focus:ring-primary-500/30
                             transition-all duration-300 shadow-xl shadow-primary-600/20
                             disabled:opacity-50 disabled:cursor-not-allowed
                             transform hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.99]
                             flex items-center justify-center gap-2"
-                        disabled={processing || digits.some(d => !d)}
+                        disabled={processing || data.code.length !== 6}
                     >
                         <span>Verify Account</span>
                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">

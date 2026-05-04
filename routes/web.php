@@ -1,29 +1,53 @@
 <?php
 
-use Illuminate\Foundation\Application;
-use Illuminate\Support\Facades\Route;
-use Inertia\Inertia;
-
+use App\Http\Controllers\Admin;
+use App\Http\Controllers\CheckoutController;
+use App\Http\Controllers\DokuNotificationController;
 // General Controllers
-use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\EventCatalogController;
 use App\Http\Controllers\EventController;
-use App\Http\Controllers\SearchController;
-use App\Http\Controllers\CheckoutController;
 use App\Http\Controllers\MyTicketsController;
-use App\Http\Controllers\WishlistController;
-use App\Http\Controllers\WaitingListController;
-use App\Http\Controllers\DokuNotificationController;
-use App\Http\Controllers\TicketTypeController;
-use App\Http\Controllers\ValidationLogController;
-
-// Organizer Controllers
+use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\Organizer\AttendeeController as OrganizerAttendeeController;
 use App\Http\Controllers\Organizer\EarningController as OrganizerEarningController;
 use App\Http\Controllers\Organizer\PromotionController as OrganizerPromotionController;
+use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\SearchController;
+use App\Http\Controllers\TicketTypeController;
+use App\Http\Controllers\ValidationLogController;
+// Organizer Controllers
+use App\Http\Controllers\WaitingListController;
+use App\Http\Controllers\WishlistController;
+use Illuminate\Foundation\Application;
+use Illuminate\Support\Facades\Route;
+use Inertia\Inertia;
+use Illuminate\Support\Facades\Http;
 
-// Admin Controllers
-use App\Http\Controllers\Admin;
+// Dev-only tunnel health check endpoint
+Route::get('/_dev/tunnel-status', function () {
+    if (!app()->environment('local')) abort(404);
+    
+    $configUrl = config('app.url');
+    $isProcessRunning = false;
+    $actualUrl = null;
+    
+    try {
+        $apiResponse = Http::timeout(1)->get('http://127.0.0.1:4040/api/tunnels')->json();
+        if ($apiResponse) {
+            $isProcessRunning = true;
+            $actualUrl = $apiResponse['tunnels'][0]['public_url'] ?? null;
+        }
+    } catch (\Exception $e) {}
+
+    return response()->json([
+        'configured_url' => $configUrl,
+        'is_ngrok' => str_contains($configUrl, 'ngrok'),
+        'current_host' => request()->getHost(),
+        'is_matching' => str_contains(request()->getHost(), parse_url($configUrl, PHP_URL_HOST) ?? $configUrl),
+        'process_running' => $isProcessRunning,
+        'actual_url' => $actualUrl,
+    ]);
+});
 
 Route::get('/', function () {
     return Inertia::render('Welcome', [
@@ -36,7 +60,7 @@ Route::get('/', function () {
 
 Route::get('/dashboard', function () {
     $user = auth()->user();
-    
+
     if (in_array($user->role, ['Root', 'Admin'])) {
         return redirect()->route('admin.dashboard');
     }
@@ -59,7 +83,8 @@ Route::middleware(['auth', 'role:User'])->group(function () {
     Route::get('/checkout/{transactionId}/payment', [CheckoutController::class, 'payment'])->name('checkout.payment');
     Route::post('/checkout/{transactionId}/confirm', [CheckoutController::class, 'confirmPayment'])->name('checkout.confirm');
     Route::post('/checkout/{transactionId}/cancel', [CheckoutController::class, 'cancel'])->name('checkout.cancel');
-    Route::get('/checkout/{transactionId}/result', [CheckoutController::class, 'result'])->name('checkout.result');
+    Route::match(['get', 'post'], '/checkout/{transactionId}/result', [CheckoutController::class, 'result'])->name('checkout.result');
+    Route::get('/checkout/{transactionId}/sync-payment', [CheckoutController::class, 'syncPaymentStatus'])->name('checkout.sync-payment');
 
     // My Tickets
     Route::get('/my-tickets', [MyTicketsController::class, 'index'])->name('tickets.my');
@@ -75,6 +100,9 @@ Route::middleware(['auth', 'role:User'])->group(function () {
     Route::get('/waiting-list', [WaitingListController::class, 'index'])->name('waiting-list.index');
     Route::post('/waiting-list', [WaitingListController::class, 'store'])->name('waiting-list.store');
     Route::post('/waiting-list/{id}/cancel', [WaitingListController::class, 'cancel'])->name('waiting-list.cancel');
+
+    // Promotions (Public Detail View)
+    Route::get('/promos/{code}', [\App\Http\Controllers\PromotionDetailController::class, 'show'])->name('promos.public.show');
 });
 
 Route::middleware('auth')->group(function () {
@@ -83,11 +111,11 @@ Route::middleware('auth')->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
-    
+
     // Notifications
-    Route::get('/notifications', [\App\Http\Controllers\NotificationController::class, 'index'])->name('notifications.index');
-    Route::post('/notifications/{id}/mark-read', [\App\Http\Controllers\NotificationController::class, 'markAsRead'])->name('notifications.markRead');
-    Route::post('/notifications/mark-all-read', [\App\Http\Controllers\NotificationController::class, 'markAllAsRead'])->name('notifications.markAllRead');
+    Route::get('/notifications', [NotificationController::class, 'index'])->name('notifications.index');
+    Route::post('/notifications/{id}/mark-read', [NotificationController::class, 'markAsRead'])->name('notifications.markRead');
+    Route::post('/notifications/mark-all-read', [NotificationController::class, 'markAllAsRead'])->name('notifications.markAllRead');
 });
 
 // DOKU Payment Notification Webhook (no auth, CSRF-exempt)
@@ -99,7 +127,7 @@ Route::middleware(['auth', 'verified', 'role:Organizer'])->prefix('organizer')->
     Route::get('/', function () {
         return redirect()->route('organizer.dashboard');
     });
-    
+
     Route::get('/dashboard', [EventController::class, 'dashboard'])->name('dashboard');
     Route::get('/export-sales', [EventController::class, 'exportSales'])->name('export-sales');
 
@@ -113,7 +141,7 @@ Route::middleware(['auth', 'verified', 'role:Organizer'])->prefix('organizer')->
     Route::patch('/events/{event}/status', [EventController::class, 'updateStatus'])->name('events.updateStatus');
 
     Route::get('/transactions', [EventController::class, 'transactions'])->name('transactions.index');
-    
+
     // Promotions
     Route::resource('promotions', OrganizerPromotionController::class)->except(['create', 'show', 'edit']);
 
@@ -131,6 +159,7 @@ Route::middleware(['auth', 'verified', 'role:Organizer'])->prefix('organizer')->
     // Check-In (QR Scanner)
     Route::get('/check-in', [ValidationLogController::class, 'index'])->name('check-in');
     Route::post('/check-in', [ValidationLogController::class, 'store'])->name('check-in.store');
+    Route::post('/check-in/verify', [ValidationLogController::class, 'verify'])->name('check-in.verify');
 });
 
 // ─── Admin Routes ───────────────────
@@ -169,6 +198,8 @@ Route::middleware(['auth', 'verified', 'role:Root,Admin'])->prefix('admin')->nam
     Route::post('/promotions', [Admin\PromotionController::class, 'store'])->name('promotions.store');
     Route::get('/promotions/{id}', [Admin\PromotionController::class, 'show'])->name('promotions.show');
     Route::put('/promotions/{id}', [Admin\PromotionController::class, 'update'])->name('promotions.update');
+    Route::patch('/promotions/{id}/terms', [Admin\PromotionController::class, 'updateTerms'])->name('promotions.updateTerms');
+    Route::post('/promotions/{id}/banner', [Admin\PromotionController::class, 'updateBanner'])->name('promotions.updateBanner');
     Route::delete('/promotions/{id}', [Admin\PromotionController::class, 'destroy'])->name('promotions.destroy');
 
     // Validation Logs

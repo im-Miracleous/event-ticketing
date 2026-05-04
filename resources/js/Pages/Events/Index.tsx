@@ -67,9 +67,16 @@ interface Filters {
     page?: number;
 }
 
+interface GlobalPromotion {
+    id: number;
+    code: string;
+    banner_url: string;
+}
+
 interface Props {
     events: PaginatedEvents;
     trendingEvents: EventItem[];
+    globalPromotions: GlobalPromotion[];
     categories: Category[];
     filters: Filters;
     savedEventIds: (string | number)[];
@@ -120,7 +127,7 @@ const PinIcon = () => (
 function EventCard({ event, isSaved, onToggleSave }: { event: EventItem; isSaved: boolean; onToggleSave: () => void }) {
     const minPrice = event.ticket_types?.length > 0
         ? Math.min(...event.ticket_types.map(t => Number(t.price)))
-        : 0;
+        : null;
 
     const fallbackImg = `https://images.unsplash.com/photo-1501281668745-f7f57925c3b4?q=80&w=800&auto=format&fit=crop`;
 
@@ -191,7 +198,7 @@ function EventCard({ event, isSaved, onToggleSave }: { event: EventItem; isSaved
                     <div className="flex flex-col">
                         <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">Price starts from</span>
                         <span className="text-lg font-black text-slate-900 dark:text-white">
-                            {minPrice > 0 ? formatCurrency(minPrice) : 'FREE'}
+                            {minPrice !== null ? (minPrice > 0 ? formatCurrency(minPrice) : 'FREE') : 'N/A'}
                         </span>
                     </div>
                     <div
@@ -208,7 +215,7 @@ function EventCard({ event, isSaved, onToggleSave }: { event: EventItem; isSaved
 }
 
 // ─── Main Catalog Page ──────────────────────────────────────────────────────
-export default function EventCatalog({ events, trendingEvents, categories, filters, savedEventIds = [] }: Props) {
+export default function EventCatalog({ events, trendingEvents, globalPromotions = [], categories, filters, savedEventIds = [] }: Props) {
     const [savedIds, setSavedIds] = useState<(string | number)[]>(savedEventIds);
 
     const toggleSave = (eventId: string | number) => {
@@ -255,6 +262,13 @@ export default function EventCatalog({ events, trendingEvents, categories, filte
 
     // Skip the very first render since `events` is already passed via props
     const [isInitialMount, setIsInitialMount] = useState(true);
+
+    const [copiedCode, setCopiedCode] = useState<string | null>(null);
+    const handleCopy = (code: string) => {
+        navigator.clipboard.writeText(code);
+        setCopiedCode(code);
+        setTimeout(() => setCopiedCode(null), 2000);
+    };
 
     useEffect(() => {
         if (isInitialMount) {
@@ -320,6 +334,55 @@ export default function EventCatalog({ events, trendingEvents, categories, filte
                     </div>
                 </div>
             </section>
+
+            {/* ── GLOBAL PROMOTIONS BANNER ── */}
+            {globalPromotions?.length > 0 && (
+                <section className="mb-16 -mt-8 relative z-20">
+                    <div className="flex items-center gap-3 mb-6">
+                        <div className="w-1.5 h-6 bg-violet-600 rounded-full" />
+                        <h2 className="text-xl font-bold text-slate-900 dark:text-white uppercase tracking-wider">Featured Offers</h2>
+                    </div>
+                    
+                    <div className="flex overflow-x-auto no-scrollbar gap-6 pb-4 px-1">
+                        {globalPromotions.map((promo) => (
+                            <div 
+                                key={promo.id} 
+                                className="relative flex-none w-full md:w-[800px] aspect-[21/9] rounded-[2.5rem] overflow-hidden group border border-slate-200 dark:border-white/5 shadow-2xl shadow-slate-200/50 dark:shadow-none transition-transform hover:scale-[1.01] duration-500"
+                            >
+                                <Link href={route('promos.public.show', promo.code)}>
+                                    <img src={promo.banner_url} alt={promo.code} className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" />
+                                    <div className="absolute inset-0 bg-gradient-to-r from-black/80 via-black/20 to-transparent" />
+                                </Link>
+                                
+                                <div className="absolute inset-0 pointer-events-none flex flex-col justify-center px-12 text-left">
+                                    <div className="max-w-md pointer-events-auto">
+                                        <span className="inline-block px-4 py-1.5 rounded-full bg-violet-600/90 backdrop-blur-md text-white text-[10px] font-bold uppercase tracking-[0.2em] mb-4">Limited Time Offer</span>
+                                        <h3 className="text-3xl md:text-4xl font-bold text-white mb-6 tracking-tight">Use code <span className="text-violet-400 font-mono">{promo.code}</span> for extra savings!</h3>
+                                        <div className="flex gap-4">
+                                            <button 
+                                                onClick={() => handleCopy(promo.code)}
+                                                className={`px-8 py-3 rounded-2xl font-bold text-sm transition-all transform hover:scale-105 active:scale-95 shadow-xl ${
+                                                    copiedCode === promo.code 
+                                                    ? 'bg-emerald-500 text-white' 
+                                                    : 'bg-white text-slate-900 hover:bg-violet-600 hover:text-white'
+                                                }`}
+                                            >
+                                                {copiedCode === promo.code ? 'Copied!' : 'Claim Discount'}
+                                            </button>
+                                            <Link 
+                                                href={route('promos.public.show', promo.code)}
+                                                className="px-8 py-3 bg-white/10 backdrop-blur-md text-white border border-white/20 rounded-2xl font-bold text-sm hover:bg-white/20 transition-all shadow-xl"
+                                            >
+                                                View Terms
+                                            </Link>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                </section>
+            )}
 
             {/* ── TRENDING SECTION (Carousel Style) ── */}
             {trendingEvents?.length > 0 && (

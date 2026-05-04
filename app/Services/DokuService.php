@@ -9,7 +9,9 @@ use Illuminate\Support\Str;
 class DokuService
 {
     protected string $clientId;
+
     protected string $secretKey;
+
     protected string $baseUrl;
 
     public function __construct()
@@ -20,14 +22,14 @@ class DokuService
         $this->baseUrl = rtrim(config('doku.base_url'), '/');
     }
 
-    /**
-     * Generate DOKU SNAP signature for request.
-     */
     protected function generateSignature(string $requestId, string $requestTimestamp, string $requestTarget, string $body = ''): string
     {
-        // Component Signature = Client-Id + ":" + Request-Id + ":" + Request-Timestamp + ":" + Request-Target + ":" + Digest
-        $digest = base64_encode(hash('sha256', $body, true));
-        $componentSignature = "Client-Id:{$this->clientId}\nRequest-Id:{$requestId}\nRequest-Timestamp:{$requestTimestamp}\nRequest-Target:{$requestTarget}\nDigest:{$digest}";
+        $componentSignature = "Client-Id:{$this->clientId}\nRequest-Id:{$requestId}\nRequest-Timestamp:{$requestTimestamp}\nRequest-Target:{$requestTarget}";
+        
+        if ($body !== '') {
+            $digest = base64_encode(hash('sha256', $body, true));
+            $componentSignature .= "\nDigest:{$digest}";
+        }
 
         $signature = base64_encode(hash_hmac('sha256', $componentSignature, $this->secretKey, true));
 
@@ -37,15 +39,14 @@ class DokuService
     /**
      * Create a Virtual Account payment order via DOKU.
      *
-     * @param array $params [
-     *   'invoice_number' => string,
-     *   'amount'         => int,
-     *   'customer_name'  => string,
-     *   'customer_email' => string,
-     *   'item_name'      => string,
-     *   'channel'        => string (e.g. 'MANDIRI', 'BCA', 'BNI', 'BRI', 'PERMATA', 'CIMB')
-     * ]
-     * @return array|null
+     * @param  array  $params  [
+     *                         'invoice_number' => string,
+     *                         'amount'         => int,
+     *                         'customer_name'  => string,
+     *                         'customer_email' => string,
+     *                         'item_name'      => string,
+     *                         'channel'        => string (e.g. 'MANDIRI', 'BCA', 'BNI', 'BRI', 'PERMATA', 'CIMB')
+     *                         ]
      */
     public function createVirtualAccount(array $params): ?array
     {
@@ -55,12 +56,14 @@ class DokuService
 
         $expiryMinutes = config('doku.expiry_minutes', 60);
 
-        $appUrl = rtrim(config('app.url', 'https://dosinyam.com'), '/');
+        // Use current request URL for callback if we are in local to ensure browser can redirect back
+        $appUrl = app()->environment('local') ? request()->root() : rtrim(config('app.url', 'https://dosinyam.com'), '/');
+        
         $body = [
             'order' => [
                 'amount' => $params['amount'],
                 'invoice_number' => $params['invoice_number'],
-                'callback_url' => $appUrl . '/checkout/' . $params['invoice_number'] . '/result',
+                'callback_url' => $appUrl.'/checkout/'.$params['invoice_number'].'/result',
                 'auto_redirect' => true,
             ],
             'payment' => [
@@ -75,9 +78,8 @@ class DokuService
 
         $jsonBody = json_encode($body);
 
-
         Log::info('DOKU Request Payload', [
-            'url' => $this->baseUrl . $requestTarget,
+            'url' => $this->baseUrl.$requestTarget,
             'client_id' => $this->clientId,
             'body' => $body,
         ]);
@@ -92,7 +94,7 @@ class DokuService
                 'Request-Timestamp' => $requestTimestamp,
                 'Signature' => $signature,
                 'Content-Type' => 'application/json',
-            ])->post($this->baseUrl . $requestTarget, $body);
+            ])->post($this->baseUrl.$requestTarget, $body);
 
             Log::info('DOKU Raw Response', [
                 'status' => $response->status(),
@@ -102,6 +104,7 @@ class DokuService
             if ($response->successful()) {
                 $data = $response->json();
                 Log::info('DOKU VA created successfully', ['response' => $data]);
+
                 return $data;
             }
 
@@ -116,6 +119,7 @@ class DokuService
                 'message' => $e->getMessage(),
                 'trace' => $e->getTraceAsString(),
             ]);
+
             return null;
         }
     }
@@ -134,8 +138,44 @@ class DokuService
         $digest = base64_encode(hash('sha256', $rawBody, true));
         $componentSignature = "Client-Id:{$clientId}\nRequest-Id:{$requestId}\nRequest-Timestamp:{$requestTimestamp}\nRequest-Target:{$requestTarget}\nDigest:{$digest}";
 
-        $expectedSignature = 'HMACSHA256=' . base64_encode(hash_hmac('sha256', $componentSignature, $this->secretKey, true));
+        $expectedSignature = 'HMACSHA256='.base64_encode(hash_hmac('sha256', $componentSignature, $this->secretKey, true));
 
         return hash_equals($expectedSignature, $notificationSignature);
+    }
+
+    /**
+     * Check the status of a payment via DOKU.
+     */
+    public function checkPaymentStatus(string $invoiceNumber): ?array
+    {
+        $requestId = Str::uuid()->toString();
+        $requestTimestamp = gmdate("Y-m-d\TH:i:s\Z");
+        $requestTarget = "/orders/v1/status/{$invoiceNumber}";
+
+        $signature = $this->generateSignature($requestId, $requestTimestamp, $requestTarget, '');
+
+        try {
+            $response = Http::withHeaders([
+                'Client-Id' => $this->clientId,
+                'Request-Id' => $requestId,
+                'Request-Timestamp' => $requestTimestamp,
+                'Signature' => $signature,
+            ])->get($this->baseUrl.$requestTarget);
+
+            if ($response->successful()) {
+                return $response->json();
+            }
+
+            Log::error('DOKU Status Check failed', [
+                'status' => $response->status(),
+                'body' => $response->body(),
+            ]);
+
+            return null;
+        } catch (\Exception $e) {
+            Log::error('DOKU Status Check Exception', ['message' => $e->getMessage()]);
+
+            return null;
+        }
     }
 }

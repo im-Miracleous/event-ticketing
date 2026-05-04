@@ -9,6 +9,11 @@ class Ticket extends Model {
     public $incrementing = false;
 
     protected $keyType = 'string';
+    
+    public function getRouteKeyName()
+    {
+        return 'qr_code';
+    }
 
     protected $fillable = [
         'id', 

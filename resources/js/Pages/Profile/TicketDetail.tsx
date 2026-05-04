@@ -350,7 +350,7 @@ export default function TicketDetail({ ticket }: { ticket: Ticket }) {
 
                         {canPrint ? (
                             <a
-                                href={`/my-tickets/${ticket.id}/print`}
+                                href={`/my-tickets/${ticket.qr_code}/print`}
                                 target="_blank"
                                 rel="noopener noreferrer"
                                 className="w-full py-4 rounded-2xl bg-slate-900 dark:bg-white text-white dark:text-slate-900 font-black shadow-xl hover:scale-[1.02] transition-all flex items-center justify-center gap-3"

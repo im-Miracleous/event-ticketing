@@ -65,7 +65,7 @@ class DokuNotificationController extends Controller
         }
 
         DB::transaction(function () use ($transaction, $payment, $transactionStatus, $data) {
-            if ($transactionStatus === 'SUCCESS') {
+            if (strtoupper($transactionStatus) === 'SUCCESS') {
                 $transaction->update(['transaction_status' => 'Success']);
                 $payment->update([
                     'payment_status'    => 'Success',
@@ -86,7 +86,7 @@ class DokuNotificationController extends Controller
                     Mail::to($user->email)->send(new ETicketMail($transaction));
                 }
 
-            } elseif (in_array($transactionStatus, ['FAILED', 'EXPIRED', 'DENIED'])) {
+            } elseif (in_array(strtoupper($transactionStatus), ['FAILED', 'EXPIRED', 'DENIED', 'CANCEL', 'CANCELLED'])) {
                 $transaction->update(['transaction_status' => 'Failed']);
                 $payment->update([
                     'payment_status'    => 'Failed',

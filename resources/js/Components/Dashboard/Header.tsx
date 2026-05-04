@@ -2,6 +2,7 @@ import Dropdown from '@/Components/Dropdown';
 import { usePage, Link } from '@inertiajs/react';
 import type { UserRole } from '@/config/navigation';
 import NotificationDropdown from './NotificationDropdown';
+import TunnelStatusIndicator from './TunnelStatusIndicator';
 
 interface HeaderProps {
     onMenuToggle: () => void;
@@ -58,6 +59,9 @@ export default function Header({ onMenuToggle, onCollapseToggle, isCollapsed, is
                 </div>
 
                 <div className="flex items-center gap-2">
+                    {/* Tunnel Reachability (Dev Only) */}
+                    <TunnelStatusIndicator />
+
                     {/* Theme toggle */}
                     <button
                         onClick={onThemeToggle}
